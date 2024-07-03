@@ -1,0 +1,12 @@
+[submodule "thirdparty/asio"]
+	path = thirdparty/asio
+	url = git@github.com:boostorg/asio.git
+[submodule "thirdparty/googletest"]
+	path = thirdparty/googletest
+	url = git@github.com:google/googletest.git
+[submodule "thirdparty/json"]
+	path = thirdparty/json
+	url = git@github.com:nlohmann/json.git
+[submodule "thirdparty/spdlog"]
+	path = thirdparty/spdlog
+	url = git@github.com:gabime/spdlog.git
