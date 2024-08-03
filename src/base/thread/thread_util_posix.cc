@@ -59,8 +59,8 @@ void *thread_util::tls_get(std::uintptr_t key) {
   return pthread_getspecific(static_cast<pthread_key_t>(key));
 }
 
-int thread_util::tls_free(std::uintptr_t key) {
-  int ret = pthread_key_delete(static_cast<pthread_key_t>(key));
+int thread_util::tls_free(std::uintptr_t *key) {
+  int ret = pthread_key_delete(static_cast<pthread_key_t>(*key));
   if (ret != 0) {
     LOG_ERROR("failed to free thread local storage key: {}", ret);
     return traa_error::TRAA_ERROR_UNKNOWN;
