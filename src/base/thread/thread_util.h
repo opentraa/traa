@@ -69,7 +69,7 @@ public:
    *
    * @return traa_error::TRAA_ERROR_NONE if successful, otherwise an error code.
    */
-  static int tls_free(std::uintptr_t key);
+  static int tls_free(std::uintptr_t *key);
 };
 
 } // namespace base

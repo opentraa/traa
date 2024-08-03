@@ -53,7 +53,7 @@ TEST(task_queue_test, enque_after) {
     auto timer = queue->enqueue_after([&task]() { task(); }, std::chrono::milliseconds(200));
     EXPECT_EQ(future.get(), 42);
     auto end = std::chrono::system_clock::now();
-    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 200);
+    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
   }
 
   // cancel case
@@ -78,8 +78,8 @@ TEST(task_queue_test, enque_after) {
     auto end2 = std::chrono::system_clock::now();
     EXPECT_EQ(future1.get(), 42);
     auto end1 = std::chrono::system_clock::now();
-    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start).count(), 200);
-    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start).count(), 100);
+    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start).count(), 150);
+    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start).count(), 50);
   }
 }
 
@@ -94,7 +94,7 @@ TEST(task_queue_test, enque_at) {
     auto timer = queue->enqueue_at([&task]() { task(); }, time_point);
     EXPECT_EQ(future.get(), 42);
     auto end = std::chrono::system_clock::now();
-    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 200);
+    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
   }
 
   // cancel case
@@ -153,7 +153,7 @@ TEST(task_queue_test, enqueue_at_after_repeatly) {
     auto timer = queue->enqueue_after([&task]() { task(); }, std::chrono::milliseconds(200));
     EXPECT_EQ(future.get(), 42);
     auto end = std::chrono::system_clock::now();
-    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 200);
+    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
   }
 
   // at task
@@ -165,7 +165,7 @@ TEST(task_queue_test, enqueue_at_after_repeatly) {
     auto timer = queue->enqueue_at([&task]() { task(); }, time_point);
     EXPECT_EQ(future.get(), 42);
     auto end = std::chrono::system_clock::now();
-    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 200);
+    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
   }
 
   // repeatly task

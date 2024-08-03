@@ -351,13 +351,15 @@ endif()
 # ##############################################################################
 # TRAA Unittest Section
 # ##############################################################################
-add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/googletest)
-set_property(TARGET gtest PROPERTY FOLDER "thirdparty/googletest")
-set_property(TARGET gtest_main PROPERTY FOLDER "thirdparty/googletest")
-set_property(TARGET gmock PROPERTY FOLDER "thirdparty/googletest")
-set_property(TARGET gmock_main PROPERTY FOLDER "thirdparty/googletest")
+if (NOT IOS AND NOT VISIONOS AND NOT ANDROID)
+    add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/googletest)
+    set_property(TARGET gtest PROPERTY FOLDER "thirdparty/googletest")
+    set_property(TARGET gtest_main PROPERTY FOLDER "thirdparty/googletest")
+    set_property(TARGET gmock PROPERTY FOLDER "thirdparty/googletest")
+    set_property(TARGET gmock_main PROPERTY FOLDER "thirdparty/googletest")
 
-add_subdirectory(${CMAKE_HOME_DIRECTORY}/tests)
+    add_subdirectory(${CMAKE_HOME_DIRECTORY}/tests)
+endif()
 
 # ##############################################################################
 # TRAA Console Section

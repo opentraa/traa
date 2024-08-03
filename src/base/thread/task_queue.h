@@ -402,7 +402,8 @@ public:
     self.task_queues_.clear();
 
     if (self.tls_key_ != UINTPTR_MAX) {
-      thread_util::tls_free(self.tls_key_);
+      std::uintptr_t tls_key = self.tls_key_;
+      thread_util::tls_free(&tls_key);
 
       // must reset the TLS key to UINTPTR_MAX, coz task queue manager is a singleton
       self.tls_key_ = UINTPTR_MAX;
