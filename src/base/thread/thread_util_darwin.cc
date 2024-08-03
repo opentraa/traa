@@ -51,17 +51,20 @@ int thread_util::tls_alloc(std::uintptr_t *key, void (*destructor)(void *)) {
     return traa_error::TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  int ret = pthread_key_create(key, destructor);
+  pthread_key_t key_t;
+  int ret = pthread_key_create(&key_t, destructor);
   if (ret != 0) {
     LOG_ERROR("failed to allocate thread local storage key: {}", ret);
     return traa_error::TRAA_ERROR_UNKNOWN;
   }
 
+  *key = static_cast<std::uintptr_t>(key_t);
+
   return traa_error::TRAA_ERROR_NONE;
 }
 
 int thread_util::tls_set(std::uintptr_t key, void *value) {
-  int ret = pthread_setspecific(key, value);
+  int ret = pthread_setspecific(static_cast<pthread_key_t>(key), value);
   if (ret != 0) {
     LOG_ERROR("failed to set thread local storage key: {}", ret);
     return traa_error::TRAA_ERROR_UNKNOWN;
@@ -70,10 +73,12 @@ int thread_util::tls_set(std::uintptr_t key, void *value) {
   return traa_error::TRAA_ERROR_NONE;
 }
 
-void *thread_util::tls_get(std::uintptr_t key) { return pthread_getspecific(key); }
+void *thread_util::tls_get(std::uintptr_t key) {
+  return pthread_getspecific(static_cast<pthread_key_t>(key));
+}
 
-int thread_util::tls_free(std::uintptr_t key) {
-  int ret = pthread_key_delete(key);
+int thread_util::tls_free(std::uintptr_t *key) {
+  int ret = pthread_key_delete(static_cast<pthread_key_t>(*key));
   if (ret != 0) {
     LOG_ERROR("failed to free thread local storage key: {}", ret);
     return traa_error::TRAA_ERROR_UNKNOWN;

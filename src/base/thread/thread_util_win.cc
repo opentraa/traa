@@ -57,7 +57,7 @@ int thread_util::tls_alloc(std::uintptr_t *key, void (*)(void *)) {
 }
 
 int thread_util::tls_set(std::uintptr_t key, void *value) {
-  if (TlsSetValue(static_cast<DWORD>(key), value) == 0) {
+  if (!TlsSetValue(static_cast<DWORD>(key), value)) {
     LOG_ERROR("failed to set thread local storage key: {}", GetLastError());
     return traa_error::TRAA_ERROR_UNKNOWN;
   }
@@ -67,11 +67,23 @@ int thread_util::tls_set(std::uintptr_t key, void *value) {
 
 void *thread_util::tls_get(std::uintptr_t key) { return TlsGetValue(static_cast<DWORD>(key)); }
 
-int thread_util::tls_free(std::uintptr_t key) {
-  if (TlsFree(static_cast<DWORD>(key)) == 0) {
+int thread_util::tls_free(std::uintptr_t *key) {
+  if (!TlsFree(static_cast<DWORD>(*key))) {
     LOG_ERROR("failed to free thread local storage key: {}", GetLastError());
-    return traa_error::TRAA_ERROR_UNKNOWN;
+    // The fucking windows do not return false when we call TlsFree with valid tls key.
+    // They recommand to call TlsFree only during DLL_PROCESS_DETACH.
+    // See:
+    // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-tlsfree
+    // If the threads of the process have allocated memory and stored a pointer to the memory in a
+    // TLS slot, they should free the memory before calling TlsFree. The TlsFree function does not
+    // free memory blocks whose addresses have been stored in the TLS slots associated with the TLS
+    // index. It is expected that DLLs call this function (if at all) only during
+    // DLL_PROCESS_DETACH.
+    //
+    // return traa_error::TRAA_ERROR_UNKNOWN;
   }
+
+  *key = static_cast<std::uintptr_t>(TLS_OUT_OF_INDEXES);
 
   return traa_error::TRAA_ERROR_NONE;
 }
