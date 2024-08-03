@@ -57,7 +57,7 @@ TEST(rw_lock, rw_lock_guard) {
 TEST(rw_lock, multi_thread) {
   traa::base::rw_lock lock;
 
-  volatile int i = 0;
+  int i = 0;
   const int max_count = 50;
 
   std::thread t1([&]() {
