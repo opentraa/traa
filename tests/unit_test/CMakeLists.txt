@@ -1,6 +1,8 @@
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+enable_testing()
+
 set(TRAA_UNIT_TEST traa-unit-test)
 
 set(TRAA_UNIT_TEST_OUTPUT_NAME ${TRAA_UNIT_TEST})
@@ -83,3 +85,6 @@ elseif(UNIX)
         LINK_FLAGS "-Wl,-rpath,./"
     )
 endif()
+
+include(GoogleTest)
+gtest_discover_tests(${TRAA_UNIT_TEST})
