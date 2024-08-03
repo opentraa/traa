@@ -57,7 +57,7 @@ int thread_util::tls_alloc(std::uintptr_t *key, void (*)(void *)) {
 }
 
 int thread_util::tls_set(std::uintptr_t key, void *value) {
-  if (TlsSetValue(static_cast<DWORD>(key), value) == 0) {
+  if (TlsSetValue(static_cast<DWORD>(key), value) == false) {
     LOG_ERROR("failed to set thread local storage key: {}", GetLastError());
     return traa_error::TRAA_ERROR_UNKNOWN;
   }
@@ -68,7 +68,7 @@ int thread_util::tls_set(std::uintptr_t key, void *value) {
 void *thread_util::tls_get(std::uintptr_t key) { return TlsGetValue(static_cast<DWORD>(key)); }
 
 int thread_util::tls_free(std::uintptr_t key) {
-  if (TlsFree(static_cast<DWORD>(key)) == 0) {
+  if (TlsFree(static_cast<DWORD>(key)) == false) {
     LOG_ERROR("failed to free thread local storage key: {}", GetLastError());
     return traa_error::TRAA_ERROR_UNKNOWN;
   }
