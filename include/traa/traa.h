@@ -24,6 +24,20 @@ TRAA_API int TRAA_CALL traa_init(const traa_config *config);
 TRAA_API void TRAA_CALL traa_release();
 
 /**
+ * @brief Sets the event handler for the TRAA library.
+ *
+ * This function allows you to set the event handler for the TRAA library.
+ * The event handler is used to handle TRAA events, such as log messages.
+ *
+ * @param event_handler A pointer to a `traa_event_handler` struct that contains
+ *                      the event handler function pointers.
+ * @return An integer value indicating the success or failure of the operation.
+ *         A return value of 0 indicates success, while a non-zero value
+ *         indicates failure.
+ */
+TRAA_API int TRAA_CALL traa_set_event_handler(const traa_event_handler *event_handler);
+
+/**
  * @brief The set log level for TRAA.
  *
  * This is the set log level for TRAA, which is default to TRAA_LOG_LEVEL_INFO.

@@ -93,7 +93,7 @@ public:
       ss << "{null}";
     } else {
       ss << "{"
-         << "\"log_file\": " << log_config->log_file << ", "
+         << "\"log_file\": " << (log_config->log_file ? log_config->log_file : "null") << ", "
          << "\"max_size\": " << log_config->max_size << ", "
          << "\"max_files\": " << log_config->max_files << ", "
          << "\"level\": " << to_string(log_config->level) << "}";

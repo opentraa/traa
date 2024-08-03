@@ -141,6 +141,20 @@ typedef enum traa_error {
   TRAA_ERROR_NOT_FOUND = 18,
 
   /**
+   * @brief Not initialized error.
+   *
+   * This is a not initialized error.
+   */
+  TRAA_ERROR_NOT_INITIALIZED = 19,
+
+  /**
+   * @brief Already initialized error.
+   *
+   * This is an already initialized error.
+   */
+  TRAA_ERROR_ALREADY_INITIALIZED = 20,
+
+  /**
    * @brief Error count.
    *
    * This is the error count.
