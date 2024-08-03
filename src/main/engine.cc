@@ -16,5 +16,11 @@ int engine::init(const traa_config *config) {
   return traa_error::TRAA_ERROR_NONE;
 }
 
+int engine::set_event_handler(const traa_event_handler *event_handler) {
+  LOG_API_ONE_ARG(traa::utils::obj_string::to_string(event_handler));
+
+  return traa_error::TRAA_ERROR_NONE;
+}
+
 } // namespace main
 } // namespace traa

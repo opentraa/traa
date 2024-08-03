@@ -21,6 +21,8 @@ public:
 
   int init(const traa_config *config);
 
+  int set_event_handler(const traa_event_handler *event_handler);
+
 private:
 };
 

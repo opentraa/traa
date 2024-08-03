@@ -371,14 +371,14 @@ public:
     auto &self = instance();
 
     rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
-    if (self.tls_key_ == UINTPTR_MAX) {
+    if (self.tls_key_.load() == UINTPTR_MAX) {
       std::uintptr_t key = UINTPTR_MAX;
       int ret = thread_util::tls_alloc(&key, nullptr);
       if (ret != traa_error::TRAA_ERROR_NONE) {
         LOG_FATAL("failed to alloc tls key for task queue: {}", ret);
         abort();
       } else {
-        self.tls_key_ = key;
+        self.tls_key_.store(key);
       }
     }
   }
@@ -401,12 +401,12 @@ public:
     }
     self.task_queues_.clear();
 
-    if (self.tls_key_ != UINTPTR_MAX) {
-      std::uintptr_t tls_key = self.tls_key_;
-      thread_util::tls_free(&tls_key);
+    if (self.tls_key_.load() != UINTPTR_MAX) {
+      std::uintptr_t key = self.tls_key_.load();
+      thread_util::tls_free(&key);
 
       // must reset the TLS key to UINTPTR_MAX, coz task queue manager is a singleton
-      self.tls_key_ = UINTPTR_MAX;
+      self.tls_key_.store(UINTPTR_MAX);
     }
   }
 
@@ -417,7 +417,7 @@ public:
    */
   static std::uintptr_t get_tls_key() {
     auto &self = instance();
-    return self.tls_key_;
+    return self.tls_key_.load();
   }
 
   /**
@@ -451,7 +451,7 @@ public:
       return nullptr;
     }
 
-    self.task_queues_[id] = task_queue::make_queue(self.tls_key_, id, name);
+    self.task_queues_[id] = task_queue::make_queue(self.tls_key_.load(), id, name);
 
     return self.task_queues_[id];
   }
@@ -530,7 +530,7 @@ public:
   static bool is_on_task_queue() {
     auto &self = instance();
 
-    auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_));
+    auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_.load()));
     return queue != nullptr;
   }
 
@@ -544,7 +544,7 @@ public:
   static std::shared_ptr<task_queue> get_current_task_queue() {
     auto &self = instance();
 
-    auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_));
+    auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_.load()));
     if (!queue) {
       return nullptr;
     }
@@ -597,7 +597,7 @@ public:
 
 private:
   // The TLS key for the task queues.
-  volatile std::uintptr_t tls_key_ = UINTPTR_MAX;
+  std::atomic<std::uintptr_t> tls_key_ = {UINTPTR_MAX};
 
   // The read-write lock for the task queues.
   rw_lock lock_;
