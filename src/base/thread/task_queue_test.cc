@@ -15,8 +15,7 @@ TEST(task_queue_test, enque) {
 
   for (int i = 0; i < 50; i++) {
     auto future = queue->enqueue([&count]() { return ++count; });
-    EXPECT_TRUE(future.valid());
-    EXPECT_EQ(future.get(), count);
+    EXPECT_EQ(future.get(0), count);
   }
 
   EXPECT_EQ(count, 50);
@@ -25,9 +24,9 @@ TEST(task_queue_test, enque) {
   auto future_1 = queue->enqueue([&count]() { return ++count; });
   auto future_2 = queue->enqueue([&count]() { return ++count; });
   auto future_3 = queue->enqueue([&count]() { return ++count; });
-  EXPECT_EQ(future_1.get(), 51);
-  EXPECT_EQ(future_2.get(), 52);
-  EXPECT_EQ(future_3.get(), 53);
+  EXPECT_EQ(future_1.get(0), 51);
+  EXPECT_EQ(future_2.get(0), 52);
+  EXPECT_EQ(future_3.get(0), 53);
 }
 
 TEST(task_queue_test, enqueue_on_queue) {
@@ -142,7 +141,7 @@ TEST(task_queue_test, enqueue_at_after_repeatly) {
   // normal task
   {
     auto future = queue->enqueue([]() { return 42; });
-    EXPECT_EQ(future.get(), 42);
+    EXPECT_EQ(future.get(0), 42);
   }
 
   // after task
@@ -231,7 +230,7 @@ TEST(task_queue_manager, init_shutdown) {
   EXPECT_TRUE(traa::base::task_queue_manager::get_current_task_queue() == nullptr);
 
   // expect post task with valid queue id return valid future
-  EXPECT_TRUE(traa::base::task_queue_manager::post_task(1, []() { return 42; }).get() == 42);
+  EXPECT_TRUE(traa::base::task_queue_manager::post_task(1, []() { return 42; }).get(0) == 42);
 
   // expect post task without queue id return invalid future
   EXPECT_TRUE(traa::base::task_queue_manager::post_task([]() { return 42; }).valid() == false);

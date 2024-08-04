@@ -53,36 +53,32 @@ int traa_init(const traa_config *config) {
     return traa_error::TRAA_ERROR_UNKNOWN;
   }
 
-  auto wait_res = traa::base::task_queue_manager::post_task(g_main_queue_id, [&config]() {
-    if (g_engine_instance == nullptr) {
-      g_engine_instance = new traa::main::engine();
-    }
+  int ret = traa::base::task_queue_manager::post_task(g_main_queue_id, [&config]() {
+              if (g_engine_instance == nullptr) {
+                g_engine_instance = new traa::main::engine();
+              }
 
-    if (g_engine_instance == nullptr) {
-      LOG_FATAL("failed to create engine instance");
-      return static_cast<int>(traa_error::TRAA_ERROR_UNKNOWN);
-    }
+              if (g_engine_instance == nullptr) {
+                LOG_FATAL("failed to create engine instance");
+                return static_cast<int>(traa_error::TRAA_ERROR_UNKNOWN);
+              }
 
-    int ret = g_engine_instance->init(config);
-    if (ret != traa_error::TRAA_ERROR_NONE && ret != traa_error::TRAA_ERROR_ALREADY_INITIALIZED) {
-      // to make sure that the engine instance is deleted if the engine initialization failed.
-      delete g_engine_instance;
-      g_engine_instance = nullptr;
-    }
+              int ret = g_engine_instance->init(config);
+              if (ret != traa_error::TRAA_ERROR_NONE &&
+                  ret != traa_error::TRAA_ERROR_ALREADY_INITIALIZED) {
+                // to make sure that the engine instance is deleted if the engine initialization
+                // failed.
+                delete g_engine_instance;
+                g_engine_instance = nullptr;
+              }
 
-    return ret;
-  });
+              return ret;
+            }).get(traa_error::TRAA_ERROR_UNKNOWN);
 
-  int ret = traa_error::TRAA_ERROR_UNKNOWN;
-  // TODO @sylar: implement wait_res::wait_or_value() to avoid the need for adjust whether the
-  // result is valid or not.
-  if (wait_res.valid()) {
-    ret = wait_res.get();
-    if (ret != traa_error::TRAA_ERROR_NONE && ret != traa_error::TRAA_ERROR_ALREADY_INITIALIZED) {
-      // to make sure that the main queue is released if the engine initialization failed.
-      // so that we do not need to adjust the engine is exist or not in other places.
-      traa::base::task_queue_manager::release_queue(g_main_queue_id);
-    }
+  if (ret != traa_error::TRAA_ERROR_NONE && ret != traa_error::TRAA_ERROR_ALREADY_INITIALIZED) {
+    // to make sure that the main queue is released if the engine initialization failed.
+    // so that we do not need to adjust the engine is exist or not in other places.
+    traa::base::task_queue_manager::release_queue(g_main_queue_id);
   }
 
   return ret;
@@ -93,14 +89,10 @@ void traa_release() {
 
   std::lock_guard<std::mutex> lock(g_main_queue_mutex);
 
-  auto wait_res = traa::base::task_queue_manager::post_task(g_main_queue_id, []() {
+  traa::base::task_queue_manager::post_task(g_main_queue_id, []() {
     delete g_engine_instance;
     g_engine_instance = nullptr;
-  });
-
-  if (wait_res.valid()) {
-    wait_res.wait();
-  }
+  }).wait();
 
   traa::base::task_queue_manager::shutdown();
 }
@@ -114,15 +106,10 @@ int traa_set_event_handler(const traa_event_handler *event_handler) {
 
   std::lock_guard<std::mutex> lock(g_main_queue_mutex);
 
-  auto wait_res = traa::base::task_queue_manager::post_task(g_main_queue_id, [&event_handler]() {
-    return g_engine_instance->set_event_handler(event_handler);
-  });
-
-  if (!wait_res.valid()) {
-    return traa_error::TRAA_ERROR_NOT_INITIALIZED;
-  }
-
-  return wait_res.get();
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [&event_handler]() { return g_engine_instance->set_event_handler(event_handler); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }
 
 void traa_set_log_level(traa_log_level level) {

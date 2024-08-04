@@ -8,6 +8,7 @@
 #include "base/singleton.h"
 #include "base/thread/rw_lock.h"
 #include "base/thread/thread_util.h"
+#include "base/thread/waitable_future.h"
 
 #include <atomic>
 #include <future>
@@ -236,29 +237,28 @@ public:
    *
    * This function takes a callable object and enqueues it for execution in the io_context's thread
    * pool. The task will be executed asynchronously and its result can be obtained through the
-   * returned future object.
+   * returned waitable_future object.
    *
    * @tparam F The type of the callable object.
    * @param f The callable object to be executed asynchronously.
-   * @return A future object representing the result of the task.
+   * @return A waitable_future object representing the result of the task.
    */
   template <typename F> auto enqueue(F &&f) {
     auto task = std::make_shared<std::packaged_task<decltype(f())()>>(std::forward<F>(f));
     asio::post(aio_, [task]() { (*task)(); });
-    return task->get_future();
+    return waitable_future<decltype(f())>(task->get_future());
   }
 
   /**
    * @brief Enqueues a task for asynchronous execution after a specified duration.
    *
    * This function takes a callable object and enqueues it for execution in the io_context's thread
-   * pool after a specified duration. The task will be executed asynchronously and its result can be
-   * obtained through the returned future object.
+   * pool after a specified duration. The task will be executed asynchronously.
    *
    * @tparam F The type of the callable object.
    * @param f The callable object to be executed asynchronously.
    * @param duration The duration after which the task should be executed.
-   * @return A future object representing the result of the task.
+   * @return The task timer object representing the scheduled task.
    */
   template <typename F> auto enqueue_after(F &&f, std::chrono::milliseconds duration) {
     auto timer = std::make_shared<task_timer_once<F>>(aio_, duration, std::forward<F>(f));
@@ -270,13 +270,12 @@ public:
    * @brief Enqueues a task for asynchronous execution at a specified time point.
    *
    * This function takes a callable object and enqueues it for execution in the io_context's thread
-   * pool at a specified time point. The task will be executed asynchronously and its result can be
-   * obtained through the returned future object.
+   * pool at a specified time point. The task will be executed asynchronously.
    *
    * @tparam F The type of the callable object.
    * @param f The callable object to be executed asynchronously.
    * @param time_point The time point at which the task should be executed.
-   * @return A future object representing the result of the task.
+   * @return The task timer object representing the scheduled task.
    */
   template <typename F>
   auto enqueue_at(F &&f, const std::chrono::system_clock::time_point &time_point) {
@@ -293,13 +292,12 @@ public:
    * @brief Enqueues a task for asynchronous execution repeatedly at a specified interval.
    *
    * This function takes a callable object and enqueues it for execution in the io_context's thread
-   * pool repeatedly at a specified interval. The task will be executed asynchronously and its
-   * result can be obtained through the returned future object.
+   * pool repeatedly at a specified interval. The task will be executed asynchronously.
    *
    * @tparam F The type of the callable object.
    * @param f The callable object to be executed asynchronously.
    * @param interval The interval at which the task should be executed repeatedly.
-   * @return A future object representing the result of the task.
+   * @return The task timer object representing the scheduled task.
    */
   template <typename F> auto enqueue_repeatly(F &&f, std::chrono::milliseconds interval) {
     auto timer = std::make_shared<task_timer_repeatly<F>>(aio_, interval, std::forward<F>(f));
@@ -556,11 +554,11 @@ public:
    * @brief Posts a task to the specified task queue.
    * @param id The ID of the task queue to post the task to.
    * @param f The task to be posted.
-   * @return std::future<decltype(f())> A future object representing the result of the task.
+   * @return A waitable_future object representing the result of the task.
    *
    * This method posts a task to the task queue with the specified ID. If a task queue with the
    * specified ID does not exist, nullptr is returned. Otherwise, the task is posted to the task
-   * queue and a future object representing the result of the task is returned.
+   * queue and a waitable_future object representing the result of the task is returned.
    */
   template <typename F> static auto post_task(task_queue::task_queue_id id, F &&f) {
     // LOG_API_TWO_ARGS(id, reinterpret_cast<std::uintptr_t>(&f));
@@ -568,7 +566,7 @@ public:
     auto queue = get_task_queue(id);
     if (!queue) {
       LOG_ERROR("task queue {} does not exist", id);
-      return std::future<decltype(f())>();
+      return waitable_future<decltype(f())>(std::future<decltype(f())>());
     }
 
     return queue->enqueue<F>(std::forward<F>(f));
@@ -579,17 +577,17 @@ public:
    *
    * This function takes a callable object `f` and posts it to the current task queue for execution.
    * If the current thread is not on a task queue, an error message is logged and an empty
-   * `std::future` is returned.
+   * `waitable_future` is returned.
    *
    * @tparam F The type of the callable object.
    * @param f The callable object to be executed.
-   * @return A `std::future` representing the result of the task.
+   * @return A `waitable_future` representing the result of the task.
    */
   template <typename F> static auto post_task(F &&f) {
     auto queue = get_current_task_queue();
     if (!queue) {
       LOG_ERROR("current thread: {} is not on a task queue", thread_util::get_thread_id());
-      return std::future<decltype(f())>();
+      return waitable_future<decltype(f())>(std::future<decltype(f())>());
     }
 
     return queue->enqueue<F>(std::forward<F>(f));
