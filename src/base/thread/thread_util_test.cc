@@ -3,9 +3,9 @@
 #include "base/platform.h"
 #include "base/thread/thread_util.h"
 
-TEST(thread_util, thread_name) { traa::base::thread_util::set_thread_name("test thread"); }
+TEST(thread_util_test, thread_name) { traa::base::thread_util::set_thread_name("test thread"); }
 
-TEST(thread_util, tls_alloc) {
+TEST(thread_util_test, tls_alloc) {
   std::uintptr_t key = UINTPTR_MAX;
   EXPECT_EQ(traa_error::TRAA_ERROR_NONE, traa::base::thread_util::tls_alloc(&key));
   EXPECT_GE(key, 0);
@@ -13,11 +13,11 @@ TEST(thread_util, tls_alloc) {
   EXPECT_EQ(traa_error::TRAA_ERROR_NONE, traa::base::thread_util::tls_free(&key));
 }
 
-TEST(thread_util, tls_set_get) {
+TEST(thread_util_test, tls_set_get) {
   std::uintptr_t key;
   EXPECT_EQ(traa_error::TRAA_ERROR_NONE, traa::base::thread_util::tls_alloc(&key));
 
-  int value = 42;
+  int value = 9527;
   EXPECT_EQ(traa_error::TRAA_ERROR_NONE, traa::base::thread_util::tls_set(key, &value));
 
   int *retrievedValue = static_cast<int *>(traa::base::thread_util::tls_get(key));
@@ -30,7 +30,7 @@ TEST(thread_util, tls_set_get) {
   EXPECT_EQ(nullptr, traa::base::thread_util::tls_get(key));
 }
 
-TEST(thread_util, tls_free) {
+TEST(thread_util_test, tls_free) {
   std::uintptr_t key;
 
   EXPECT_EQ(traa_error::TRAA_ERROR_NONE, traa::base::thread_util::tls_alloc(&key));

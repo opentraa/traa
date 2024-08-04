@@ -32,13 +32,13 @@ TEST(task_queue_test, enque) {
 TEST(task_queue_test, enqueue_on_queue) {
   auto queue = std::make_shared<traa::base::task_queue>(UINTPTR_MAX, 1, "TestQueue");
 
-  auto task = std::packaged_task<int()>([]() { return 42; });
+  auto task = std::packaged_task<int()>([]() { return 9527; });
   auto future = task.get_future();
 
   auto future1 = queue->enqueue([queue, &task]() { queue->enqueue([&task]() { task(); }); });
   future1.wait();
 
-  EXPECT_EQ(future.get(), 42);
+  EXPECT_EQ(future.get(), 9527);
 }
 
 TEST(task_queue_test, enque_after) {
@@ -46,18 +46,18 @@ TEST(task_queue_test, enque_after) {
 
   // normal case
   {
-    auto task = std::packaged_task<int()>([]() { return 42; });
+    auto task = std::packaged_task<int()>([]() { return 9527; });
     auto future = task.get_future();
     auto start = std::chrono::system_clock::now();
     auto timer = queue->enqueue_after([&task]() { task(); }, std::chrono::milliseconds(200));
-    EXPECT_EQ(future.get(), 42);
+    EXPECT_EQ(future.get(), 9527);
     auto end = std::chrono::system_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
   }
 
   // cancel case
   {
-    auto task = std::packaged_task<int()>([]() { return 42; });
+    auto task = std::packaged_task<int()>([]() { return 9527; });
     auto future = task.get_future();
     auto timer = queue->enqueue_after([&task]() { task(); }, std::chrono::milliseconds(200));
     timer->stop();
@@ -66,7 +66,7 @@ TEST(task_queue_test, enque_after) {
 
   // multiple tasks
   {
-    auto task1 = std::packaged_task<int()>([]() { return 42; });
+    auto task1 = std::packaged_task<int()>([]() { return 9527; });
     auto future1 = task1.get_future();
     auto task2 = std::packaged_task<int()>([]() { return 43; });
     auto future2 = task2.get_future();
@@ -75,7 +75,7 @@ TEST(task_queue_test, enque_after) {
     auto timer2 = queue->enqueue_after([&task2]() { task2(); }, std::chrono::milliseconds(100));
     EXPECT_EQ(future2.get(), 43);
     auto end2 = std::chrono::system_clock::now();
-    EXPECT_EQ(future1.get(), 42);
+    EXPECT_EQ(future1.get(), 9527);
     auto end1 = std::chrono::system_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start).count(), 150);
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start).count(), 50);
@@ -86,12 +86,12 @@ TEST(task_queue_test, enque_at) {
   // normal case
   {
     auto queue = std::make_shared<traa::base::task_queue>(UINTPTR_MAX, 1, "TestQueue");
-    auto task = std::packaged_task<int()>([]() { return 42; });
+    auto task = std::packaged_task<int()>([]() { return 9527; });
     auto future = task.get_future();
     auto start = std::chrono::system_clock::now();
     auto time_point = std::chrono::system_clock::now() + std::chrono::milliseconds(200);
     auto timer = queue->enqueue_at([&task]() { task(); }, time_point);
-    EXPECT_EQ(future.get(), 42);
+    EXPECT_EQ(future.get(), 9527);
     auto end = std::chrono::system_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
   }
@@ -99,7 +99,7 @@ TEST(task_queue_test, enque_at) {
   // cancel case
   {
     auto queue = std::make_shared<traa::base::task_queue>(UINTPTR_MAX, 1, "TestQueue");
-    auto task = std::packaged_task<int()>([]() { return 42; });
+    auto task = std::packaged_task<int()>([]() { return 9527; });
     auto future = task.get_future();
     auto time_point = std::chrono::system_clock::now() + std::chrono::milliseconds(200);
     auto timer = queue->enqueue_at([&task]() { task(); }, time_point);
@@ -140,29 +140,29 @@ TEST(task_queue_test, enqueue_at_after_repeatly) {
 
   // normal task
   {
-    auto future = queue->enqueue([]() { return 42; });
-    EXPECT_EQ(future.get(0), 42);
+    auto future = queue->enqueue([]() { return 9527; });
+    EXPECT_EQ(future.get(0), 9527);
   }
 
   // after task
   {
-    auto task = std::packaged_task<int()>([]() { return 42; });
+    auto task = std::packaged_task<int()>([]() { return 9527; });
     auto future = task.get_future();
     auto start = std::chrono::system_clock::now();
     auto timer = queue->enqueue_after([&task]() { task(); }, std::chrono::milliseconds(200));
-    EXPECT_EQ(future.get(), 42);
+    EXPECT_EQ(future.get(), 9527);
     auto end = std::chrono::system_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
   }
 
   // at task
   {
-    auto task = std::packaged_task<int()>([]() { return 42; });
+    auto task = std::packaged_task<int()>([]() { return 9527; });
     auto future = task.get_future();
     auto start = std::chrono::system_clock::now();
     auto time_point = std::chrono::system_clock::now() + std::chrono::milliseconds(200);
     auto timer = queue->enqueue_at([&task]() { task(); }, time_point);
-    EXPECT_EQ(future.get(), 42);
+    EXPECT_EQ(future.get(), 9527);
     auto end = std::chrono::system_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
   }
@@ -188,7 +188,7 @@ TEST(task_queue_test, enqueue_at_after_repeatly) {
   }
 }
 
-TEST(task_queue_manager, init_shutdown) {
+TEST(task_queue_manager_test, init_shutdown) {
   EXPECT_NO_THROW(traa::base::task_queue_manager::init());
   EXPECT_NE(traa::base::task_queue_manager::get_tls_key(), UINTPTR_MAX);
   EXPECT_EQ(traa::base::task_queue_manager::get_task_queue_count(), 0);
@@ -230,10 +230,10 @@ TEST(task_queue_manager, init_shutdown) {
   EXPECT_TRUE(traa::base::task_queue_manager::get_current_task_queue() == nullptr);
 
   // expect post task with valid queue id return valid future
-  EXPECT_TRUE(traa::base::task_queue_manager::post_task(1, []() { return 42; }).get(0) == 42);
+  EXPECT_TRUE(traa::base::task_queue_manager::post_task(1, []() { return 9527; }).get(0) == 9527);
 
   // expect post task without queue id return invalid future
-  EXPECT_TRUE(traa::base::task_queue_manager::post_task([]() { return 42; }).valid() == false);
+  EXPECT_TRUE(traa::base::task_queue_manager::post_task([]() { return 9527; }).valid() == false);
 
   // expect get current queue return valid queue on the queue
   EXPECT_NO_THROW(traa::base::task_queue_manager::post_task(1, []() {

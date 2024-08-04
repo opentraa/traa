@@ -4,7 +4,7 @@
 
 #include <thread>
 
-TEST(rw_lock, read_write_lock) {
+TEST(rw_lock_test, read_write_lock) {
   traa::base::rw_lock lock;
 
   EXPECT_TRUE(lock.read_lock());
@@ -33,10 +33,10 @@ TEST(rw_lock, read_write_lock) {
   EXPECT_NO_THROW(lock.write_unlock());
 }
 
-TEST(rw_lock, rw_lock_guard) {
+TEST(rw_lock_test, rw_lock_guard) {
   traa::base::rw_lock lock;
 
-  { 
+  {
     traa::base::rw_lock_guard guard(lock, traa::base::rw_lock_guard::rw_lock_type::READ);
     EXPECT_FALSE(lock.try_write_lock());
     EXPECT_TRUE(lock.read_lock());
@@ -47,14 +47,14 @@ TEST(rw_lock, rw_lock_guard) {
     EXPECT_FALSE(lock.try_write_lock());
   }
 
-  { 
-    traa::base::rw_lock_guard guard(lock, traa::base::rw_lock_guard::rw_lock_type::WRITE); 
+  {
+    traa::base::rw_lock_guard guard(lock, traa::base::rw_lock_guard::rw_lock_type::WRITE);
     EXPECT_FALSE(lock.try_read_lock());
     EXPECT_FALSE(lock.try_write_lock());
   }
 }
 
-TEST(rw_lock, multi_thread) {
+TEST(rw_lock_test, multi_thread) {
   traa::base::rw_lock lock;
 
   int i = 0;
