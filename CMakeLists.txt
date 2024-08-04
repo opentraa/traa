@@ -195,8 +195,12 @@ set(TRAA_THIRDPARTY_JSON_FILE
 )
 source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_THIRDPARTY_JSON_FILE})
 
+# TODO @sylar: do we really need absl?
 # thirdparty absil-cpp
-add_subdirectory(thirdparty/abseil-cpp)
+if(TRAA_ENABLE_ABSL)
+    add_subdirectory(thirdparty/abseil-cpp)
+    set(TRAA_THIRDPARTY_ABSEIL_CPP_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/abseil-cpp")
+endif()
 
 # thirdparty asio
 set(TRAA_THIRDPARTY_ASIO_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/asio/asio/include")
@@ -260,19 +264,22 @@ set_target_properties(${TRAA_LIBRARY} PROPERTIES
 )
 
 # thirdparty link
-target_link_libraries(${TRAA_LIBRARY} PRIVATE absl::algorithm
-    absl::base
-    absl::debugging
-    absl::flat_hash_map
-    absl::flags
-    absl::memory
-    absl::meta
-    absl::numeric
-    absl::random_random
-    absl::strings
-    absl::synchronization
-    absl::time
-    absl::utility)
+if(TRAA_ENABLE_ABSL)
+    target_link_libraries(${TRAA_LIBRARY} PRIVATE 
+        absl::algorithm
+        absl::base
+        absl::debugging
+        absl::flat_hash_map
+        absl::flags
+        absl::memory
+        absl::meta
+        absl::numeric
+        absl::random_random
+        absl::strings
+        absl::synchronization
+        absl::time
+        absl::utility)
+endif()
 
 # thirdparty compile definitions
 target_compile_definitions(${TRAA_LIBRARY} PRIVATE SPDLOG_NO_EXCEPTIONS)

@@ -19,25 +19,24 @@ add_executable(${TRAA_UNIT_TEST}
 )
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE SPDLOG_NO_EXCEPTIONS)
-target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
-    gtest
-    gtest_main
-    gmock
-    gmock_main
-    absl::algorithm
-    absl::base
-    absl::debugging
-    absl::flat_hash_map
-    absl::flags
-    absl::memory
-    absl::meta
-    absl::numeric
-    absl::random_random
-    absl::strings
-    absl::synchronization
-    absl::time
-    absl::utility
-)
+target_link_libraries(${TRAA_UNIT_TEST} PRIVATE gtest gtest_main gmock gmock_main)
+if(TRAA_ENABLE_ABSL)
+    target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
+        absl::algorithm
+        absl::base
+        absl::debugging
+        absl::flat_hash_map
+        absl::flags
+        absl::memory
+        absl::meta
+        absl::numeric
+        absl::random_random
+        absl::strings
+        absl::synchronization
+        absl::time
+        absl::utility
+    )
+endif()
 
 target_include_directories(${TRAA_UNIT_TEST} PRIVATE "$<BUILD_INTERFACE:${TRAA_LIBRARY_INCLUDE_DIRS}>")
 set_target_properties(${TRAA_UNIT_TEST} PROPERTIES

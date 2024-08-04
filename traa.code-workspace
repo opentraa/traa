@@ -115,7 +115,9 @@
 			"complex": "cpp",
 			"execution": "cpp",
 			"stack": "cpp",
-			"string_view": "cpp"
+			"string_view": "cpp",
+			"__availability": "cpp",
+			"*.inc": "cpp"
 		}
 	}
 }
