@@ -39,18 +39,12 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # CMAKE_SYSTEM_NAME only be set after project defined.
-message(STATUS "[TRAA] current system name ${CMAKE_SYSTEM_NAME}")
+message(STATUS "[TRAA] current target system name ${CMAKE_SYSTEM_NAME}")
 message(STATUS "[TRAA] current host system name ${CMAKE_HOST_SYSTEM_NAME}")
-message(STATUS "[TRAA] current host variables APPLE:${APPLE} IOS:${IOS} ANDROID:${ANDROID} WIN32:${WIN32} MACOS:${MACOS}")
 
 # Determine whether current host system is supported or not.
 if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     message(FATAL_ERROR "[TRAA] current host system ${CMAKE_HOST_SYSTEM_NAME} is not supported to build for now")
-endif()
-
-# Determine whether current target system is supported or not.
-if(NOT MACOS AND NOT IOS AND NOT ANDROID AND NOT WIN32 AND NOT LINUX AND NOT VISIONOS)
-    message(FATAL_ERROR "[TRAA] current target system ${CMAKE_SYSTEM_NAME} is not supported for now")
 endif()
 
 # Note This variable is only available after compiler detection has been performed,

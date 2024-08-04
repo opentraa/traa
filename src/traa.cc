@@ -36,16 +36,6 @@ static void
   // DO NOT USE ANY CODES THAT DEPENDS ON OTHER MODULES COZ THEY MAY BE UNLOADED ALREADY
   //
 
-  // TODO @sylar: do we need to call shutdown at traa_fini or leave it to the OS coz the
-  // task_queue_manager is a global static object?
-  //
-  // TODO @sylar: can we call shutdown at traa_fini? coz the task_queue_manager may depend on some
-  // other modules that have been unloaded already.
-  //
-  // Deinitialize the task queue manager.
-  if (traa::base::task_queue_manager::get_task_queue_count() > 0) {
-    traa::base::task_queue_manager::shutdown();
-  }
 
   TRAA_DEBUG_LOG("traa_fini finished\r\n");
 }
@@ -74,9 +64,6 @@ static
   traa::base::logger::set_level(spdlog::level::info);
   traa::base::logger::set_log_file("");
 
-  // TODO @sylar: must to call init to initialize the static object of task_queue_manager otherwise
-  // call shutdown in traa_fini will cause crash(the object has been destroyed), but why?
-  //
   // Initialize the task queue manager.
   traa::base::task_queue_manager::init();
 

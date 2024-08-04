@@ -42,3 +42,7 @@ build
 
 # Mac OS
 .DS_Store
+
+# CMake
+CMakeFiles
+CMakeCache.txt
