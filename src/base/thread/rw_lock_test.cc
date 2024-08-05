@@ -63,7 +63,6 @@ TEST(rw_lock_test, multi_thread) {
   std::thread t1([&]() {
     while (true) {
       if (lock.read_lock()) {
-        std::cout << "READ Thread 1: " << i << std::endl;
         if (i >= max_count) {
           lock.read_unlock();
           break;
@@ -79,7 +78,6 @@ TEST(rw_lock_test, multi_thread) {
   std::thread t2([&]() {
     while (true) {
       if (lock.try_read_lock()) {
-        std::cout << "READ Thread 2: " << i << std::endl;
         if (i >= max_count) {
           lock.read_unlock();
           break;
@@ -100,7 +98,7 @@ TEST(rw_lock_test, multi_thread) {
           break;
         }
 
-        std::cout << "WRITE Thread 3: " << i++ << std::endl;
+        i++;
 
         lock.write_unlock();
       }
@@ -117,7 +115,7 @@ TEST(rw_lock_test, multi_thread) {
           break;
         }
 
-        std::cout << "WRITE Thread 4: " << i++ << std::endl;
+        i++;
 
         lock.write_unlock();
       }
@@ -129,7 +127,6 @@ TEST(rw_lock_test, multi_thread) {
   std::thread t5([&]() {
     while (true) {
       if (lock.try_read_lock()) {
-        std::cout << "READ Thread 5: " << i << std::endl;
         if (i >= max_count) {
           lock.read_unlock();
           break;
@@ -150,7 +147,7 @@ TEST(rw_lock_test, multi_thread) {
           break;
         }
 
-        std::cout << "WRITE Thread 6: " << i++ << std::endl;
+        i++;
 
         lock.write_unlock();
       }

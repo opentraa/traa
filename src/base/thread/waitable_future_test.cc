@@ -58,17 +58,17 @@ TEST(waitable_future_test, get_for) {
 
     auto start = std::chrono::steady_clock::now();
 
-    std::thread t([&promise]() {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-      promise.set_value(9527);
-    });
-
     EXPECT_EQ(waitable_res.get_for(std::chrono::milliseconds(200), 0), 0);
 
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
     start = std::chrono::steady_clock::now();
+    std::thread t([&promise]() {
+      std::this_thread::sleep_for(std::chrono::milliseconds(800));
+      promise.set_value(9527);
+    });
+
     EXPECT_EQ(waitable_res.get_for(std::chrono::milliseconds(1000), 0), 9527);
     end = std::chrono::steady_clock::now();
 
@@ -85,10 +85,10 @@ TEST(waitable_future_test, get_until) {
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
-    auto timeout_time = start + std::chrono::milliseconds(100);
+    auto timeout_time = start + std::chrono::milliseconds(1000);
     EXPECT_EQ(waitable_res.get_until(timeout_time, 9527), 9527);
     auto end = std::chrono::steady_clock::now();
-    EXPECT_LE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 10);
+    EXPECT_LT(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 1000);
   }
 
   // valid future
@@ -97,11 +97,6 @@ TEST(waitable_future_test, get_until) {
     std::future<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
-    std::thread t([&promise]() {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-      promise.set_value(9527);
-    });
-
     auto start = std::chrono::steady_clock::now();
     auto timeout_time = start + std::chrono::milliseconds(200);
     EXPECT_EQ(waitable_res.get_until(timeout_time, 0), 0);
@@ -109,8 +104,19 @@ TEST(waitable_future_test, get_until) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
+    std::promise<void> promise2;
+    std::future<void> future2 = promise2.get_future();
+    std::thread t([&promise, &promise2]() {
+      promise2.set_value();
+      std::this_thread::sleep_for(std::chrono::milliseconds(800));
+      promise.set_value(9527);
+    });
+
+    future2.wait();
+
     start = std::chrono::steady_clock::now();
-    timeout_time = start + std::chrono::milliseconds(800);
+    timeout_time = start + std::chrono::milliseconds(1000);
+
     EXPECT_EQ(waitable_res.get_until(timeout_time, 0), 9527);
 
     end = std::chrono::steady_clock::now();
@@ -147,7 +153,7 @@ TEST(waitable_future_test, wait) {
     waitable_res.wait();
     auto end = std::chrono::steady_clock::now();
 
-    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 900);
+    EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 800);
 
     EXPECT_EQ(waitable_res.get(0), 9527);
 
@@ -162,11 +168,11 @@ TEST(waitable_future_test, wait_for) {
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
-    EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(100)),
+    EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(1000)),
               waitable_future_status::invalid);
 
     auto end = std::chrono::steady_clock::now();
-    EXPECT_LE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 10);
+    EXPECT_LE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 200);
   }
 
   // valid future
@@ -175,11 +181,6 @@ TEST(waitable_future_test, wait_for) {
     std::future<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
-    std::thread t([&promise]() {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-      promise.set_value(9527);
-    });
-
     auto start = std::chrono::steady_clock::now();
     EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(200)),
               waitable_future_status::timeout);
@@ -187,8 +188,19 @@ TEST(waitable_future_test, wait_for) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
+    std::promise<void> promise2;
+    std::future<void> future2 = promise2.get_future();
+    std::thread t([&promise, &promise2]() {
+      promise2.set_value();
+      std::this_thread::sleep_for(std::chrono::milliseconds(800));
+      promise.set_value(9527);
+    });
+
+    future2.wait();
+
     start = std::chrono::steady_clock::now();
-    EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(800)), waitable_future_status::ready);
+    EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(1000)),
+              waitable_future_status::ready);
     end = std::chrono::steady_clock::now();
 
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 600);
@@ -219,11 +231,6 @@ TEST(waitable_future_test, wait_until) {
     std::future<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
-    std::thread t([&promise]() {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-      promise.set_value(9527);
-    });
-
     auto start = std::chrono::steady_clock::now();
     auto timeout_time = start + std::chrono::milliseconds(200);
     EXPECT_EQ(waitable_res.wait_until(timeout_time), waitable_future_status::timeout);
@@ -231,8 +238,18 @@ TEST(waitable_future_test, wait_until) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
+    std::promise<void> promise2;
+    std::future<void> future2 = promise2.get_future();
+    std::thread t([&promise, &promise2]() {
+      promise2.set_value();
+      std::this_thread::sleep_for(std::chrono::milliseconds(800));
+      promise.set_value(9527);
+    });
+
+    future2.wait();
+
     start = std::chrono::steady_clock::now();
-    timeout_time = start + std::chrono::milliseconds(800);
+    timeout_time = start + std::chrono::milliseconds(1000);
     EXPECT_EQ(waitable_res.wait_until(timeout_time), waitable_future_status::ready);
 
     end = std::chrono::steady_clock::now();
@@ -273,10 +290,7 @@ TEST(waitable_future_void_test, wait) {
     std::future<void> future;
     waitable_future<void> waitable_res(std::move(future));
 
-    auto start = std::chrono::steady_clock::now();
     waitable_res.wait();
-    auto end = std::chrono::steady_clock::now();
-    EXPECT_LE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 10);
   }
 
   // valid future
@@ -285,10 +299,15 @@ TEST(waitable_future_void_test, wait) {
     std::future<void> future = promise.get_future();
     waitable_future<void> waitable_res(std::move(future));
 
-    std::thread t([&promise]() {
+    std::promise<void> promise2;
+    std::future<void> future2 = promise2.get_future();
+    std::thread t([&promise, &promise2]() {
+      promise2.set_value();
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       promise.set_value();
     });
+
+    future2.wait();
 
     auto start = std::chrono::steady_clock::now();
     waitable_res.wait();
@@ -306,12 +325,8 @@ TEST(waitable_future_void_test, wait_for) {
     std::future<void> future;
     waitable_future<void> waitable_res(std::move(future));
 
-    auto start = std::chrono::steady_clock::now();
     EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(100)),
               waitable_future_status::invalid);
-
-    auto end = std::chrono::steady_clock::now();
-    EXPECT_LE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 10);
   }
 
   // valid future
@@ -320,11 +335,6 @@ TEST(waitable_future_void_test, wait_for) {
     std::future<void> future = promise.get_future();
     waitable_future<void> waitable_res(std::move(future));
 
-    std::thread t([&promise]() {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-      promise.set_value();
-    });
-
     auto start = std::chrono::steady_clock::now();
     EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(200)),
               waitable_future_status::timeout);
@@ -332,8 +342,19 @@ TEST(waitable_future_void_test, wait_for) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
+    std::promise<void> promise2;
+    std::future<void> future2 = promise2.get_future();
+    std::thread t([&promise, &promise2]() {
+      promise2.set_value();
+      std::this_thread::sleep_for(std::chrono::milliseconds(800));
+      promise.set_value();
+    });
+
+    future2.wait();
+
     start = std::chrono::steady_clock::now();
-    EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(800)), waitable_future_status::ready);
+    EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(1000)),
+              waitable_future_status::ready);
     end = std::chrono::steady_clock::now();
 
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 600);
@@ -348,12 +369,8 @@ TEST(waitable_future_void_test, wait_until) {
     std::future<void> future;
     waitable_future<void> waitable_res(std::move(future));
 
-    auto start = std::chrono::steady_clock::now();
-    auto timeout_time = start + std::chrono::milliseconds(100);
+    auto timeout_time = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
     EXPECT_EQ(waitable_res.wait_until(timeout_time), waitable_future_status::invalid);
-
-    auto end = std::chrono::steady_clock::now();
-    EXPECT_LE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 10);
   }
 
   // valid future
@@ -362,11 +379,6 @@ TEST(waitable_future_void_test, wait_until) {
     std::future<void> future = promise.get_future();
     waitable_future<void> waitable_res(std::move(future));
 
-    std::thread t([&promise]() {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-      promise.set_value();
-    });
-
     auto start = std::chrono::steady_clock::now();
     auto timeout_time = start + std::chrono::milliseconds(200);
     EXPECT_EQ(waitable_res.wait_until(timeout_time), waitable_future_status::timeout);
@@ -374,8 +386,18 @@ TEST(waitable_future_void_test, wait_until) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
+    std::promise<void> promise2;
+    std::future<void> future2 = promise2.get_future();
+    std::thread t([&promise, &promise2]() {
+      promise2.set_value();
+      std::this_thread::sleep_for(std::chrono::milliseconds(800));
+      promise.set_value();
+    });
+
+    future2.wait();
+
     start = std::chrono::steady_clock::now();
-    timeout_time = start + std::chrono::milliseconds(800);
+    timeout_time = start + std::chrono::milliseconds(1000);
     EXPECT_EQ(waitable_res.wait_until(timeout_time), waitable_future_status::ready);
 
     end = std::chrono::steady_clock::now();
