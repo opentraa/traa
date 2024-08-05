@@ -16,6 +16,11 @@ static const traa::base::task_queue::task_queue_id g_main_queue_id = 0;
 static const char *g_main_queue_name = "traa_main";
 
 // TODO @sylar: how to remove this mutex?
+// To avoid to use the global mutex, we should figure out a way to resolve this situation:
+// 1. enqueue a task to the main queue.
+// 2. destroy the main queue before the task is executed, which will happen in multi-threading.
+// 3. task.wait() will block forever, coz the main queue is destroyed, and the task is not executed.
+//
 // The main queue mutex.
 static std::mutex g_main_queue_mutex;
 
