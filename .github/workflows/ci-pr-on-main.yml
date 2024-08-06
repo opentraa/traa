@@ -46,7 +46,7 @@ jobs:
 
     - name: Unit Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}/tests/unit_test
-      run: ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
+      run: ASAN_OPTIONS=detect_leaks=1 ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
     - name: Smoke Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}/tests/smoke_test

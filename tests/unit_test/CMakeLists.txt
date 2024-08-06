@@ -1,6 +1,8 @@
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(${CMAKE_HOME_DIRECTORY}/cmake/utils.cmake)
+
 enable_testing()
 
 set(TRAA_UNIT_TEST traa-unit-test)
@@ -20,6 +22,7 @@ add_executable(${TRAA_UNIT_TEST}
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE SPDLOG_NO_EXCEPTIONS)
 target_link_libraries(${TRAA_UNIT_TEST} PRIVATE gtest gtest_main gmock gmock_main)
+
 if(TRAA_ENABLE_ABSL)
     target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
         absl::algorithm
@@ -85,5 +88,11 @@ elseif(UNIX)
     )
 endif()
 
+# Enable ctest
 include(GoogleTest)
 gtest_discover_tests(${TRAA_UNIT_TEST})
+
+# Enable sanitizer for only Linux and MacOS
+if(MACOS OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    traa_enable_sanitizer(${TRAA_UNIT_TEST})
+endif()
