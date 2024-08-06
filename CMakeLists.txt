@@ -47,13 +47,6 @@ if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_HOST_SYSTEM_NAME 
     message(FATAL_ERROR "[TRAA] current host system ${CMAKE_HOST_SYSTEM_NAME} is not supported to build for now")
 endif()
 
-# Note This variable is only available after compiler detection has been performed,
-# so it is not available to toolchain files or before the first project() or enable_language()
-# call which uses an MSVC-like compiler.
-if(WIN32 AND NOT MSVC)
-    message(FATAL_ERROR "[TRAA] build for Windows is only supported with MSVC for now")
-endif()
-
 # Preset flags for compiler.
 # default set optimize level to O3
 # macos O3
