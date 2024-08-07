@@ -1,5 +1,5 @@
-#ifndef TRAA_UTILS_OBJ_STRING_H
-#define TRAA_UTILS_OBJ_STRING_H
+#ifndef TRAA_MAIN_UTILS_OBJ_STRING_H
+#define TRAA_MAIN_UTILS_OBJ_STRING_H
 
 #include <iomanip>
 #include <sstream>
@@ -10,7 +10,7 @@
 #include <traa/base.h>
 
 namespace traa {
-namespace utils {
+namespace main {
 /**
  * @brief The `obj_string` class provides utility functions for converting objects to strings.
  *
@@ -147,7 +147,7 @@ public:
     return ss.str();
   }
 };
-} // namespace utils
+} // namespace main
 } // namespace traa
 
-#endif // TRAA_UTILS_OBJ_STRING_H
+#endif // TRAA_MAIN_UTILS_OBJ_STRING_H

@@ -34,8 +34,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 project(traa)
 message(STATUS "[TRAA] configuring...")
 
-# Reuqire C++14.
-set(CMAKE_CXX_STANDARD 14)
+# Reuqire C++17.
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # CMAKE_SYSTEM_NAME only be set after project defined.
@@ -158,15 +158,15 @@ set(TRAA_LIBRARY_BASE_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/singleton.h"
 )
 
+# traa::main::utils
+set(TRAA_LIBRARY_MAIN_UTILS_FILES
+    "${CMAKE_HOME_DIRECTORY}/src/main/utils/obj_string.h"
+)
+
 # traa::main
 set(TRAA_LIBRARY_MAIN_FILES
     "${CMAKE_HOME_DIRECTORY}/src/main/engine.h"
     "${CMAKE_HOME_DIRECTORY}/src/main/engine.cc"
-)
-
-# traa::utils
-set(TRAA_LIBRARY_UTILS_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/utils/obj_string.h"
 )
 
 # thirdparty spdlog
@@ -208,23 +208,32 @@ set(TRAA_LIBRARY_INCLUDE_DIRS
 
 # library files
 set(TRAA_LIBRARY_FILES
+    # traa public header files
     ${TRAA_LIBRARY_PUBLIC_HEADER_FILES}
+
+    # traa base files
     ${TRAA_LIBRARY_BASE_FOLDER_FILES}
     ${TRAA_LIBRARY_BASE_LOG_FILES}
     ${TRAA_LIBRARY_BASE_THREAD_FILES}
     ${TRAA_LIBRARY_BASE_FILES}
+
+    # traa main files
+    ${TRAA_LIBRARY_MAIN_UTILS_FILES}
     ${TRAA_LIBRARY_MAIN_FILES}
-    ${TRAA_LIBRARY_UTILS_FILES}
+
+    # thirdparty files
     ${TRAA_THIRDPARTY_JSON_FILE}
     ${TRAA_THIRDPARTY_ASIO_FILES}
-    "${CMAKE_HOME_DIRECTORY}/src/traa_c.cc"
+
+    # traa
     "${CMAKE_HOME_DIRECTORY}/src/traa.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/main.cc"
 )
 if(WIN32)
     list(APPEND TRAA_LIBRARY_FILES ${TRAA_LIBRARY_BASE_STRINGS_FILES})
 
     # source files
-    configure_file(${CMAKE_HOME_DIRECTORY}/src/resources/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc @ONLY)
+    configure_file(${CMAKE_HOME_DIRECTORY}/resources/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc @ONLY)
     list(APPEND TRAA_LIBRARY_FILES ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 endif()
 source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_LIBRARY_FILES})
