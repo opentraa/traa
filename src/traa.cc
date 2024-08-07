@@ -1,93 +1,142 @@
+#include "traa/traa.h"
+
 #include "base/log/logger.h"
-#include "base/platform.h"
 #include "base/thread/task_queue.h"
+#include "main/engine.h"
+#include "main/utils/obj_string.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <memory>
+#include <mutex>
 
-/**
- * @brief Define the TRAA_DEBUG_LOG macro to print debug log messages.
- *
- * The TRAA_DEBUG_LOG macro is used to print debug log messages to the console and is only defined
- * if the __DEBUG macro is defined.
- */
-#ifdef TRAA_DEBUG
-#define TRAA_DEBUG_LOG(...) printf(__VA_ARGS__)
-#else
-#define TRAA_DEBUG_LOG(...) void()
-#endif
+namespace {
+// The main queue id.
+static const traa::base::task_queue::task_queue_id g_main_queue_id = 0;
 
-/**
- * @brief Finalize the traa module.
- *
- * This function is called when the traa module is unloaded automatically by the operating system
- * after all other internal code is executed, but before the CRT is deinitialized.
- */
-static void
-#if defined(__GNUC__)
-    __attribute__((destructor, used))
-#elif defined(_MSC_VER)
-// do nothing see atexit(traa_fini) in traa_init below
-#endif
-    traa_fini(void) {
-  TRAA_DEBUG_LOG("traa_fini started\r\n");
+// The main queue name.
+static const char *g_main_queue_name = "traa_main";
 
-  //
-  // DO NOT USE ANY CODES THAT DEPENDS ON OTHER MODULES COZ THEY MAY BE UNLOADED ALREADY
-  //
+// TODO @sylar: how to remove this mutex?
+// To avoid to use the global mutex, we should figure out a way to resolve this situation:
+// 1. enqueue a task to the main queue.
+// 2. destroy the main queue before the task is executed, which will happen in multi-threading.
+// 3. task.wait() will block forever, coz the main queue is destroyed, and the task is not executed.
+//
+// The main queue mutex.
+static std::mutex g_main_queue_mutex;
 
+// The engine instance.
+// The engine instance is created when traa_init is called and deleted when traa_release is called.
+// The engine instance is a thread local variable to avoid the need for locking when accessing it,
+// so do not use it outside of the main queue.
+thread_local traa::main::engine *g_engine_instance = nullptr;
+} // namespace
 
-  TRAA_DEBUG_LOG("traa_fini finished\r\n");
+int traa_init(const traa_config *config) {
+  if (config == nullptr) {
+    LOG_ERROR("traa_config is null");
+    return traa_error::TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  if (config->log_config.log_file != nullptr) {
+    traa::base::logger::set_log_file(config->log_config.log_file, config->log_config.max_size,
+                                     config->log_config.max_files);
+    traa::base::logger::set_level(static_cast<spdlog::level::level_enum>(config->log_config.level));
+  }
+
+  LOG_API_ONE_ARG(traa::main::obj_string::to_string(config));
+
+  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+
+  // no need to lock here coz we have rw lock in task_queue_manager
+  auto main_queue = traa::base::task_queue_manager::get_task_queue(g_main_queue_id);
+  if (!main_queue) {
+    main_queue = traa::base::task_queue_manager::create_queue(g_main_queue_id, g_main_queue_name);
+  }
+
+  if (!main_queue) {
+    LOG_FATAL("failed to create main queue");
+    return traa_error::TRAA_ERROR_UNKNOWN;
+  }
+
+  int ret = traa::base::task_queue_manager::post_task(g_main_queue_id, [&config]() {
+              if (g_engine_instance == nullptr) {
+                g_engine_instance = new traa::main::engine();
+              }
+
+              if (g_engine_instance == nullptr) {
+                LOG_FATAL("failed to create engine instance");
+                return static_cast<int>(traa_error::TRAA_ERROR_UNKNOWN);
+              }
+
+              int ret = g_engine_instance->init(config);
+              if (ret != traa_error::TRAA_ERROR_NONE &&
+                  ret != traa_error::TRAA_ERROR_ALREADY_INITIALIZED) {
+                // to make sure that the engine instance is deleted if the engine initialization
+                // failed.
+                delete g_engine_instance;
+                g_engine_instance = nullptr;
+              }
+
+              return ret;
+            }).get(traa_error::TRAA_ERROR_UNKNOWN);
+
+  if (ret != traa_error::TRAA_ERROR_NONE && ret != traa_error::TRAA_ERROR_ALREADY_INITIALIZED) {
+    // to make sure that the main queue is released if the engine initialization failed.
+    // so that we do not need to adjust the engine is exist or not in other places.
+    traa::base::task_queue_manager::release_queue(g_main_queue_id);
+  }
+
+  return ret;
 }
 
-/**
- * @brief Initialize the traa module.
- *
- * This function is called when the traa module is loaded automatically by the operating system
- * before any other internal code is executed, but after the CRT is initialized.
- */
-static
-#if defined(__GNUC__)
-    void
-#elif defined(_MSC_VER)
-    int
-#else
-#error "Unsupported compiler"
-#endif
-#if defined(__GNUC__)
-    __attribute__((constructor, used))
-#endif
-    traa_init(void) {
-  TRAA_DEBUG_LOG("traa_init started\r\n");
+void traa_release() {
+  LOG_API_NO_ARGS();
 
-  // Initialize the log service.
-  traa::base::logger::set_level(spdlog::level::info);
-  traa::base::logger::set_log_file("");
+  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
 
-  // Initialize the task queue manager.
-  traa::base::task_queue_manager::init();
+  traa::base::task_queue_manager::post_task(g_main_queue_id, []() {
+    delete g_engine_instance;
+    g_engine_instance = nullptr;
+  }).wait();
 
-#if defined(_MSC_VER)
-  atexit(traa_fini);
-#endif
-
-  TRAA_DEBUG_LOG("traa_init finished\r\n");
-
-#if defined(_MSC_VER)
-  return 0;
-#endif
+  traa::base::task_queue_manager::shutdown();
 }
 
-#if defined(_MSC_VER)
-/**
- * About the section '.CRT$XIT':
- *
- * '.CRT$XIT' is a section that is used to specify the initialization function for the traa
- * module.
- *
- * To view more details about the sections used by the CRT, view the crt
- * file.(crt\src\vcruntime\internal_shared.h)
- */
-#pragma section(".CRT$XIT", long, read)
-__declspec(allocate(".CRT$XIT")) int (*_traa_init)(void) = traa_init;
-#endif
+int traa_set_event_handler(const traa_event_handler *event_handler) {
+  LOG_API_ONE_ARG(traa::main::obj_string::to_string(event_handler));
+
+  if (event_handler == nullptr) {
+    return traa_error::TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [&event_handler]() { return g_engine_instance->set_event_handler(event_handler); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+void traa_set_log_level(traa_log_level level) {
+  LOG_API_ONE_ARG(traa::main::obj_string::to_string(level));
+
+  traa::base::logger::set_level(static_cast<spdlog::level::level_enum>(level));
+}
+
+int traa_set_log(const traa_log_config *log_config) {
+  LOG_API_ONE_ARG(traa::main::obj_string::to_string(log_config));
+
+  if (log_config == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  if (log_config->log_file != nullptr) {
+    // call set_level before set_log_file to ensure that no log messages written to the file or
+    // stdout in case that user sets the log level to a higher level.
+    traa::base::logger::set_level(static_cast<spdlog::level::level_enum>(log_config->level));
+    traa::base::logger::set_log_file(log_config->log_file, log_config->max_size,
+                                     log_config->max_files);
+  }
+
+  return TRAA_ERROR_NONE;
+}
