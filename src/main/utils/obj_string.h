@@ -118,7 +118,11 @@ public:
     } else {
       ss << "{"
          << "\"on_error\": "
-         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_error)) << "}";
+         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_error)) << ", "
+         << "\"on_device_event\": "
+         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_device_event))
+         << ", "
+         << "}";
     }
 
     return ss.str();
