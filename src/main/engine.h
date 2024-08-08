@@ -1,5 +1,5 @@
-#ifndef TRAA_MAIN_ENGINE_H
-#define TRAA_MAIN_ENGINE_H
+#ifndef TRAA_MAIN_ENGINE_H_
+#define TRAA_MAIN_ENGINE_H_
 
 #include <traa/traa.h>
 
@@ -29,4 +29,4 @@ private:
 } // namespace main
 } // namespace traa
 
-#endif // TRAA_MAIN_ENGINE_H
+#endif // TRAA_MAIN_ENGINE_H_

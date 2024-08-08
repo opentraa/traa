@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_THREAD_CALLBACK_H
-#define TRAA_BASE_THREAD_CALLBACK_H
+#ifndef TRAA_BASE_THREAD_CALLBACK_H_
+#define TRAA_BASE_THREAD_CALLBACK_H_
 
 #include <functional>
 #include <memory>
@@ -101,7 +101,7 @@ public:
   /**
    * Destructor.
    */
-  virtual ~support_weak_callback() {};
+  virtual ~support_weak_callback(){};
 
   /**
    * Converts a closure to a weak callback.
@@ -212,8 +212,8 @@ auto make_weak_callback(F &&f, Args &&...args) -> decltype(std::bind(f, args...)
  * @return A weak callback object that wraps the member function and its associated object.
  */
 template <class R, class C, class... DArgs, class P, class... Args>
-auto make_weak_callback(R (C::*f)(DArgs...) const, P &&p,
-                        Args &&...args) -> weak_callback<decltype(std::bind(f, p, args...))> {
+auto make_weak_callback(R (C::*f)(DArgs...) const, P &&p, Args &&...args)
+    -> weak_callback<decltype(std::bind(f, p, args...))> {
   std::weak_ptr<anonymous_flag> weak_flag = ((support_weak_callback *)p)->get_weak_flags();
   auto bind_obj = std::bind(f, p, args...);
   static_assert(std::is_base_of<support_weak_callback, C>::value,
@@ -238,8 +238,8 @@ auto make_weak_callback(R (C::*f)(DArgs...) const, P &&p,
  * @return A weak callback object that wraps the member function and associated object.
  */
 template <class R, class C, class... DArgs, class P, class... Args>
-auto make_weak_callback(R (C::*f)(DArgs...), P &&p,
-                        Args &&...args) -> weak_callback<decltype(std::bind(f, p, args...))> {
+auto make_weak_callback(R (C::*f)(DArgs...), P &&p, Args &&...args)
+    -> weak_callback<decltype(std::bind(f, p, args...))> {
   std::weak_ptr<anonymous_flag> weak_flag = ((support_weak_callback *)p)->get_weak_flags();
   auto bind_obj = std::bind(f, p, args...);
   static_assert(std::is_base_of<support_weak_callback, C>::value,
@@ -251,4 +251,4 @@ auto make_weak_callback(R (C::*f)(DArgs...), P &&p,
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_THREAD_CALLBACK_H
+#endif // TRAA_BASE_THREAD_CALLBACK_H_

@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_THREAD_TASK_QUEUE_H
-#define TRAA_BASE_THREAD_TASK_QUEUE_H
+#ifndef TRAA_BASE_THREAD_TASK_QUEUE_H_
+#define TRAA_BASE_THREAD_TASK_QUEUE_H_
 
 #include "traa/error.h"
 
@@ -607,4 +607,4 @@ private:
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_THREAD_TASK_QUEUE_H
+#endif // TRAA_BASE_THREAD_TASK_QUEUE_H_

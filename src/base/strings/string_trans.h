@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_STRINGS_STRING_TRANS_H
-#define TRAA_BASE_STRINGS_STRING_TRANS_H
+#ifndef TRAA_BASE_STRINGS_STRING_TRANS_H_
+#define TRAA_BASE_STRINGS_STRING_TRANS_H_
 
 #include "base/disallow.h"
 
@@ -64,4 +64,4 @@ public:
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_STRINGS_STRING_TRANS_H
+#endif // TRAA_BASE_STRINGS_STRING_TRANS_H_

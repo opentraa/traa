@@ -1,5 +1,5 @@
-#ifndef TRAA_MAIN_UTILS_OBJ_STRING_H
-#define TRAA_MAIN_UTILS_OBJ_STRING_H
+#ifndef TRAA_MAIN_UTILS_OBJ_STRING_H_
+#define TRAA_MAIN_UTILS_OBJ_STRING_H_
 
 #include <iomanip>
 #include <sstream>
@@ -154,4 +154,4 @@ public:
 } // namespace main
 } // namespace traa
 
-#endif // TRAA_MAIN_UTILS_OBJ_STRING_H
+#endif // TRAA_MAIN_UTILS_OBJ_STRING_H_

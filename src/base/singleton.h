@@ -1,10 +1,5 @@
-/**
- * @file singleton.h
- * @brief Defines macros for creating singleton classes.
- */
-
-#ifndef TRAA_BASE_SINGLETON_H
-#define TRAA_BASE_SINGLETON_H
+#ifndef TRAA_BASE_SINGLETON_H_
+#define TRAA_BASE_SINGLETON_H_
 
 #include "base/disallow.h"
 
@@ -47,4 +42,4 @@ public:                                                                         
 private:                                                                                           \
   DISALLOW_COPY_AND_ASSIGN(TypeName)
 
-#endif // TRAA_BASE_SINGLETON_H
+#endif // TRAA_BASE_SINGLETON_H_

@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_PLATFORM_H
-#define TRAA_BASE_PLATFORM_H
+#ifndef TRAA_BASE_PLATFORM_H_
+#define TRAA_BASE_PLATFORM_H_
 
 #ifdef __CYGWIN__
 #define TRAA_OS_CYGWIN 1
@@ -91,4 +91,4 @@
 #error "Do not support current target system!"
 #endif
 
-#endif // TRAA_BASE_PLATFORM_H
+#endif // TRAA_BASE_PLATFORM_H_

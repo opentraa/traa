@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_DISALLOW_H
-#define TRAA_BASE_DISALLOW_H
+#ifndef TRAA_BASE_DISALLOW_H_
+#define TRAA_BASE_DISALLOW_H_
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
@@ -17,4 +17,4 @@
   TypeName() = default;                                                                            \
   DISALLOW_COPY_AND_ASSIGN(TypeName)
 
-#endif // TRAA_BASE_DISALLOW_H
+#endif // TRAA_BASE_DISALLOW_H_
