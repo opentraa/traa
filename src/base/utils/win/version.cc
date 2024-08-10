@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "base/os/win/version.h"
+#include "base/utils/win/version.h"
 #include "base/strings/string_trans.h"
 
 #include <memory>
@@ -146,63 +146,63 @@ private:
 };
 
 // Helper to map a major.minor.x.build version (e.g. 6.1) to a Windows release.
-version_alias major_minor_build_to_version(int major, int minor, int build) {
+traa::base::version_alias major_minor_build_to_version(int major, int minor, int build) {
   if ((major == 5) && (minor > 0)) {
     // Treat XP Pro x64, Home Server, and Server 2003 R2 as Server 2003.
-    return (minor == 1) ? VERSION_XP : VERSION_SERVER_2003;
+    return (minor == 1) ? traa::base::VERSION_XP : traa::base::VERSION_SERVER_2003;
   } else if (major == 6) {
     switch (minor) {
     case 0:
       // Treat Windows Server 2008 the same as Windows Vista.
-      return VERSION_VISTA;
+      return traa::base::VERSION_VISTA;
     case 1:
       // Treat Windows Server 2008 R2 the same as Windows 7.
-      return VERSION_WIN7;
+      return traa::base::VERSION_WIN7;
     case 2:
       // Treat Windows Server 2012 the same as Windows 8.
-      return VERSION_WIN8;
+      return traa::base::VERSION_WIN8;
     default:
-      return VERSION_WIN8_1;
+      return traa::base::VERSION_WIN8_1;
     }
   } else if (major == 10) {
     if (build < 10586) {
-      return VERSION_WIN10;
+      return traa::base::VERSION_WIN10;
     } else if (build < 14393) {
-      return VERSION_WIN10_TH2;
+      return traa::base::VERSION_WIN10_TH2;
     } else if (build < 15063) {
-      return VERSION_WIN10_RS1;
+      return traa::base::VERSION_WIN10_RS1;
     } else if (build < 16299) {
-      return VERSION_WIN10_RS2;
+      return traa::base::VERSION_WIN10_RS2;
     } else if (build < 17134) {
-      return VERSION_WIN10_RS3;
+      return traa::base::VERSION_WIN10_RS3;
     } else if (build < 17763) {
-      return VERSION_WIN10_RS4;
+      return traa::base::VERSION_WIN10_RS4;
     } else if (build < 18362) {
-      return VERSION_WIN10_RS5;
+      return traa::base::VERSION_WIN10_RS5;
     } else if (build < 18363) {
-      return VERSION_WIN10_19H1;
+      return traa::base::VERSION_WIN10_19H1;
     } else if (build < 19041) {
-      return VERSION_WIN10_19H2;
+      return traa::base::VERSION_WIN10_19H2;
     } else if (build < 19042) {
-      return VERSION_WIN10_20H1;
+      return traa::base::VERSION_WIN10_20H1;
     } else if (build < 19043) {
-      return VERSION_WIN10_20H2;
+      return traa::base::VERSION_WIN10_20H2;
     } else if (build < 19044) {
-      return VERSION_WIN10_21H1;
+      return traa::base::VERSION_WIN10_21H1;
     } else if (build < 20348) {
-      return VERSION_WIN10_21H2;
+      return traa::base::VERSION_WIN10_21H2;
     } else if (build < 22000) {
-      return VERSION_SERVER_2022;
+      return traa::base::VERSION_SERVER_2022;
     } else {
-      return VERSION_WIN11;
+      return traa::base::VERSION_WIN11;
     }
   } else if (major == 11) {
-    return VERSION_WIN11;
+    return traa::base::VERSION_WIN11;
   } else if (major > 6) {
-    return VERSION_WIN_LAST;
+    return traa::base::VERSION_WIN_LAST;
   }
 
-  return VERSION_PRE_XP;
+  return traa::base::VERSION_PRE_XP;
 }
 
 // Returns the the "UBR" value from the registry. Introduced in Windows 10,

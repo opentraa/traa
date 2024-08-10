@@ -124,9 +124,10 @@ set(TRAA_LIBRARY_BASE_LOG_FILES
 # traa::base::os
 if(WIN32)
     set(TRAA_LIBRARY_BASE_OS_FILES
-        "${CMAKE_HOME_DIRECTORY}/src/base/os/win/registry.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/os/win/version.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/os/win/version.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/registry.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/registry.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/version.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/version.cc"
     )
 elseif(ANDROID)
 elseif(APPLE)
