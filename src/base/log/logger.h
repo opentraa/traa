@@ -24,22 +24,21 @@
 #endif
 
 #define LOG_API(FORMAT, ...) LOG_INFO("call {}(" #FORMAT ")", FUNCTION_MACRO, __VA_ARGS__)
-#define LOG_API_NO_ARGS() LOG_INFO("call {}()", FUNCTION_MACRO)
+
 #define LOG_API_SCOPE_ENTER LOG_INFO("{} enter", FUNCTION_MACRO);
 #define LOG_API_SCOPE_EXIT LOG_INFO("{} exit", FUNCTION_MACRO);
-#define LOG_API_ONE_ARG(ARG) LOG_INFO("call {}({})", FUNCTION_MACRO, ARG)
-#define LOG_API_TWO_ARGS(ARG1, ARG2) LOG_INFO("call {}({}, {})", FUNCTION_MACRO, ARG1, ARG2)
-#define LOG_API_THREE_ARGS(ARG1, ARG2, ARG3)                                                       \
+
+#define LOG_API_ARGS_0() LOG_INFO("call {}()", FUNCTION_MACRO)
+#define LOG_API_ARGS_1(ARG) LOG_INFO("call {}({})", FUNCTION_MACRO, ARG)
+#define LOG_API_ARGS_2(ARG1, ARG2) LOG_INFO("call {}({}, {})", FUNCTION_MACRO, ARG1, ARG2)
+#define LOG_API_ARGS_3(ARG1, ARG2, ARG3)                                                           \
   LOG_INFO("call {}({}, {}, {})", FUNCTION_MACRO, ARG1, ARG2, ARG3)
-#define LOG_API_FOUR_ARGS(ARG1, ARG2, ARG3, ARG4)                                                  \
+#define LOG_API_ARGS_4(ARG1, ARG2, ARG3, ARG4)                                                     \
   LOG_INFO("call {}({}, {}, {}, {})", FUNCTION_MACRO, ARG1, ARG2, ARG3, ARG4)
-#define LOG_API_FIVE_ARGS(ARG1, ARG2, ARG3, ARG4, ARG5)                                            \
+#define LOG_API_ARGS_5(ARG1, ARG2, ARG3, ARG4, ARG5)                                               \
   LOG_INFO("call {}({}, {}, {}, {}, {})", FUNCTION_MACRO, ARG1, ARG2, ARG3, ARG4, ARG5)
-#define LOG_API_SIX_ARGS(ARG1, ARG2, ARG3, ARG4, ARG5, ARG6)                                       \
+#define LOG_API_ARGS_6(ARG1, ARG2, ARG3, ARG4, ARG5, ARG6)                                         \
   LOG_INFO("call {}({}, {}, {}, {}, {}, {})", FUNCTION_MACRO, ARG1, ARG2, ARG3, ARG4, ARG5, ARG6)
-#define LOG_API_SEVEN_ARGS(ARG1, ARG2, ARG3, ARG4, ARG5, ARG6, ARG7)                               \
-  LOG_INFO("call {}({}, {}, {}, {}, {}, {}, {})", FUNCTION_MACRO, ARG1, ARG2, ARG3, ARG4, ARG5,    \
-           ARG6, ARG7)
 
 namespace traa {
 namespace base {

@@ -3,6 +3,12 @@
 
 #include <traa/error.h>
 
+#define TRAA_MAX_DEVICE_ID_LENGTH 256
+#define TRAA_MAX_DEVICE_NAME_LENGTH 256
+
+#define TRAA_INVALID_SCREEN_ID -1
+#define TRAA_FULLSCREEN_SCREEN_ID -2
+
 /**
  * @brief The context for TRAA.
  *
@@ -16,6 +22,50 @@ typedef void *traa_context;
  * This is the userdata for TRAA.
  */
 typedef void *traa_userdata;
+
+/**
+ * @struct traa_size
+ * @brief Represents the size of an object.
+ *
+ * The traa_size struct contains the width and height of an object.
+ * It is used to represent the dimensions of an object in a 2D space.
+ */
+typedef struct traa_size {
+  int width;
+  int height;
+
+  traa_size() : width(0), height(0) {}
+} traa_size;
+
+/**
+ * @struct traa_point
+ * @brief Represents a point in a 2D space.
+ *
+ * The traa_point struct contains the x and y coordinates of a point in a 2D space.
+ * It is used to represent the position of an object in a 2D space.
+ */
+typedef struct traa_point {
+  int x;
+  int y;
+
+  traa_point() : x(0), y(0) {}
+} traa_point;
+
+/**
+ * @struct traa_rect
+ * @brief Represents a rectangle in a 2D space.
+ *
+ * The traa_rect struct contains the origin and size of a rectangle in a 2D space.
+ * It is used to represent the position and dimensions of an object in a 2D space.
+ */
+typedef struct traa_rect {
+  int x;
+  int y;
+  int width;
+  int height;
+
+  traa_rect() : x(0), y(0), width(0), height(0) {}
+} traa_rect;
 
 /**
  * @brief Enumeration of device types used in the TRAA system.
@@ -46,25 +96,11 @@ typedef enum traa_device_type {
   TRAA_DEVICE_TYPE_SPEAKER = 3,
 
   /**
-   * @brief Screen device type.
-   *
-   * This is the screen device type.
-   */
-  TRAA_DEVICE_TYPE_SCREEN = 4,
-
-  /**
-   * @brief Window device type.
-   *
-   * This is the window device type.
-   */
-  TRAA_DEVICE_TYPE_WINDOW = 5,
-
-  /**
    * @brief Media file device type.
    *
    * This is the media file device type.
    */
-  TRAA_DEVICE_TYPE_MEDIA_FILE = 6,
+  TRAA_DEVICE_TYPE_MEDIA_FILE = 4,
 } traa_device_type;
 
 /**
@@ -224,14 +260,14 @@ typedef struct traa_device_info {
    *
    * This is the device id.
    */
-  const char *id;
+  char id[TRAA_MAX_DEVICE_ID_LENGTH];
 
   /**
    * @brief The device name.
    *
    * This is the device name.
    */
-  const char *name;
+  char name[TRAA_MAX_DEVICE_NAME_LENGTH];
 
   /**
    * @brief The device type.
@@ -261,13 +297,103 @@ typedef struct traa_device_info {
    */
   traa_device_state state;
 
-  traa_device_info(const char *id = nullptr, const char *name = nullptr,
-                   traa_device_type type = TRAA_DEVICE_TYPE_UNKNOWN,
-                   traa_device_slot slot = TRAA_DEVICE_SLOT_UNKNOWN,
-                   traa_device_orientation orientation = TRAA_DEVICE_ORIENTATION_UNKNOWN,
-                   traa_device_state state = TRAA_DEVICE_STATE_IDLE)
-      : id(id), name(name), type(type), slot(slot), orientation(orientation), state(state) {}
+  traa_device_info()
+      : id(), name(), type(TRAA_DEVICE_TYPE_UNKNOWN), slot(TRAA_DEVICE_SLOT_UNKNOWN),
+        orientation(TRAA_DEVICE_ORIENTATION_UNKNOWN), state(TRAA_DEVICE_STATE_IDLE) {}
 } traa_device_info;
+
+#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
+    defined(__linux__)
+/**
+ * @brief The screen source info for TRAA.
+ *
+ * This is the screen source info for TRAA.
+ */
+typedef struct traa_screen_source_info {
+  /**
+   * @brief The screen source id.
+   *
+   * This is the screen source id. Default is `TRAA_INVALID_SCREEN_ID`.
+   */
+  unsigned int id;
+
+  /**
+   * @brief The screen id.
+   *
+   * Default is `TRAA_INVALID_SCREEN_ID`, only valid when current source is window.
+   * Used to identify the screen that the window is on.
+   */
+  unsigned int screen_id;
+
+  /**
+   * @brief Indicates whether the source is a window or screen.
+   *
+   * This flag indicates whether the source is a window or screen.
+   */
+  bool is_window;
+
+  /**
+   * @brief Indicates whether the source is minimized.
+   *
+   * This flag indicates whether the source is minimized.
+   */
+  bool is_minimized;
+
+  /**
+   * @brief Indicates whether the source is maximized.
+   *
+   * This flag indicates whether the source is maximized.
+   */
+  bool is_maximized;
+
+  /**
+   * @brief Indicates whether the source is in fullscreen mode.
+   *
+   * This flag indicates whether the source is in fullscreen mode.
+   */
+  bool is_fullscreen;
+
+  /**
+   * @brief The position and size of the source.
+   *
+   * This is the position and size of the source on the full virtual screen.
+   */
+  traa_rect rect;
+
+  /**
+   * @brief The size of the source's icon.
+   *
+   * This is the size of the source's icon.
+   */
+  traa_size icon_size;
+
+  /**
+   * @brief The size of the source's thumbnail.
+   *
+   * This is the size of the source's thumbnail.
+   */
+  traa_size thumbnail_size;
+
+  /**
+   * @brief The data for the source's icon.
+   *
+   * This is the data for the source's icon.
+   */
+  const char *icon_data;
+
+  /**
+   * @brief The data for the source's thumbnail.
+   *
+   * This is the data for the source's thumbnail.
+   */
+  const char *thumbnail_data;
+
+  traa_screen_source_info()
+      : id(TRAA_INVALID_SCREEN_ID), screen_id(TRAA_INVALID_SCREEN_ID), is_window(false),
+        is_minimized(false), is_maximized(false), is_fullscreen(false), rect(), icon_size(),
+        thumbnail_size(), icon_data(nullptr), thumbnail_data(nullptr) {}
+} traa_screen_source_info;
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__
 
 /**
  * @brief The log level for TRAA.
@@ -384,7 +510,16 @@ typedef struct traa_event_handler {
    */
   void (*on_error)(const traa_userdata userdata, traa_error error, const char *message);
 
-  void (*on_device_event)(const traa_userdata userdata, const traa_device_info *device_info,
+  /**
+   * @brief Function pointer for handling device events.
+   *
+   * This function pointer is called when a device event occurs in TRAA.
+   *
+   * @param userdata The user data associated with the event handler.
+   * @param info The device information associated with the event.
+   * @param event The event that occurred.
+   */
+  void (*on_device_event)(const traa_userdata userdata, const traa_device_info *info,
                           traa_device_event event);
 
   traa_event_handler() : on_error(nullptr), on_device_event(nullptr) {}

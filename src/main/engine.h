@@ -21,7 +21,19 @@ public:
 
   int init(const traa_config *config);
 
-  int set_event_handler(const traa_event_handler *event_handler);
+  int set_event_handler(const traa_event_handler *handler);
+
+  int enum_device_info(traa_device_type type, traa_device_info **infos, int *count);
+
+  int free_device_info(traa_device_info infos[]);
+
+#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
+    defined(__linux__)
+  int enum_screen_source_info(const traa_size icon_size, const traa_size thumbnail_size,
+                              traa_screen_source_info **infos, int *count);
+
+  int free_screen_source_info(traa_screen_source_info infos[], int count);
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__
 
 private:
 };

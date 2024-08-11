@@ -43,7 +43,7 @@ int traa_init(const traa_config *config) {
     traa::base::logger::set_level(static_cast<spdlog::level::level_enum>(config->log_config.level));
   }
 
-  LOG_API_ONE_ARG(traa::main::obj_string::to_string(config));
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(config));
 
   std::lock_guard<std::mutex> lock(g_main_queue_mutex);
 
@@ -90,7 +90,7 @@ int traa_init(const traa_config *config) {
 }
 
 void traa_release() {
-  LOG_API_NO_ARGS();
+  LOG_API_ARGS_0();
 
   std::lock_guard<std::mutex> lock(g_main_queue_mutex);
 
@@ -102,10 +102,10 @@ void traa_release() {
   traa::base::task_queue_manager::shutdown();
 }
 
-int traa_set_event_handler(const traa_event_handler *event_handler) {
-  LOG_API_ONE_ARG(traa::main::obj_string::to_string(event_handler));
+int traa_set_event_handler(const traa_event_handler *handler) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(handler));
 
-  if (event_handler == nullptr) {
+  if (handler == nullptr) {
     return traa_error::TRAA_ERROR_INVALID_ARGUMENT;
   }
 
@@ -113,30 +113,102 @@ int traa_set_event_handler(const traa_event_handler *event_handler) {
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id,
-             [&event_handler]() { return g_engine_instance->set_event_handler(event_handler); })
+             [&handler]() { return g_engine_instance->set_event_handler(handler); })
       .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }
 
 void traa_set_log_level(traa_log_level level) {
-  LOG_API_ONE_ARG(traa::main::obj_string::to_string(level));
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(level));
 
   traa::base::logger::set_level(static_cast<spdlog::level::level_enum>(level));
 }
 
-int traa_set_log(const traa_log_config *log_config) {
-  LOG_API_ONE_ARG(traa::main::obj_string::to_string(log_config));
+int traa_set_log(const traa_log_config *config) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(config));
 
-  if (log_config == nullptr) {
+  if (config == nullptr) {
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  if (log_config->log_file != nullptr) {
+  if (config->log_file != nullptr) {
     // call set_level before set_log_file to ensure that no log messages written to the file or
     // stdout in case that user sets the log level to a higher level.
-    traa::base::logger::set_level(static_cast<spdlog::level::level_enum>(log_config->level));
-    traa::base::logger::set_log_file(log_config->log_file, log_config->max_size,
-                                     log_config->max_files);
+    traa::base::logger::set_level(static_cast<spdlog::level::level_enum>(config->level));
+    traa::base::logger::set_log_file(config->log_file, config->max_size, config->max_files);
   }
 
   return TRAA_ERROR_NONE;
 }
+
+int traa_enum_device_info(traa_device_type type, traa_device_info **infos, int *count) {
+  LOG_API_ARGS_3(traa::main::obj_string::to_string(type), traa::main::obj_string::to_string(infos),
+                 traa::main::obj_string::to_string(count));
+
+  if (infos == nullptr && count == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+
+  return traa::base::task_queue_manager::post_task(g_main_queue_id,
+                                                   [type, infos, count]() {
+                                                     return g_engine_instance->enum_device_info(
+                                                         type, infos, count);
+                                                   })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+int traa_free_device_info(traa_device_info infos[]) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(infos));
+
+  if (infos == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id, [infos]() { return g_engine_instance->free_device_info(infos); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
+    defined(__linux__)
+int traa_enum_screen_source_info(const traa_size icon_size, const traa_size thumbnail_size,
+                                 traa_screen_source_info **infos, int *count) {
+  LOG_API_ARGS_4(traa::main::obj_string::to_string(icon_size),
+                 traa::main::obj_string::to_string(thumbnail_size),
+                 traa::main::obj_string::to_string(infos),
+                 traa::main::obj_string::to_string(count));
+
+  if (infos == nullptr && count == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [icon_size, thumbnail_size, infos, count]() {
+               return g_engine_instance->enum_screen_source_info(icon_size, thumbnail_size, infos,
+                                                                 count);
+             })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+int traa_free_screen_source_info(traa_screen_source_info infos[], int count) {
+  LOG_API_ARGS_2(traa::main::obj_string::to_string(infos),
+                 traa::main::obj_string::to_string(count));
+
+  if (infos == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [infos, count]() { return g_engine_instance->free_screen_source_info(infos, count); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__

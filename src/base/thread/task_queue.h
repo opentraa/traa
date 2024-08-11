@@ -364,7 +364,7 @@ public:
    * If the allocation fails, the function logs an error message and aborts the program.
    */
   static void init() {
-    LOG_API_NO_ARGS();
+    LOG_API_ARGS_0();
 
     auto &self = instance();
 
@@ -389,7 +389,7 @@ public:
    * shut down and no further tasks can be enqueued or executed.
    */
   static void shutdown() {
-    LOG_API_NO_ARGS();
+    LOG_API_ARGS_0();
 
     auto &self = instance();
 
@@ -439,7 +439,7 @@ public:
    * code indicating success is returned.
    */
   static std::shared_ptr<task_queue> create_queue(task_queue::task_queue_id id, const char *name) {
-    LOG_API_TWO_ARGS(id, name);
+    LOG_API_ARGS_2(id, name);
 
     auto &self = instance();
 
@@ -464,7 +464,7 @@ public:
    * unregistered and an error code indicating success is returned.
    */
   static int release_queue(task_queue::task_queue_id id) {
-    LOG_API_ONE_ARG(id);
+    LOG_API_ARGS_1(id);
 
     auto &self = instance();
 
@@ -494,7 +494,7 @@ public:
    * returned.
    */
   static std::shared_ptr<task_queue> get_task_queue(task_queue::task_queue_id id) {
-    // LOG_API_ONE_ARG(id);
+    // LOG_API_ARGS_1(id);
 
     auto &self = instance();
 
@@ -561,7 +561,7 @@ public:
    * queue and a waitable_future object representing the result of the task is returned.
    */
   template <typename F> static auto post_task(task_queue::task_queue_id id, F &&f) {
-    // LOG_API_TWO_ARGS(id, reinterpret_cast<std::uintptr_t>(&f));
+    // LOG_API_ARGS_2(id, reinterpret_cast<std::uintptr_t>(&f));
 
     auto queue = get_task_queue(id);
     if (!queue) {

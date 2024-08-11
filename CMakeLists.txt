@@ -99,6 +99,22 @@ endif()
 set(TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/include)
 file(GLOB_RECURSE TRAA_LIBRARY_PUBLIC_HEADER_FILES ${TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR}/*.h)
 
+# traa::base::devices
+if(WIN32 OR (APPLE AND NOT IOS) OR UNIX)
+    set(TRAA_LIBRARY_BASE_DEVICES_FILES
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator.cc"
+    )
+endif()
+
+if(WIN32)
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator_win.cc")
+elseif(APPLE AND NOT IOS)
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator_darwin.mm")
+elseif(UNIX)
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator_posix.cc")
+endif()
+
 # traa::base::folder
 set(TRAA_LIBRARY_BASE_FOLDER_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder.h"
@@ -225,6 +241,7 @@ set(TRAA_LIBRARY_FILES
     ${TRAA_LIBRARY_PUBLIC_HEADER_FILES}
 
     # traa base files
+    ${TRAA_LIBRARY_BASE_DEVICES_FILES}
     ${TRAA_LIBRARY_BASE_FOLDER_FILES}
     ${TRAA_LIBRARY_BASE_LOG_FILES}
     ${TRAA_LIBRARY_BASE_OS_FILES}

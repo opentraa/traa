@@ -9,6 +9,13 @@
 
 #include <traa/base.h>
 
+#define OBJ_STRING_STREAM_DEFINE std::stringstream ss;
+#define OBJ_STRING_SEP ss << ", "
+#define OBJ_STRING_OBJ_BEING ss << "{"
+#define OBJ_STRING_OBJ_END ss << "}"
+#define OBJ_STRING_PROPERTY(OBJ, PROP) ss << "\"" #PROP "\": " << OBJ.PROP
+#define OBJ_STRING_STREAM_RETURN return ss.str();
+
 namespace traa {
 namespace main {
 /**
@@ -52,6 +59,85 @@ public:
     return number_to_hexstring(reinterpret_cast<std::uintptr_t>(context));
   }
 
+  static std::string to_string(int i) { return std::to_string(i); }
+
+  static std::string to_string(traa_size size) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEING;
+
+    OBJ_STRING_PROPERTY(size, width);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(size, height);
+
+    OBJ_STRING_OBJ_END;
+
+    OBJ_STRING_STREAM_RETURN;
+  }
+
+  static std::string to_string(traa_point point) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEING;
+
+    OBJ_STRING_PROPERTY(point, x);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(point, y);
+
+    OBJ_STRING_OBJ_END;
+
+    OBJ_STRING_STREAM_RETURN;
+  }
+
+  static std::string to_string(traa_rect rect) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEING;
+
+    OBJ_STRING_PROPERTY(rect, x);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(rect, y);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(rect, width);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(rect, height);
+
+    OBJ_STRING_OBJ_END;
+
+    OBJ_STRING_STREAM_RETURN;
+  }
+
+  /**
+   * @brief Convert a TRAA device type to a string.
+   *
+   * This function converts a TRAA device type to a string.
+   *
+   * @param type The TRAA device type.
+   *
+   * @return The string.
+   */
+  static std::string to_string(traa_device_type type) {
+    switch (type) {
+    case TRAA_DEVICE_TYPE_UNKNOWN:
+      return "unknown";
+    case TRAA_DEVICE_TYPE_CAMERA:
+      return "camera";
+    case TRAA_DEVICE_TYPE_MICROPHONE:
+      return "microphone";
+    case TRAA_DEVICE_TYPE_SPEAKER:
+      return "speaker";
+    case TRAA_DEVICE_TYPE_MEDIA_FILE:
+      return "media_file";
+    default:
+      return "unknown";
+    }
+  }
+
   /**
    * @brief Convert a TRAA log level to a string.
    *
@@ -83,20 +169,20 @@ public:
    *
    * This function converts a TRAA log config to a string.
    *
-   * @param log_config The TRAA log config.
+   * @param config The TRAA log config.
    *
    * @return The string.
    */
-  static std::string to_string(const traa_log_config *log_config) {
+  static std::string to_string(const traa_log_config *config) {
     std::stringstream ss;
-    if (log_config == nullptr) {
+    if (config == nullptr) {
       ss << "{null}";
     } else {
       ss << "{"
-         << "\"log_file\": " << (log_config->log_file ? log_config->log_file : "null") << ", "
-         << "\"max_size\": " << log_config->max_size << ", "
-         << "\"max_files\": " << log_config->max_files << ", "
-         << "\"level\": " << to_string(log_config->level) << "}";
+         << "\"log_file\": " << (config->log_file ? config->log_file : "null") << ", "
+         << "\"max_size\": " << config->max_size << ", "
+         << "\"max_files\": " << config->max_files << ", "
+         << "\"level\": " << to_string(config->level) << "}";
     }
 
     return ss.str();
@@ -111,17 +197,16 @@ public:
    *
    * @return The string.
    */
-  static std::string to_string(const traa_event_handler *event_handler) {
+  static std::string to_string(const traa_event_handler *handler) {
     std::stringstream ss;
-    if (event_handler == nullptr) {
+    if (handler == nullptr) {
       ss << "{null}";
     } else {
       ss << "{"
          << "\"on_error\": "
-         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_error)) << ", "
+         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(handler->on_error)) << ", "
          << "\"on_device_event\": "
-         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_device_event))
-         << ", "
+         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(handler->on_device_event)) << ", "
          << "}";
     }
 
