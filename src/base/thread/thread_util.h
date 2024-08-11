@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_THREAD_THREAD_UTIL_H
-#define TRAA_BASE_THREAD_THREAD_UTIL_H
+#ifndef TRAA_BASE_THREAD_THREAD_UTIL_H_
+#define TRAA_BASE_THREAD_THREAD_UTIL_H_
 
 #include "traa/error.h"
 
@@ -75,4 +75,4 @@ public:
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_THREAD_THREAD_UTIL_H
+#endif // TRAA_BASE_THREAD_THREAD_UTIL_H_

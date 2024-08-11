@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_LOG_LOGGER_H
-#define TRAA_BASE_LOG_LOGGER_H
+#ifndef TRAA_BASE_LOG_LOGGER_H_
+#define TRAA_BASE_LOG_LOGGER_H_
 
 #include "base/disallow.h"
 
@@ -74,4 +74,4 @@ public:
 } // namespace base
 } // namespace traa
 
-#endif // BASE_LOGGER_H
+#endif // TRAA_BASE_LOG_LOGGER_H_

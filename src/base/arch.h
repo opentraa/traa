@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_ARCH_H
-#define TRAA_BASE_ARCH_H
+#ifndef TRAA_BASE_ARCH_H_
+#define TRAA_BASE_ARCH_H_
 
 #if defined(_M_X64) || defined(__x86_64__)
 #define TRAA_ARCH_X86_FAMILY
@@ -78,4 +78,4 @@
 #error Define either TRAA_ARCH_LITTLE_ENDIAN or TRAA_ARCH_BIG_ENDIAN
 #endif
 
-#endif // TRAA_BASE_ARCH_H
+#endif // TRAA_BASE_ARCH_H_

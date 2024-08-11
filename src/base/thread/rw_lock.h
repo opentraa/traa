@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_THREAD_RW_LOCK_H
-#define TRAA_BASE_THREAD_RW_LOCK_H
+#ifndef TRAA_BASE_THREAD_RW_LOCK_H_
+#define TRAA_BASE_THREAD_RW_LOCK_H_
 
 #include "base/disallow.h"
 
@@ -122,4 +122,4 @@ private:
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_THREAD_RW_LOCK_H
+#endif // TRAA_BASE_THREAD_RW_LOCK_H_

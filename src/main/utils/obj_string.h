@@ -1,5 +1,5 @@
-#ifndef TRAA_MAIN_UTILS_OBJ_STRING_H
-#define TRAA_MAIN_UTILS_OBJ_STRING_H
+#ifndef TRAA_MAIN_UTILS_OBJ_STRING_H_
+#define TRAA_MAIN_UTILS_OBJ_STRING_H_
 
 #include <iomanip>
 #include <sstream>
@@ -118,7 +118,11 @@ public:
     } else {
       ss << "{"
          << "\"on_error\": "
-         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_error)) << "}";
+         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_error)) << ", "
+         << "\"on_device_event\": "
+         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_device_event))
+         << ", "
+         << "}";
     }
 
     return ss.str();
@@ -150,4 +154,4 @@ public:
 } // namespace main
 } // namespace traa
 
-#endif // TRAA_MAIN_UTILS_OBJ_STRING_H
+#endif // TRAA_MAIN_UTILS_OBJ_STRING_H_

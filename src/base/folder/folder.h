@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_FOLDER_FOLDER_H
-#define TRAA_BASE_FOLDER_FOLDER_H
+#ifndef TRAA_BASE_FOLDER_FOLDER_H_
+#define TRAA_BASE_FOLDER_FOLDER_H_
 
 #include "base/disallow.h"
 
@@ -94,4 +94,4 @@ public:
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_FOLDER_FOLDER_H
+#endif // TRAA_BASE_FOLDER_FOLDER_H_

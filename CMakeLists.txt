@@ -121,6 +121,19 @@ set(TRAA_LIBRARY_BASE_LOG_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/log/logger.cc"
 )
 
+# traa::base::os
+if(WIN32)
+    set(TRAA_LIBRARY_BASE_OS_FILES
+        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/registry.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/registry.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/version.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/version.cc"
+    )
+elseif(ANDROID)
+elseif(APPLE)
+elseif(UNIX)
+endif()
+
 # traa::base::strings
 set(TRAA_LIBRARY_BASE_STRINGS_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/strings/string_trans.h"
@@ -214,6 +227,7 @@ set(TRAA_LIBRARY_FILES
     # traa base files
     ${TRAA_LIBRARY_BASE_FOLDER_FILES}
     ${TRAA_LIBRARY_BASE_LOG_FILES}
+    ${TRAA_LIBRARY_BASE_OS_FILES}
     ${TRAA_LIBRARY_BASE_THREAD_FILES}
     ${TRAA_LIBRARY_BASE_FILES}
 
