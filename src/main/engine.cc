@@ -48,8 +48,7 @@ int engine::enum_screen_source_info(const traa_size icon_size, const traa_size t
 }
 
 int engine::free_screen_source_info(traa_screen_source_info infos[], int count) {
-  LOG_API_ARGS_2(traa::main::obj_string::to_string(infos),
-                 traa::main::obj_string::to_string(count));
+  LOG_API_ARGS_2(traa::main::obj_string::to_string(infos), std::to_string(count));
 
   return traa_error::TRAA_ERROR_NONE;
 }
