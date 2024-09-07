@@ -37,7 +37,7 @@ TEST(rw_lock_test, rw_lock_guard) {
   traa::base::rw_lock lock;
 
   {
-    traa::base::rw_lock_guard guard(lock, traa::base::rw_lock_guard::rw_lock_type::READ);
+    traa::base::rw_lock_guard guard(lock, false);
     EXPECT_FALSE(lock.try_write_lock());
     EXPECT_TRUE(lock.read_lock());
     EXPECT_TRUE(lock.try_read_lock());
@@ -48,7 +48,7 @@ TEST(rw_lock_test, rw_lock_guard) {
   }
 
   {
-    traa::base::rw_lock_guard guard(lock, traa::base::rw_lock_guard::rw_lock_type::WRITE);
+    traa::base::rw_lock_guard guard(lock, true);
     EXPECT_FALSE(lock.try_read_lock());
     EXPECT_FALSE(lock.try_write_lock());
   }

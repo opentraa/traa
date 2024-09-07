@@ -414,7 +414,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
+    rw_lock_guard guard(self.lock_, true);
     if (self.tls_key_.load() == UINTPTR_MAX) {
       std::uintptr_t key = UINTPTR_MAX;
       int ret = thread_util::tls_alloc(&key, nullptr);
@@ -439,7 +439,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
+    rw_lock_guard guard(self.lock_, true);
     for (auto &it : self.task_queues_) {
       it.second->stop();
     }
@@ -470,7 +470,7 @@ public:
   static size_t get_task_queue_count() {
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::READ);
+    rw_lock_guard guard(self.lock_, false);
     return self.task_queues_.size();
   }
 
@@ -489,7 +489,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
+    rw_lock_guard guard(self.lock_, true);
     if (self.task_queues_.find(id) != self.task_queues_.end()) {
       LOG_ERROR("task queue {} already exists", id);
       return nullptr;
@@ -514,7 +514,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
+    rw_lock_guard guard(self.lock_, true);
     auto it = self.task_queues_.find(id);
     if (it == self.task_queues_.end()) {
       LOG_ERROR("task queue {} does not exist", id);
@@ -544,7 +544,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::READ);
+    rw_lock_guard guard(self.lock_, false);
     auto it = self.task_queues_.find(id);
     if (it == self.task_queues_.end()) {
       return nullptr;
@@ -562,7 +562,7 @@ public:
   static bool is_task_queue_exist(task_queue::task_queue_id id) {
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::READ);
+    rw_lock_guard guard(self.lock_, false);
     return self.task_queues_.find(id) != self.task_queues_.end();
   }
 

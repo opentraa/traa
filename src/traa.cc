@@ -1,12 +1,12 @@
 #include "traa/traa.h"
 
 #include "base/log/logger.h"
+#include "base/thread/rw_lock.h"
 #include "base/thread/task_queue.h"
 #include "main/engine.h"
 #include "main/utils/obj_string.h"
 
 #include <memory>
-#include <mutex>
 
 namespace {
 // The main queue id.
@@ -15,14 +15,14 @@ static const traa::base::task_queue::task_queue_id g_main_queue_id = 0;
 // The main queue name.
 static const char *g_main_queue_name = "traa_main";
 
-// TODO @sylar: how to remove this mutex?
-// To avoid to use the global mutex, we should figure out a way to resolve this situation:
+// TODO @sylar: how to remove this rw lock?
+// To avoid to use the global lock, we should figure out a way to resolve this situation:
 // 1. enqueue a task to the main queue.
 // 2. destroy the main queue before the task is executed, which will happen in multi-threading.
 // 3. task.wait() will block forever, coz the main queue is destroyed, and the task is not executed.
 //
-// The main queue mutex.
-static std::mutex g_main_queue_mutex;
+// The main queue rw lock.
+static traa::base::rw_lock g_main_queue_rw_lock;
 
 // The engine instance.
 // The engine instance is created when traa_init is called and deleted when traa_release is called.
@@ -45,7 +45,7 @@ int traa_init(const traa_config *config) {
 
   LOG_API_ARGS_1(traa::main::obj_string::to_string(config));
 
-  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, true);
 
   // no need to lock here coz we have rw lock in task_queue_manager
   auto main_queue = traa::base::task_queue_manager::get_task_queue(g_main_queue_id);
@@ -92,7 +92,7 @@ int traa_init(const traa_config *config) {
 void traa_release() {
   LOG_API_ARGS_0();
 
-  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, true);
 
   traa::base::task_queue_manager::post_task(g_main_queue_id, []() {
     delete g_engine_instance;
@@ -109,7 +109,7 @@ int traa_set_event_handler(const traa_event_handler *handler) {
     return traa_error::TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id,
@@ -148,7 +148,7 @@ int traa_enum_device_info(traa_device_type type, traa_device_info **infos, int *
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
 
   return traa::base::task_queue_manager::post_task(g_main_queue_id,
                                                    [type, infos, count]() {
@@ -165,7 +165,7 @@ int traa_free_device_info(traa_device_info infos[]) {
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id, [infos]() { return g_engine_instance->free_device_info(infos); })
@@ -185,7 +185,7 @@ int traa_enum_screen_source_info(const traa_size icon_size, const traa_size thum
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id,
@@ -204,7 +204,7 @@ int traa_free_screen_source_info(traa_screen_source_info infos[], int count) {
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  std::lock_guard<std::mutex> lock(g_main_queue_mutex);
+  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id,
