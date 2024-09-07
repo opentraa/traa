@@ -188,6 +188,19 @@ TEST(task_queue_test, enqueue_at_after_repeatly) {
   }
 }
 
+// TODO @sylar: fix the test case
+// Still can not find a way to avoid the block of wait after stop and delete the queue before the
+// task is executed.
+// TEST(task_queue_test, no_block_after_stop_and_delete) {
+//   // stop
+//   {
+//     auto queue = std::make_shared<traa::base::task_queue>(UINTPTR_MAX, 1, "test_queue");
+//     queue->stop();
+//     auto future = queue->enqueue([]() { return 9527; });
+//     future.wait();
+//   }
+// }
+
 TEST(task_queue_manager_test, init_shutdown) {
   EXPECT_NO_THROW(traa::base::task_queue_manager::init());
   EXPECT_NE(traa::base::task_queue_manager::get_tls_key(), UINTPTR_MAX);

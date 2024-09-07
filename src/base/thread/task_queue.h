@@ -25,6 +25,52 @@ namespace traa {
 namespace base {
 
 /**
+ * @brief A class template representing a closure for a task.
+ *
+ * This class template wraps a callable object and provides a convenient way to execute the task and
+ * retrieve its result.
+ *
+ * @tparam R The return type of the task.
+ */
+template <typename R> class task_closure {
+public:
+  /**
+   * @brief Constructs a task_closure object from a callable object.
+   *
+   * @tparam F The type of the callable object.
+   * @param f The callable object to be wrapped.
+   */
+  template <typename F>
+  explicit task_closure(F &&f) : task_(std::packaged_task<R>(std::forward<F>(f))) {}
+
+  /**
+   * @brief Destructor for the task_closure class.
+   *
+   * This destructor is virtual and set to default, meaning it will use the default behavior
+   * for destroying objects of this class. It is responsible for cleaning up any resources
+   * held by the task_closure object.
+   */
+  virtual ~task_closure() = default;
+
+  /**
+   * @brief Executes the task and returns its result.
+   *
+   * @return The result of the task.
+   */
+  auto operator()() { return task_(); }
+
+  /**
+   * @brief Gets the future associated with the task.
+   *
+   * @return The future associated with the task.
+   */
+  auto get_future() { return task_.get_future(); }
+
+private:
+  std::packaged_task<R> task_; // The packaged_task object that wraps the callable object.
+};
+
+/**
  * @brief A class template for a task timer that repeats execution at a specified interval.
  *
  * This class template provides a mechanism to execute a callable object repeatedly at a specified
@@ -244,9 +290,9 @@ public:
    * @return A waitable_future object representing the result of the task.
    */
   template <typename F> auto enqueue(F &&f) {
-    auto task = std::make_shared<std::packaged_task<decltype(f())()>>(std::forward<F>(f));
-    asio::post(aio_, [task]() { (*task)(); });
-    return waitable_future<decltype(f())>(task->get_future());
+    auto closure = std::make_shared<task_closure<decltype(f())()>>(std::forward<F>(f));
+    asio::post(aio_, [closure]() { (*closure)(); });
+    return waitable_future<decltype(f())>(closure->get_future());
   }
 
   /**
