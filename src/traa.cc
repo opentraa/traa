@@ -175,9 +175,10 @@ int traa_free_device_info(traa_device_info infos[]) {
 #if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
     defined(__linux__)
 int traa_enum_screen_source_info(const traa_size icon_size, const traa_size thumbnail_size,
-                                 traa_screen_source_info **infos, int *count) {
-  LOG_API_ARGS_4(traa::main::obj_string::to_string(icon_size),
-                 traa::main::obj_string::to_string(thumbnail_size),
+                                 const unsigned int external_flags, traa_screen_source_info **infos,
+                                 int *count) {
+  LOG_API_ARGS_5(traa::main::obj_string::to_string(icon_size),
+                 traa::main::obj_string::to_string(thumbnail_size), std::to_string(external_flags),
                  traa::main::obj_string::to_string(infos),
                  traa::main::obj_string::to_string(count));
 
@@ -189,9 +190,9 @@ int traa_enum_screen_source_info(const traa_size icon_size, const traa_size thum
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id,
-             [icon_size, thumbnail_size, infos, count]() {
-               return g_engine_instance->enum_screen_source_info(icon_size, thumbnail_size, infos,
-                                                                 count);
+             [icon_size, thumbnail_size, external_flags, infos, count]() {
+               return g_engine_instance->enum_screen_source_info(icon_size, thumbnail_size,
+                                                                 external_flags, infos, count);
              })
       .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }

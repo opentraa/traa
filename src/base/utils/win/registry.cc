@@ -99,8 +99,8 @@ LONG reg_key::create(HKEY rootkey, const wchar_t *subkey, REGSAM access) {
 LONG reg_key::create_with_disposition(HKEY rootkey, const wchar_t *subkey, DWORD *disposition,
                                       REGSAM access) {
   HKEY subhkey = nullptr;
-  LONG result = RegCreateKeyExW(rootkey, subkey, 0, nullptr, REG_OPTION_NON_VOLATILE, access,
-                                nullptr, &subhkey, disposition);
+  LONG result = ::RegCreateKeyExW(rootkey, subkey, 0, nullptr, REG_OPTION_NON_VOLATILE, access,
+                                  nullptr, &subhkey, disposition);
   if (result == ERROR_SUCCESS) {
     close();
     key_ = subhkey;
@@ -126,8 +126,8 @@ LONG reg_key::create_key(const wchar_t *name, REGSAM access) {
     return ERROR_INVALID_PARAMETER;
   }
   HKEY subkey = nullptr;
-  LONG result = RegCreateKeyExW(key_, name, 0, nullptr, REG_OPTION_NON_VOLATILE, access, nullptr,
-                                &subkey, nullptr);
+  LONG result = ::RegCreateKeyExW(key_, name, 0, nullptr, REG_OPTION_NON_VOLATILE, access, nullptr,
+                                  &subkey, nullptr);
   if (result == ERROR_SUCCESS) {
     close();
     key_ = subkey;
@@ -157,7 +157,7 @@ LONG reg_key::open_key(const wchar_t *relative_key_name, REGSAM access) {
     return ERROR_INVALID_PARAMETER;
   }
   HKEY subkey = nullptr;
-  LONG result = RegOpenKeyExW(key_, relative_key_name, 0, access, &subkey);
+  LONG result = ::RegOpenKeyExW(key_, relative_key_name, 0, access, &subkey);
 
   // We have to close the current opened key before replacing it with the new
   // one.
@@ -192,13 +192,13 @@ HKEY reg_key::take() {
 }
 
 bool reg_key::has_value(const wchar_t *name) const {
-  return RegQueryValueExW(key_, name, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS;
+  return ::RegQueryValueExW(key_, name, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS;
 }
 
 DWORD reg_key::get_value_count() const {
   DWORD count = 0;
-  LSTATUS result = RegQueryInfoKeyW(key_, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                    &count, nullptr, nullptr, nullptr, nullptr);
+  ::RegQueryInfoKeyW(key_, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &count, nullptr,
+                     nullptr, nullptr, nullptr);
   return count;
 }
 
@@ -243,7 +243,7 @@ LONG reg_key::delete_key(const wchar_t *name, bool recursive) {
 
 LONG reg_key::delete_value(const wchar_t *value_name) {
   // `RegDeleteValue()` will return an error if `key_` is invalid.
-  LONG result = RegDeleteValueW(key_, value_name);
+  LONG result = ::RegDeleteValueW(key_, value_name);
   return result;
 }
 
@@ -309,7 +309,8 @@ LONG reg_key::read_value(const wchar_t *name, std::wstring *out_value) const {
 }
 
 LONG reg_key::read_value(const wchar_t *name, void *data, DWORD *dsize, DWORD *dtype) const {
-  LONG result = RegQueryValueExW(key_, name, nullptr, dtype, reinterpret_cast<LPBYTE>(data), dsize);
+  LONG result =
+      ::RegQueryValueExW(key_, name, nullptr, dtype, reinterpret_cast<LPBYTE>(data), dsize);
   return result;
 }
 
@@ -358,15 +359,15 @@ LONG reg_key::write_value(const wchar_t *name, const wchar_t *in_value) {
 }
 
 LONG reg_key::write_value(const wchar_t *name, const void *data, DWORD dsize, DWORD dtype) {
-  LONG result = RegSetValueExW(key_, name, 0, dtype,
-                               reinterpret_cast<LPBYTE>(const_cast<void *>(data)), dsize);
+  LONG result = ::RegSetValueExW(key_, name, 0, dtype,
+                                 reinterpret_cast<LPBYTE>(const_cast<void *>(data)), dsize);
   return result;
 }
 
 LONG reg_key::open(HKEY rootkey, const wchar_t *subkey, DWORD options, REGSAM access) {
   HKEY subhkey = nullptr;
 
-  LONG result = RegOpenKeyExW(rootkey, subkey, options, access, &subhkey);
+  LONG result = ::RegOpenKeyExW(rootkey, subkey, options, access, &subhkey);
   if (result == ERROR_SUCCESS) {
     close();
     key_ = subhkey;
@@ -474,7 +475,7 @@ reg_value_iterator::reg_value_iterator(HKEY root_key, const wchar_t *folder_key)
 }
 
 void reg_value_iterator::initialize(HKEY root_key, const wchar_t *folder_key, REGSAM wow64access) {
-  LONG result = RegOpenKeyExW(root_key, folder_key, 0, KEY_READ | wow64access, &key_);
+  LONG result = ::RegOpenKeyExW(root_key, folder_key, 0, KEY_READ | wow64access, &key_);
   if (result != ERROR_SUCCESS) {
     key_ = nullptr;
   } else {
@@ -600,7 +601,7 @@ bool reg_key_iterator::read() {
 }
 
 void reg_key_iterator::initialize(HKEY root_key, const wchar_t *folder_key, REGSAM wow64access) {
-  LONG result = RegOpenKeyExW(root_key, folder_key, 0, KEY_READ | wow64access, &key_);
+  LONG result = ::RegOpenKeyExW(root_key, folder_key, 0, KEY_READ | wow64access, &key_);
   if (result != ERROR_SUCCESS) {
     key_ = nullptr;
   } else {

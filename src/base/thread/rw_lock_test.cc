@@ -12,25 +12,25 @@ TEST(rw_lock_test, read_write_lock) {
   EXPECT_TRUE(lock.try_read_lock());
   EXPECT_FALSE(lock.try_write_lock());
 
-  EXPECT_NO_THROW(lock.read_unlock());
+  lock.read_unlock();
   EXPECT_FALSE(lock.try_write_lock());
 
-  EXPECT_NO_THROW(lock.read_unlock());
+  lock.read_unlock();
   EXPECT_FALSE(lock.try_write_lock());
 
-  EXPECT_NO_THROW(lock.read_unlock());
+  lock.read_unlock();
 
   EXPECT_TRUE(lock.write_lock());
   EXPECT_FALSE(lock.try_write_lock());
   EXPECT_FALSE(lock.try_read_lock());
 
-  EXPECT_NO_THROW(lock.write_unlock());
+  lock.write_unlock();
 
   EXPECT_TRUE(lock.try_write_lock());
   EXPECT_FALSE(lock.try_write_lock());
   EXPECT_FALSE(lock.try_read_lock());
 
-  EXPECT_NO_THROW(lock.write_unlock());
+  lock.write_unlock();
 }
 
 TEST(rw_lock_test, rw_lock_guard) {
@@ -42,8 +42,8 @@ TEST(rw_lock_test, rw_lock_guard) {
     EXPECT_TRUE(lock.read_lock());
     EXPECT_TRUE(lock.try_read_lock());
 
-    EXPECT_NO_THROW(lock.read_unlock());
-    EXPECT_NO_THROW(lock.read_unlock());
+    lock.read_unlock();
+    lock.read_unlock();
     EXPECT_FALSE(lock.try_write_lock());
   }
 

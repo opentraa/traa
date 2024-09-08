@@ -3,11 +3,13 @@
 
 #include <traa/error.h>
 
+#include <stdint.h>
+
 #define TRAA_MAX_DEVICE_ID_LENGTH 256
 #define TRAA_MAX_DEVICE_NAME_LENGTH 256
 
-#define TRAA_INVALID_SCREEN_ID -1
-#define TRAA_FULLSCREEN_SCREEN_ID -2
+#define TRAA_FULLSCREEN_SCREEN_ID -1
+#define TRAA_INVALID_SCREEN_ID -2
 
 /**
  * @brief The context for TRAA.
@@ -31,10 +33,11 @@ typedef void *traa_userdata;
  * It is used to represent the dimensions of an object in a 2D space.
  */
 typedef struct traa_size {
-  int width;
-  int height;
+  int32_t width;
+  int32_t height;
 
   traa_size() : width(0), height(0) {}
+  traa_size(int32_t width, int32_t height) : width(width), height(height) {}
 } traa_size;
 
 /**
@@ -45,10 +48,11 @@ typedef struct traa_size {
  * It is used to represent the position of an object in a 2D space.
  */
 typedef struct traa_point {
-  int x;
-  int y;
+  int32_t x;
+  int32_t y;
 
   traa_point() : x(0), y(0) {}
+  traa_point(int32_t x, int32_t y) : x(x), y(y) {}
 } traa_point;
 
 /**
@@ -59,12 +63,14 @@ typedef struct traa_point {
  * It is used to represent the position and dimensions of an object in a 2D space.
  */
 typedef struct traa_rect {
-  int x;
-  int y;
-  int width;
-  int height;
+  int32_t left;
+  int32_t top;
+  int32_t right;
+  int32_t bottom;
 
-  traa_rect() : x(0), y(0), width(0), height(0) {}
+  traa_rect() : left(0), top(0), right(0), bottom(0) {}
+  traa_rect(int32_t left, int32_t top, int32_t right, int32_t bottom)
+      : left(left), top(top), right(right), bottom(bottom) {}
 } traa_rect;
 
 /**
@@ -304,6 +310,178 @@ typedef struct traa_device_info {
 
 #if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
     defined(__linux__)
+
+/**
+ * @brief The screen source flags for TRAA.
+ */
+typedef enum traa_screen_source_flags {
+  /**
+   * @brief No flags.
+   *
+   * This is the default flag.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_NONE = 0,
+
+  /**
+   * @brief Ignore the screen source.
+   *
+   * This flag indicates that the screen source should be ignored.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN = 1 << 0,
+
+  /**
+   * @brief Ignore the window source.
+   *
+   * This flag indicates that the window source should be ignored.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_WINDOW = 1 << 1,
+
+  /**
+   * @brief Ignore the minimized source.
+   *
+   * This flag indicates that the minimized source should be ignored.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_MINIMIZED = 1 << 2,
+
+  /**
+   * @brief Ignore the untitled source.
+   *
+   * This flag indicates that the untitled source should be ignored.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNTITLED = 1 << 3,
+
+  /**
+   * @brief Ignore the unresponsive source.
+   *
+   * This flag indicates that the unresponsive source should be ignored.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNRESPONSIVE = 1 << 4,
+
+  /**
+   * @brief Ignore the current process source.
+   *
+   * This flag indicates that the current process source should be ignored.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS = 1 << 5,
+
+  /**
+   * @brief Ignore the tool window source.
+   *
+   * This flag indicates that the tool window source should be ignored.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_TOOLWINDOW = 1 << 6,
+
+  /**
+   * @brief Ignore the no process path source.
+   *
+   * This flag indicates that the no process path source should be ignored.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_NOPROCESS_PATH = 1 << 7,
+
+  /**
+   * @brief No skip system windows source.
+   *
+   * This flag indicates that the system windows source should not be skipped.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_NO_SKIP_SYSTEM_WINDOWS = 1 << 8,
+
+  /**
+   * @brief All flags.
+   *
+   * This flag indicates all flags.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_ALL = 0xFFFFFFFF
+} traa_screen_source_flags;
+
+/**
+ * @brief The screen capturer id for TRAA.
+ */
+typedef enum traa_screen_capturer_id {
+  /**
+   * @brief Unknown screen capturer id.
+   *
+   * This is the unknown screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_UNKNOWN = 0,
+
+  /**
+   * @brief Windows GDI screen capturer id.
+   *
+   * This is the Windows GDI screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_WIN_GDI = 1,
+
+  /**
+   * @brief Windows DXGI screen capturer id.
+   *
+   * This is the Windows DXGI screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_WIN_DXGI = 2,
+
+  /**
+   * @brief Windows magnifier screen capturer id.
+   *
+   * This is the Windows magnifier screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_WIN_MAGNIFIER = 3,
+
+  /**
+   * @brief Windows WGC screen capturer id.
+   *
+   * This is the Windows WGC screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_WIN_WGC = 4,
+
+  /**
+   * @brief Windows DWM screen capturer id.
+   *
+   * This is the Windows DWM screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_WIN_MAX = 20,
+
+  /**
+   * @brief Linux X11 screen capturer id.
+   *
+   * This is the Linux X11 screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_LINUX_X11 = 21,
+
+  /**
+   * @brief Linux Wayland screen capturer id.
+   *
+   * This is the Linux Wayland screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_LINUX_WAYLAND = 22,
+
+  /**
+   * @brief Linux Screen Capture screen capturer id.
+   *
+   * This is the Linux Screen Capture screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_LINUX_MAX = 40,
+
+  /**
+   * @brief Mac screen capturer id.
+   *
+   * This is the Mac screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_MAC = 41,
+
+  /**
+   * @brief Mac AVFoundation screen capturer id.
+   *
+   * This is the Mac AVFoundation screen capturer id.
+   */
+  TRAA_SCREEN_CAPTURER_ID_MAC_MAX = 60,
+
+  /**
+   * @brief Screen capturer id max.
+   *
+   * This is the screen capturer id max.
+   */
+  TRAA_SCREEN_CAPTURER_ID_MAX = 100
+} traa_screen_capturer_id;
+
 /**
  * @brief The screen source info for TRAA.
  *
@@ -315,7 +493,7 @@ typedef struct traa_screen_source_info {
    *
    * This is the screen source id. Default is `TRAA_INVALID_SCREEN_ID`.
    */
-  unsigned int id;
+  int64_t id;
 
   /**
    * @brief The screen id.
@@ -323,7 +501,7 @@ typedef struct traa_screen_source_info {
    * Default is `TRAA_INVALID_SCREEN_ID`, only valid when current source is window.
    * Used to identify the screen that the window is on.
    */
-  unsigned int screen_id;
+  int64_t screen_id;
 
   /**
    * @brief Indicates whether the source is a window or screen.
@@ -347,13 +525,6 @@ typedef struct traa_screen_source_info {
   bool is_maximized;
 
   /**
-   * @brief Indicates whether the source is in fullscreen mode.
-   *
-   * This flag indicates whether the source is in fullscreen mode.
-   */
-  bool is_fullscreen;
-
-  /**
    * @brief The position and size of the source.
    *
    * This is the position and size of the source on the full virtual screen.
@@ -375,23 +546,37 @@ typedef struct traa_screen_source_info {
   traa_size thumbnail_size;
 
   /**
+   * @brief The title of the source.
+   *
+   * This is the title of the source.
+   */
+  const char title[TRAA_MAX_DEVICE_NAME_LENGTH];
+
+  /**
+   * @brief The process path of the source.
+   *
+   * This is the process path of the source.
+   */
+  const char process_path[TRAA_MAX_DEVICE_NAME_LENGTH];
+
+  /**
    * @brief The data for the source's icon.
    *
    * This is the data for the source's icon.
    */
-  const char *icon_data;
+  const uint8_t *icon_data;
 
   /**
    * @brief The data for the source's thumbnail.
    *
    * This is the data for the source's thumbnail.
    */
-  const char *thumbnail_data;
+  const uint8_t *thumbnail_data;
 
   traa_screen_source_info()
       : id(TRAA_INVALID_SCREEN_ID), screen_id(TRAA_INVALID_SCREEN_ID), is_window(false),
-        is_minimized(false), is_maximized(false), is_fullscreen(false), rect(), icon_size(),
-        thumbnail_size(), icon_data(nullptr), thumbnail_data(nullptr) {}
+        is_minimized(false), is_maximized(false), rect(), icon_size(), thumbnail_size(),
+        title("\0"), process_path("\0"), icon_data(nullptr), thumbnail_data(nullptr) {}
 } traa_screen_source_info;
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__
 
@@ -472,14 +657,14 @@ typedef struct traa_log_config {
    *
    * This is the maximum size of the log file in bytes.
    */
-  int max_size;
+  int32_t max_size;
 
   /**
    * @brief The maximum number of log files.
    *
    * This is the maximum number of log files that are kept.
    */
-  int max_files;
+  int32_t max_files;
 
   /**
    * @brief The log level for TRAA.
@@ -488,8 +673,8 @@ typedef struct traa_log_config {
    */
   traa_log_level level;
 
-  traa_log_config(const char *log_file = nullptr, int max_size = 1024 * 1024 * 2, int max_files = 3,
-                  traa_log_level level = TRAA_LOG_LEVEL_INFO)
+  traa_log_config(const char *log_file = nullptr, int32_t max_size = 1024 * 1024 * 2,
+                  int32_t max_files = 3, traa_log_level level = TRAA_LOG_LEVEL_INFO)
       : log_file(log_file), max_size(max_size), max_files(max_files), level(level) {}
 } traa_log_config;
 

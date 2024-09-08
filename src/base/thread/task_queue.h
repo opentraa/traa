@@ -16,6 +16,26 @@
 #include <thread>
 #include <unordered_map>
 
+#if defined(ASIO_NO_EXCEPTIONS)
+
+#include <asio/detail/throw_exception.hpp>
+
+#include <exception>
+#include <iostream>
+
+namespace asio {
+namespace detail {
+
+template <typename Exception> void throw_exception(const Exception &e) {
+  std::cerr << "asio error: " << e.what() << std::endl;
+  std::terminate();
+}
+
+} // namespace detail
+} // namespace asio
+
+#endif // defined(ASIO_NO_EXCEPTIONS)
+
 #include <asio/executor_work_guard.hpp>
 #include <asio/io_context.hpp>
 #include <asio/post.hpp>

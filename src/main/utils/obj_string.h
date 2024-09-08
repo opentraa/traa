@@ -127,16 +127,16 @@ public:
 
     OBJ_STRING_OBJ_BEGIN;
 
-    OBJ_STRING_PROPERTY(rect, x);
+    OBJ_STRING_PROPERTY(rect, left);
 
     OBJ_STRING_SEP;
-    OBJ_STRING_PROPERTY(rect, y);
+    OBJ_STRING_PROPERTY(rect, top);
 
     OBJ_STRING_SEP;
-    OBJ_STRING_PROPERTY(rect, width);
+    OBJ_STRING_PROPERTY(rect, right);
 
     OBJ_STRING_SEP;
-    OBJ_STRING_PROPERTY(rect, height);
+    OBJ_STRING_PROPERTY(rect, bottom);
 
     OBJ_STRING_OBJ_END;
 

@@ -80,14 +80,16 @@ static
 
 #if defined(_MSC_VER)
 /**
- * About the section '.CRT$XIT':
+ * About the section '.CRT$XCU':
+ * 
+ * https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-initialization?view=msvc-170
  *
- * '.CRT$XIT' is a section that is used to specify the initialization function for the traa
+ * '.CRT$XCU' is a section that is used to specify the initialization function for the traa
  * module.
  *
  * To view more details about the sections used by the CRT, view the crt
  * file.(crt\src\vcruntime\internal_shared.h)
  */
-#pragma section(".CRT$XIT", long, read)
-__declspec(allocate(".CRT$XIT")) int (*_traa_init)(void) = traa_init;
+#pragma section(".CRT$XCU", long, read)
+__declspec(allocate(".CRT$XCU")) int (*_traa_init)(void) = traa_init;
 #endif

@@ -30,7 +30,8 @@ public:
 #if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
     defined(__linux__)
   int enum_screen_source_info(const traa_size icon_size, const traa_size thumbnail_size,
-                              traa_screen_source_info **infos, int *count);
+                              const unsigned int external_flags, traa_screen_source_info **infos,
+                              int *count);
 
   int free_screen_source_info(traa_screen_source_info infos[], int count);
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__

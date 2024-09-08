@@ -13,3 +13,7 @@
 [submodule "thirdparty/abseil-cpp"]
 	path = thirdparty/abseil-cpp
 	url = git@github.com:abseil/abseil-cpp.git
+[submodule "thirdparty/libyuv"]
+	path = thirdparty/libyuv
+	url = https://chromium.googlesource.com/libyuv/libyuv
+	branch = main

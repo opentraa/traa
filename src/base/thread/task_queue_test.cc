@@ -202,14 +202,14 @@ TEST(task_queue_test, enqueue_at_after_repeatly) {
 // }
 
 TEST(task_queue_manager_test, init_shutdown) {
-  EXPECT_NO_THROW(traa::base::task_queue_manager::init());
+  traa::base::task_queue_manager::init();
   EXPECT_NE(traa::base::task_queue_manager::get_tls_key(), UINTPTR_MAX);
   EXPECT_EQ(traa::base::task_queue_manager::get_task_queue_count(), 0);
-  EXPECT_NO_THROW(traa::base::task_queue_manager::shutdown());
+  traa::base::task_queue_manager::shutdown();
   EXPECT_EQ(traa::base::task_queue_manager::get_tls_key(), UINTPTR_MAX);
   EXPECT_EQ(traa::base::task_queue_manager::get_task_queue_count(), 0);
 
-  EXPECT_NO_THROW(traa::base::task_queue_manager::init());
+  traa::base::task_queue_manager::init();
   EXPECT_NE(traa::base::task_queue_manager::get_tls_key(), UINTPTR_MAX);
 
   EXPECT_TRUE(traa::base::task_queue_manager::create_queue(1, "test_queue") != nullptr);
@@ -249,24 +249,23 @@ TEST(task_queue_manager_test, init_shutdown) {
   EXPECT_TRUE(traa::base::task_queue_manager::post_task([]() { return 9527; }).valid() == false);
 
   // expect get current queue return valid queue on the queue
-  EXPECT_NO_THROW(traa::base::task_queue_manager::post_task(1, []() {
-                    EXPECT_TRUE(traa::base::task_queue_manager::is_on_task_queue());
-                    EXPECT_TRUE(traa::base::task_queue_manager::get_current_task_queue() !=
-                                nullptr);
-                  }).wait());
+  traa::base::task_queue_manager::post_task(1, []() {
+    EXPECT_TRUE(traa::base::task_queue_manager::is_on_task_queue());
+    EXPECT_TRUE(traa::base::task_queue_manager::get_current_task_queue() != nullptr);
+  }).wait();
 
   // expect post task without queue id on the queue return valid future
   std::promise<std::uintptr_t> promise;
   auto future = promise.get_future();
   auto task = [&promise]() { promise.set_value(traa::base::thread_util::get_thread_id()); };
-  EXPECT_NO_THROW(traa::base::task_queue_manager::post_task(1, [&task]() {
-                    EXPECT_TRUE(traa::base::task_queue_manager::post_task(task).valid());
-                    // do not wait the future, it will block the current task, coz they are on the
-                    // same queue
-                  }).wait());
+  traa::base::task_queue_manager::post_task(1, [&task]() {
+    EXPECT_TRUE(traa::base::task_queue_manager::post_task(task).valid());
+    // do not wait the future, it will block the current task, coz they are on the
+    // same queue
+  }).wait();
   EXPECT_TRUE(future.get() == traa::base::task_queue_manager::get_task_queue(1)->t_id());
 
-  EXPECT_NO_THROW(traa::base::task_queue_manager::shutdown());
+  traa::base::task_queue_manager::shutdown();
   EXPECT_EQ(traa::base::task_queue_manager::get_tls_key(), UINTPTR_MAX);
   EXPECT_EQ(traa::base::task_queue_manager::get_task_queue_count(), 0);
 }
