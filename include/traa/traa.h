@@ -4,11 +4,6 @@
 #include <traa/base.h>
 #include <traa/export.h>
 
-#if defined(__APPLE__)
-// use TARGET_OS_IPHONE and TARGET_OS_MAC to determine the platform
-#include <TargetConditionals.h>
-#endif // __APPLE__
-
 // TRAA is thread-safe. It is safe to call these functions from multiple threads.
 
 /**

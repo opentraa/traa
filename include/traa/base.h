@@ -3,6 +3,11 @@
 
 #include <traa/error.h>
 
+#if defined(__APPLE__)
+// use TARGET_OS_IPHONE and TARGET_OS_MAC to determine the platform
+#include <TargetConditionals.h>
+#endif // __APPLE__
+
 #include <stdint.h>
 
 #define TRAA_MAX_DEVICE_ID_LENGTH 256

@@ -186,15 +186,18 @@ int traa_enum_screen_source_info(const traa_size icon_size, const traa_size thum
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
+  return traa::main::engine::enum_screen_source_info(icon_size, thumbnail_size, external_flags,
+                                                     infos, count);
 
-  return traa::base::task_queue_manager::post_task(
-             g_main_queue_id,
-             [icon_size, thumbnail_size, external_flags, infos, count]() {
-               return g_engine_instance->enum_screen_source_info(icon_size, thumbnail_size,
-                                                                 external_flags, infos, count);
-             })
-      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+  // traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
+
+  // return traa::base::task_queue_manager::post_task(
+  //            g_main_queue_id,
+  //            [icon_size, thumbnail_size, external_flags, infos, count]() {
+  //              return g_engine_instance->enum_screen_source_info(icon_size, thumbnail_size,
+  //                                                                external_flags, infos, count);
+  //            })
+  //     .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }
 
 int traa_free_screen_source_info(traa_screen_source_info infos[], int count) {
@@ -204,11 +207,14 @@ int traa_free_screen_source_info(traa_screen_source_info infos[], int count) {
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
+  return traa::main::engine::free_screen_source_info(infos, count);
 
-  return traa::base::task_queue_manager::post_task(
-             g_main_queue_id,
-             [infos, count]() { return g_engine_instance->free_screen_source_info(infos, count); })
-      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+  // traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
+
+  // return traa::base::task_queue_manager::post_task(
+  //            g_main_queue_id,
+  //            [infos, count]() { return g_engine_instance->free_screen_source_info(infos, count);
+  //            })
+  //     .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__
