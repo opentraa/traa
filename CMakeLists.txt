@@ -146,6 +146,9 @@ else()
         -ggdb \
         -Wall \
         -fPIC \
+        -fno-omit-frame-pointer \
+        -fmerge-all-constants \
+        -fno-strict-aliasing \
         -Wno-unknown-warning-option \
         -Wno-error=deprecated-declarations \
         -Wno-deprecated-declarations \
@@ -155,6 +158,10 @@ else()
         -Wno-unused-function \
         -Wno-unused-parameter \
         -Wno-error=unused-but-set-variable")
+
+    if(APPLE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+    endif()
 
     # Disable warnings as errors cozed by sdk.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
@@ -186,6 +193,16 @@ else()
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} \
             -Wl,--exclude-libs,libc++_static.a \
             -Wl,--exclude-libs,libc++abi.a")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} \
+                -Wl,--gc-sections \
+                -Wl,-z,noexecstack \
+                -Wl,-z,now \
+                -Wl,-z,relro \
+                -Wl,-z,defs \
+                -Wl,--as-needed \
+                -Wl,--no-undefined \
+                -Wl,--build-id=sha1 -lc -ldl -landroid")
 
         #
         # Do not use -Wl,--exclude-libs,ALL, it will exclude all symbols from all static libraries,

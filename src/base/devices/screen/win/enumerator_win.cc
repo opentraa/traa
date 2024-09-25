@@ -1,9 +1,13 @@
 #include "base/devices/screen/desktop_geometry.h"
 #include "base/devices/screen/enumerator.h"
+#include "base/devices/screen/mouse_cursor.h"
 #include "base/devices/screen/win/cursor.h"
+#include "base/devices/screen/win/scoped_object_gdi.h"
 #include "base/log/logger.h"
 #include "base/strings/string_trans.h"
 #include "base/utils/win/version.h"
+
+#include <libyuv/scale_argb.h>
 
 #include <memory>
 #include <string>
@@ -124,7 +128,7 @@ int get_window_process_path(HWND window, wchar_t *path, int max_count) {
     return 0;
   }
 
-  HANDLE process = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, process_id);
+  HANDLE process = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);
   if (process == nullptr) {
     return 0;
   }
@@ -314,24 +318,70 @@ bool get_window_maximized_rect(HWND window, desktop_rect *intersects_rect) {
   return true;
 }
 
-bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t **icon_data) {
-  HICON icon = nullptr;
-  ::ExtractIconExW(process_path, 0, &icon, nullptr, 1);
-
-  // if the icon is not found, use the default icon from shell32.dll
-  if (!icon) {
-    ::ExtractIconExW(L"shell32.dll", 2, &icon, nullptr, 1);
+desktop_size calc_scaled_size(const desktop_size &source, const desktop_size &dest) {
+  if (source.width() == 0 || source.height() == 0 || dest.width() == 0 || dest.height() == 0) {
+    return desktop_size(0, 0);
   }
 
-  if (!icon) {
+  auto src_image_size = source.width() * source.height();
+  auto dst_image_size = dest.width() * dest.height();
+  if (src_image_size <= dst_image_size) {
+    return source;
+  }
+
+  // Calculate the scale factor to fit the source image into the destination image.
+  double scale_factor = sqrt(static_cast<double>(dst_image_size) / src_image_size);
+
+  // The codec requires the width and height to be multiples of 2.
+  int32_t scaled_width = static_cast<int32_t>(source.width() * scale_factor) & 0xFFFFFFFE;
+  int32_t scaled_height = static_cast<int32_t>(source.height() * scale_factor) & 0xFFFFFFFE;
+
+  return desktop_size(scaled_width, scaled_height);
+}
+
+bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t **icon_data) {
+  HICON hicon = nullptr;
+  ::ExtractIconExW(process_path, 0, &hicon, nullptr, 1);
+
+  // if the icon is not found, use the default icon from shell32.dll
+  if (!hicon) {
+    LOG_WARN("extract icon from {} failed, use the default icon from shell32.dll",
+             string_trans::unicode_to_utf8(process_path));
+    ::ExtractIconExW(L"shell32.dll", 2, &hicon, nullptr, 1);
+  }
+
+  if (!hicon) {
+    LOG_ERROR("extract icon from {} failed: {}", string_trans::unicode_to_utf8(process_path),
+              ::GetLastError());
     return false;
   }
 
-  std::unique_ptr<mouse_cursor> cursor(create_mouse_cursor_from_handle(::GetDC(NULL), icon));
-  // TODO @sylar
-  // not finished
+  scoped_icon icon(hicon);
 
-  ::DestroyIcon(icon);
+  std::unique_ptr<mouse_cursor> cursor(create_mouse_cursor_from_handle(::GetDC(NULL), icon));
+  if (!cursor) {
+    LOG_ERROR("create mouse cursor from handle failed: {}", ::GetLastError());
+    return false;
+  }
+
+  auto scaled_size = calc_scaled_size(cursor->image()->size(), icon_size);
+  if (scaled_size.is_empty()) {
+    LOG_ERROR("calc scaled size failed, get empty size");
+    return false;
+  }
+
+  auto data_size = scaled_size.width() * scaled_size.height() * 4;
+
+  *icon_data = new uint8_t[data_size];
+  if (!*icon_data) {
+    LOG_ERROR("alloca memroy for icon data with size {} failed: {}", data_size, ::GetLastError());
+    return false;
+  }
+
+  libyuv::ARGBScale(cursor->image()->data(), cursor->image()->stride(),
+                    cursor->image()->size().width(), cursor->image()->size().height(), *icon_data,
+                    scaled_size.width() * desktop_frame::kBytesPerPixel, scaled_size.width(),
+                    scaled_size.height(), libyuv::kFilterBox);
 
   return true;
 }
@@ -368,16 +418,16 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
     return TRUE;
   }
 
-  // skip WS_EX_TOOLWINDOW if the TRAA_SCREEN_SOURCE_FLAG_IGNORE_TOOLWINDOW flag is set.
-  if ((param->external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_TOOLWINDOW) &&
-      (exstyle & WS_EX_TOOLWINDOW)) {
+  // skip WS_EX_TOOLWINDOW unless the TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_TOOLWINDOW flag is set.
+  if ((exstyle & WS_EX_TOOLWINDOW) &&
+      !(param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_TOOLWINDOW)) {
     return TRUE;
   }
 
-  // skip windows which are not responding if the TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNRESPONSIVE flag
+  // skip windows which are not responding unless the TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE flag
   // is set.
-  if ((param->external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNRESPONSIVE) &&
-      !is_window_responding(window)) {
+  if (!is_window_responding(window) &&
+      !(param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE)) {
     return TRUE;
   }
 
@@ -402,27 +452,15 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
 
   bool has_title = false;
   WCHAR window_title[TRAA_MAX_DEVICE_NAME_LENGTH] = L"";
-#if 0
-  // Even if consumers request to enumerate windows owned by the current
-  // process, we should not call GetWindowText* on unresponsive windows owned by
-  // the current process because we will hang. Unfortunately, we could still
-  // hang if the window becomes unresponsive after this check, hence the option
-  // to avoid these completely.
-  if (!owned_by_current_process || is_window_responding(window)) {
-    if (::GetWindowTextLengthW(window) > 0 &&
-        ::GetWindowTextW(window, window_title, TRAA_MAX_DEVICE_NAME_LENGTH) > 0) {
-        has_title = true;
-    }
-  }
-#else
   if (get_window_text_safe(window, window_title, TRAA_MAX_DEVICE_NAME_LENGTH - 1) > 0) {
     has_title = true;
+  } else {
+    LOG_ERROR("get window title failed: {}", ::GetLastError());
   }
-#endif
 
-  // skip windows when we failed to convert the title or it is empty when the
-  // TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNTITLED flag is set.
-  if ((param->external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNTITLED) && !has_title) {
+  // skip windows when we failed to convert the title or it is empty unless the
+  // TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNTITLED flag is set.
+  if (!has_title && !(param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNTITLED)) {
     return TRUE;
   }
 
@@ -430,6 +468,8 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
   WCHAR process_path[TRAA_MAX_DEVICE_NAME_LENGTH] = L"";
   if (get_window_process_path(window, process_path, TRAA_MAX_DEVICE_NAME_LENGTH - 1) > 0) {
     has_process_path = true;
+  } else {
+    LOG_ERROR("get window process path failed: {}", ::GetLastError());
   }
 
   if ((param->external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_NOPROCESS_PATH) &&
@@ -448,7 +488,7 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
   if (class_name_length < 1)
     return TRUE;
 
-  if (param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NO_SKIP_SYSTEM_WINDOWS) {
+  if (!(param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NOT_SKIP_SYSTEM_WINDOWS)) {
     // skip program manager window.
     if (wcscmp(class_name, L"Progman") == 0 || wcscmp(class_name, L"Program Manager") == 0)
       return TRUE;

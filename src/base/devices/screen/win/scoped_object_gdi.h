@@ -69,8 +69,22 @@ public:
   }
 };
 
+class destroy_icon_traits {
+public:
+  destroy_icon_traits() = delete;
+  destroy_icon_traits(const destroy_icon_traits &) = delete;
+  destroy_icon_traits &operator=(const destroy_icon_traits &) = delete;
+
+  // Closes the handle.
+  static void close(HICON handle) {
+    if (handle)
+      ::DestroyIcon(handle);
+  }
+};
+
 typedef scoped_object_gdi<HBITMAP, delete_object_traits<HBITMAP>> scoped_bitmap;
 typedef scoped_object_gdi<HCURSOR, destroy_cursor_traits> scoped_cursor;
+typedef scoped_object_gdi<HICON, destroy_icon_traits> scoped_icon;
 
 } // namespace base
 } // namespace traa

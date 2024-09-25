@@ -349,18 +349,18 @@ typedef enum traa_screen_source_flags {
   TRAA_SCREEN_SOURCE_FLAG_IGNORE_MINIMIZED = 1 << 2,
 
   /**
-   * @brief Ignore the untitled source.
+   * @brief Do not ignore the untitled source.
    *
-   * This flag indicates that the untitled source should be ignored.
+   * This flag indicates that the untitled source should not be ignored.
    */
-  TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNTITLED = 1 << 3,
+  TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNTITLED = 1 << 3,
 
   /**
-   * @brief Ignore the unresponsive source.
+   * @brief Do not ignore the unresponsive source.
    *
-   * This flag indicates that the unresponsive source should be ignored.
+   * This flag indicates that the unresponsive source should not be ignored.
    */
-  TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNRESPONSIVE = 1 << 4,
+  TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE = 1 << 4,
 
   /**
    * @brief Ignore the current process source.
@@ -370,11 +370,11 @@ typedef enum traa_screen_source_flags {
   TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS = 1 << 5,
 
   /**
-   * @brief Ignore the tool window source.
+   * @brief Do not ignore the tool window source.
    *
-   * This flag indicates that the tool window source should be ignored.
+   * This flag indicates that the tool window source should not be ignored.
    */
-  TRAA_SCREEN_SOURCE_FLAG_IGNORE_TOOLWINDOW = 1 << 6,
+  TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_TOOLWINDOW = 1 << 6,
 
   /**
    * @brief Ignore the no process path source.
@@ -384,11 +384,11 @@ typedef enum traa_screen_source_flags {
   TRAA_SCREEN_SOURCE_FLAG_IGNORE_NOPROCESS_PATH = 1 << 7,
 
   /**
-   * @brief No skip system windows source.
+   * @brief Do not skip system windows source.
    *
    * This flag indicates that the system windows source should not be skipped.
    */
-  TRAA_SCREEN_SOURCE_FLAG_NO_SKIP_SYSTEM_WINDOWS = 1 << 8,
+  TRAA_SCREEN_SOURCE_FLAG_NOT_SKIP_SYSTEM_WINDOWS = 1 << 8,
 
   /**
    * @brief All flags.

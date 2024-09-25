@@ -99,9 +99,7 @@ TRAA_API int TRAA_CALL traa_free_device_info(traa_device_info infos[]);
  *
  * @param icon_size The size of the icon.
  * @param thumbnail_size The size of the thumbnail.
- * @param external_flags The external flags. See traa_screen_source_flags for more information. Can
- * be one or multiple flags.Recommended flags: TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNTITLED |
- * TRAA_SCREEN_SOURCE_FLAG_IGNORE_UNRESPONSIVE | TRAA_SCREEN_SOURCE_FLAG_IGNORE_TOOLWINDOW,
+ * @param external_flags The external flags. See traa_screen_source_flags for more information
  * @param infos A pointer to an array of traa_screen_source_info structures to store the screen
  * source information.
  * @param count A pointer to an integer to store the number of screen sources found.

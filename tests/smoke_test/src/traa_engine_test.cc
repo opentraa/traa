@@ -100,21 +100,21 @@ TEST_F(traa_engine_test, traa_set_log) {
 TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
   auto output_screen_source_info = [](traa_screen_source_info *info) {
     // print all
-    // printf("info: id: %lld, screen_id: %lld, is_window: %d, is_minimized: %d, is_maximized: %d, "
-    //        "rect: (%d, %d, %d, %d), title: %s, process_path:%s, icon_size: (%d, "
-    //        "%d), "
-    //        "icon_data: %p, thumbnail_size: (%d, %d), thumbnail_data: %p\n",
-    //        info->id, info->screen_id, info->is_window, info->is_minimized, info->is_maximized,
-    //        info->rect.left, info->rect.top, info->rect.right, info->rect.bottom, info->title,
-    //        info->process_path, info->icon_size.width, info->icon_size.height, info->icon_data,
-    //        info->thumbnail_size.width, info->thumbnail_size.height, info->thumbnail_data);
+    printf("info: id: %lld, screen_id: %lld, is_window: %d, is_minimized: %d, is_maximized: %d, "
+           "rect: (%d, %d, %d, %d), title: %s, process_path:%s, icon_size: (%d, "
+           "%d), "
+           "icon_data: %p, thumbnail_size: (%d, %d), thumbnail_data: %p\n",
+           info->id, info->screen_id, info->is_window, info->is_minimized, info->is_maximized,
+           info->rect.left, info->rect.top, info->rect.right, info->rect.bottom, info->title,
+           info->process_path, info->icon_size.width, info->icon_size.height, info->icon_data,
+           info->thumbnail_size.width, info->thumbnail_size.height, info->thumbnail_data);
 
     // print id and title
     // printf("info: id: %lld, title: %s\n", info->id, info->title);
 
     // print id 、title and process_path
-    printf("info: id: %lld, title: %s, process_path: %s\n", info->id, info->title,
-           info->process_path);
+    /*printf("info: id: %lld, title: %s, process_path: %s\n", info->id, info->title,
+           info->process_path);*/
   };
 
   // enum without icon_size and thumbnail_size.
@@ -142,12 +142,14 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
         EXPECT_GT(infos[i].rect.bottom - infos[i].rect.top, 0);
         EXPECT_EQ(infos[i].icon_size.width, 0);
         EXPECT_EQ(infos[i].icon_size.height, 0);
+        EXPECT_TRUE(std::strlen(infos[i].title) > 0);
+        EXPECT_TRUE(std::strlen(infos[i].process_path) > 0);
         EXPECT_EQ(infos[i].icon_data, nullptr);
       }
 
       EXPECT_EQ(infos[i].thumbnail_size.width, 0);
       EXPECT_EQ(infos[i].thumbnail_size.height, 0);
-      // EXPECT_EQ(infos[i].thumbnail_data, nullptr);
+      EXPECT_EQ(infos[i].thumbnail_data, nullptr);
 
       output_screen_source_info(&infos[i]);
     }
@@ -181,14 +183,14 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
         EXPECT_GT(infos[i].rect.bottom - infos[i].rect.top, 0);
         EXPECT_EQ(infos[i].icon_size.width, icon_size.width);
         EXPECT_EQ(infos[i].icon_size.height, icon_size.height);
-        // EXPECT_TRUE(std::strlen(infos[i].title) > 0);
+        EXPECT_TRUE(std::strlen(infos[i].title) > 0);
         EXPECT_TRUE(std::strlen(infos[i].process_path) > 0);
-        // EXPECT_NE(infos[i].icon_data, nullptr);
+        EXPECT_NE(infos[i].icon_data, nullptr);
       }
 
       EXPECT_EQ(infos[i].thumbnail_size.width, thumbnail_size.width);
       EXPECT_EQ(infos[i].thumbnail_size.height, thumbnail_size.height);
-      // EXPECT_NE(infos[i].thumbnail_data, nullptr);
+      EXPECT_NE(infos[i].thumbnail_data, nullptr);
 
       output_screen_source_info(&infos[i]);
     }
