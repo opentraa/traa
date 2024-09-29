@@ -20,8 +20,6 @@ add_executable(${TRAA_UNIT_TEST}
     ${TRAA_UNIT_TEST_FILES}
 )
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
-target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE SPDLOG_NO_EXCEPTIONS)
-target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE ASIO_NO_EXCEPTIONS)
 target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
     yuv
     gtest
@@ -102,8 +100,10 @@ gtest_discover_tests(${TRAA_UNIT_TEST})
 if(MACOS OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     traa_enable_sanitizer(${TRAA_UNIT_TEST})
 
-    # https://learn.microsoft.com/en-us/cpp/sanitizers/asan?view=msvc-170
-    # on the official document, , /MTd is supported but the version of msvc on our CI is too old
-    # so that the /MTd and -fsanitize=address can't be used together
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        # https://learn.microsoft.com/en-us/cpp/sanitizers/asan?view=msvc-170
+        # on the official document, , /MTd is supported but the version of msvc on our CI is too old
+        # so that the /MTd and -fsanitize=address can't be used together
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
+    endif()
 endif()

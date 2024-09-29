@@ -11,10 +11,5 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
   return TRAA_ERROR_NOT_IMPLEMENTED;
 }
 
-int screen_source_info_enumerator::free_screen_source_info(traa_screen_source_info infos[],
-                                                           int count) {
-  return TRAA_ERROR_NOT_IMPLEMENTED;
-}
-
 } // namespace base
 } // namespace traa

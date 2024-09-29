@@ -157,16 +157,13 @@ else()
         -Wno-reorder \
         -Wno-unused-function \
         -Wno-unused-parameter \
-        -Wno-error=unused-but-set-variable")
+        -Wno-error=unused-but-set-variable \
+        -Wno-error=unused-const-variable \
+        -Wno-error=shorten-64-to-32")
 
     if(APPLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
     endif()
-
-    # Disable warnings as errors cozed by sdk.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Wno-error=shorten-64-to-32 \
-        -Wno-error=deprecated-copy-with-user-provided-copy")
 
     # Set visibility hidden for all symbols by default.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
@@ -355,6 +352,7 @@ set(TRAA_LIBRARY_MAIN_FILES
 )
 
 # thirdparty spdlog
+add_definitions(-DSPDLOG_NO_EXCEPTIONS=ON)
 set(TRAA_THIRDPARTY_SPDLOG_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/spdlog/include")
 add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/spdlog)
 set_property(TARGET spdlog PROPERTY FOLDER "thirdparty")
@@ -367,19 +365,13 @@ set(TRAA_THIRDPARTY_JSON_FILE
 )
 source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_THIRDPARTY_JSON_FILE})
 
-# thirdparty libyuv
-set(TRAA_THIRDPARTY_LIBYUV_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/libyuv/include")
-add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/libyuv)
+# thirdparty libyuv-static
+add_definitions(-DLIBYUV_ENABLE_NEON=OFF) # TODO @sylar: how to enable neon?
+add_definitions(-DLIBYUV_ENABLE_SVE=OFF) # TODO @sylar: how to enable sve?
+add_definitions(-DLIBYUV_ENABLE_SME=OFF) # TODO @sylar: how to enable sme?
+set(TRAA_THIRDPARTY_LIBYUV_INCLUDE_DIR "${LIBYUV_INCLUDE_DIR}")
+add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/libyuv-static)
 set_property(TARGET yuv PROPERTY FOLDER "thirdparty/libyuv")
-set_property(TARGET yuv_common_objects PROPERTY FOLDER "thirdparty/libyuv")
-set_property(TARGET yuv_shared PROPERTY FOLDER "thirdparty/libyuv")
-set_property(TARGET yuvconvert PROPERTY FOLDER "thirdparty/libyuv")
-set_property(TARGET yuvconstants PROPERTY FOLDER "thirdparty/libyuv")
-set_property(TARGET cpuid PROPERTY FOLDER "thirdparty/libyuv")
-target_compile_options(yuv PRIVATE /wd3462 /wd4310 /wd4244)
-
-# exclude libyuv excutable targets
-set_target_properties(yuv_shared yuvconvert yuvconstants cpuid PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD TRUE)
 
 # TODO @sylar: do we really need absl?
 # thirdparty absil-cpp
@@ -389,6 +381,8 @@ if(TRAA_ENABLE_ABSL)
 endif()
 
 # thirdparty asio
+add_compile_definitions(ASIO_NO_EXCEPTIONS)
+add_compile_definitions(ASIO_NO_TYPEID)
 set(TRAA_THIRDPARTY_ASIO_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/asio/asio/include")
 file(GLOB_RECURSE TRAA_THIRDPARTY_ASIO_FILES
     ${CMAKE_HOME_DIRECTORY}/thirdparty/asio/asio/include/asio/*.hpp
@@ -486,10 +480,6 @@ if(TRAA_ENABLE_ABSL)
         absl::time
         absl::utility)
 endif()
-
-# thirdparty compile definitions
-target_compile_definitions(${TRAA_LIBRARY} PRIVATE SPDLOG_NO_EXCEPTIONS)
-target_compile_definitions(${TRAA_LIBRARY} PRIVATE ASIO_NO_EXCEPTIONS)
 
 # platform flags
 if(APPLE)
