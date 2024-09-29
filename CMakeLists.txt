@@ -121,7 +121,6 @@ if(WIN32)
         /Zi \
         /O2 \
         /wo4018 \
-        /wo4244 \
         /wo4251 \
         /wo4275 \
         /we4033 \
@@ -138,7 +137,8 @@ if(WIN32)
         /wd28020 \
         /wd26437 \
         /wd4297 \
-        /wd4100")
+        /wd4100 \
+        /wd4505")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -g \
@@ -241,7 +241,7 @@ set(TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/include)
 file(GLOB_RECURSE TRAA_LIBRARY_PUBLIC_HEADER_FILES ${TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR}/*.h)
 
 # traa::base::devices
-if(WIN32 OR(APPLE AND NOT IOS) OR UNIX)
+if(WIN32 OR MACOS OR LINUX)
     set(TRAA_LIBRARY_BASE_DEVICES_FILES
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame.h"
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame.cc"
@@ -369,8 +369,8 @@ source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_THIRDPARTY_JSON_FILE})
 add_definitions(-DLIBYUV_ENABLE_NEON=OFF) # TODO @sylar: how to enable neon?
 add_definitions(-DLIBYUV_ENABLE_SVE=OFF) # TODO @sylar: how to enable sve?
 add_definitions(-DLIBYUV_ENABLE_SME=OFF) # TODO @sylar: how to enable sme?
-set(TRAA_THIRDPARTY_LIBYUV_INCLUDE_DIR "${LIBYUV_INCLUDE_DIR}")
 add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/libyuv-static)
+set(TRAA_THIRDPARTY_LIBYUV_INCLUDE_DIR "${LIBYUV_INCLUDE_DIR}")
 set_property(TARGET yuv PROPERTY FOLDER "thirdparty/libyuv")
 
 # TODO @sylar: do we really need absl?
