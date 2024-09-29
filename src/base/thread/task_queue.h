@@ -13,6 +13,7 @@
 #include <atomic>
 #include <future>
 #include <mutex>
+#include <queue>
 #include <thread>
 #include <unordered_map>
 
@@ -242,6 +243,8 @@ public:
       }
 
       aio_.run();
+
+      tasks_ = std::queue<std::function<void()>>();
     });
   }
 
@@ -276,7 +279,7 @@ public:
    * execution.
    */
   void stop() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    //std::lock_guard<std::mutex> lock(mutex_);
 
     aio_.stop();
     if (t_.joinable()) {
@@ -310,9 +313,20 @@ public:
    * @return A waitable_future object representing the result of the task.
    */
   template <typename F> auto enqueue(F &&f) {
-    auto closure = std::make_shared<task_closure<decltype(f())()>>(std::forward<F>(f));
-    asio::post(aio_, [closure]() { (*closure)(); });
-    return waitable_future<decltype(f())>(closure->get_future());
+    waitable_future<decltype(f())> future;
+    {
+      std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+      if (!task_queue_manager::is_on_task_queue(id_)) {
+        lock.lock();
+      }
+
+      auto closure = std::make_shared<task_closure<decltype(f())()>>(std::forward<F>(f));
+      future = closure->get_future();
+      auto task = [closure]() { (*closure)(); };
+      tasks_.emplace(task);
+    }
+    asio::post(aio_, std::bind(&task_queue::on_ready_to_run, this));
+    return future;
   }
 
   /**
@@ -372,6 +386,21 @@ public:
   }
 
 private:
+  void on_ready_to_run() {
+    std::function<void()> task;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (!tasks_.empty()) {
+        task = tasks_.front();
+        tasks_.pop();
+      }
+    }
+    if (task) {
+      task();
+    }
+  }
+
+private:
   std::string name_;                    // The name of the task queue.
   std::thread t_;                       // The thread object that runs the io_context.
   std::mutex mutex_;                    // The mutex to protect the task queue.
@@ -382,6 +411,8 @@ private:
   asio::io_context aio_; // The io_context for asynchronous task execution.
   asio::executor_work_guard<asio::io_context::executor_type>
       work_; // The work guard to keep the io_context active.
+
+  std::queue<std::function<void()>> tasks_; // The queue of tasks to be executed.
 };
 
 /**
@@ -596,6 +627,17 @@ public:
 
     auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_.load()));
     return queue != nullptr;
+  }
+
+  static bool is_on_task_queue(task_queue::task_queue_id id) {
+    auto &self = instance();
+
+    auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_.load()));
+    if (!queue) {
+      return false;
+    }
+
+    return queue->id_ == id;
   }
 
   /**
