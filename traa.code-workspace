@@ -117,7 +117,8 @@
 			"stack": "cpp",
 			"string_view": "cpp",
 			"__availability": "cpp",
-			"*.inc": "cpp"
+			"*.inc": "cpp",
+			"resumable": "cpp"
 		}
 	}
 }

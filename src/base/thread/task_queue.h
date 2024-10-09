@@ -6,13 +6,14 @@
 #include "base/disallow.h"
 #include "base/log/logger.h"
 #include "base/singleton.h"
+#include "base/thread/ffuture.h"
 #include "base/thread/rw_lock.h"
 #include "base/thread/thread_util.h"
-#include "base/thread/waitable_future.h"
 
 #include <atomic>
 #include <future>
 #include <mutex>
+#include <queue>
 #include <thread>
 #include <unordered_map>
 
@@ -43,52 +44,6 @@ template <typename Exception> void throw_exception(const Exception &e) {
 
 namespace traa {
 namespace base {
-
-/**
- * @brief A class template representing a closure for a task.
- *
- * This class template wraps a callable object and provides a convenient way to execute the task and
- * retrieve its result.
- *
- * @tparam R The return type of the task.
- */
-template <typename R> class task_closure {
-public:
-  /**
-   * @brief Constructs a task_closure object from a callable object.
-   *
-   * @tparam F The type of the callable object.
-   * @param f The callable object to be wrapped.
-   */
-  template <typename F>
-  explicit task_closure(F &&f) : task_(std::packaged_task<R>(std::forward<F>(f))) {}
-
-  /**
-   * @brief Destructor for the task_closure class.
-   *
-   * This destructor is virtual and set to default, meaning it will use the default behavior
-   * for destroying objects of this class. It is responsible for cleaning up any resources
-   * held by the task_closure object.
-   */
-  virtual ~task_closure() = default;
-
-  /**
-   * @brief Executes the task and returns its result.
-   *
-   * @return The result of the task.
-   */
-  auto operator()() { return task_(); }
-
-  /**
-   * @brief Gets the future associated with the task.
-   *
-   * @return The future associated with the task.
-   */
-  auto get_future() { return task_.get_future(); }
-
-private:
-  std::packaged_task<R> task_; // The packaged_task object that wraps the callable object.
-};
 
 /**
  * @brief A class template for a task timer that repeats execution at a specified interval.
@@ -242,6 +197,8 @@ public:
       }
 
       aio_.run();
+
+      tasks_ = std::queue<std::function<void()>>();
     });
   }
 
@@ -260,15 +217,6 @@ public:
     return std::shared_ptr<task_queue>(new task_queue(tls_key, id, name));
   }
 
-public:
-  /**
-   * @brief Destroys the task_queue object.
-   *
-   * This destructor stops the execution of the io_context by resetting the work guard.
-   * It also waits for the thread to finish its execution.
-   */
-  virtual ~task_queue() { stop(); }
-
   /**
    * @brief Stops the task_queue.
    *
@@ -283,6 +231,15 @@ public:
       t_.join();
     }
   }
+
+public:
+  /**
+   * @brief Destroys the task_queue object.
+   *
+   * This destructor stops the execution of the io_context by resetting the work guard.
+   * It also waits for the thread to finish its execution.
+   */
+  virtual ~task_queue() { stop(); }
 
   /**
    * @brief Gets the ID of the task queue.
@@ -303,16 +260,58 @@ public:
    *
    * This function takes a callable object and enqueues it for execution in the io_context's thread
    * pool. The task will be executed asynchronously and its result can be obtained through the
-   * returned waitable_future object.
+   * returned ffuture object.
    *
    * @tparam F The type of the callable object.
    * @param f The callable object to be executed asynchronously.
-   * @return A waitable_future object representing the result of the task.
+   * @return A ffuture object representing the result of the task.
    */
-  template <typename F> auto enqueue(F &&f) {
-    auto closure = std::make_shared<task_closure<decltype(f())()>>(std::forward<F>(f));
-    asio::post(aio_, [closure]() { (*closure)(); });
-    return waitable_future<decltype(f())>(closure->get_future());
+  template <typename F, std::enable_if_t<!std::is_same_v<void, std::invoke_result_t<F>>, int> = 0>
+  auto enqueue(F &&f) {
+    ffuture<decltype(f())> ft;
+    {
+      std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+      if (!is_on_current_queue()) {
+        lock.lock();
+      }
+
+      auto closure = std::make_shared<fpackaged_task<decltype(f())()>>(std::forward<F>(f));
+      ft = closure->get_future();
+      auto task = [closure]() { (*closure)(); };
+      tasks_.emplace(task);
+    }
+    asio::post(aio_, std::bind(&task_queue::__execute, this));
+    return ft;
+  }
+
+  /**
+   * @brief Enqueues a task for asynchronous execution.
+   *
+   * This function takes a callable object and enqueues it for execution in the io_context's thread
+   * pool. The task will be executed
+   * asynchronously and its result can be obtained through the returned ffuture object.
+   * This function is a specialization for void return type.
+   *
+   * @tparam F The type of the callable object.
+   * @param f The callable object to be executed asynchronously.
+   * @return A ffuture object representing the result of the task.
+   */
+  template <typename F, std::enable_if_t<std::is_same_v<void, std::invoke_result_t<F>>, int> = 0>
+  auto enqueue(F &&f) {
+    ffuture<void> ft;
+    {
+      std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+      if (!is_on_current_queue()) {
+        lock.lock();
+      }
+
+      auto closure = std::make_shared<fpackaged_task<void()>>(std::forward<F>(f));
+      ft = closure->get_future();
+      auto task = [closure]() { (*closure)(); };
+      tasks_.emplace(task);
+    }
+    asio::post(aio_, std::bind(&task_queue::__execute, this));
+    return ft;
   }
 
   /**
@@ -372,6 +371,31 @@ public:
   }
 
 private:
+  bool is_on_current_queue() const {
+    if (tls_key_.load() == UINTPTR_MAX) {
+      return false;
+    }
+
+    return thread_util::tls_get(tls_key_.load()) == this;
+  }
+
+  // TODO @sylar: find a better way to implement the executor other than push the __execute every
+  // time
+  void __execute() {
+    std::function<void()> task;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (!tasks_.empty()) {
+        task = tasks_.front();
+        tasks_.pop();
+      }
+    }
+    if (task) {
+      task();
+    }
+  }
+
+private:
   std::string name_;                    // The name of the task queue.
   std::thread t_;                       // The thread object that runs the io_context.
   std::mutex mutex_;                    // The mutex to protect the task queue.
@@ -382,6 +406,8 @@ private:
   asio::io_context aio_; // The io_context for asynchronous task execution.
   asio::executor_work_guard<asio::io_context::executor_type>
       work_; // The work guard to keep the io_context active.
+
+  std::queue<std::function<void()>> tasks_; // The queue of tasks to be executed.
 };
 
 /**
@@ -598,6 +624,17 @@ public:
     return queue != nullptr;
   }
 
+  static bool is_on_task_queue(task_queue::task_queue_id id) {
+    auto &self = instance();
+
+    auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_.load()));
+    if (!queue) {
+      return false;
+    }
+
+    return queue->id_ == id;
+  }
+
   /**
    * @brief Retrieves the task queue for the current thread.
    * @return std::shared_ptr<task_queue> A shared pointer to the task queue for the current thread.
@@ -620,11 +657,11 @@ public:
    * @brief Posts a task to the specified task queue.
    * @param id The ID of the task queue to post the task to.
    * @param f The task to be posted.
-   * @return A waitable_future object representing the result of the task.
+   * @return A ffuture object representing the result of the task.
    *
    * This method posts a task to the task queue with the specified ID. If a task queue with the
    * specified ID does not exist, nullptr is returned. Otherwise, the task is posted to the task
-   * queue and a waitable_future object representing the result of the task is returned.
+   * queue and a ffuture object representing the result of the task is returned.
    */
   template <typename F> static auto post_task(task_queue::task_queue_id id, F &&f) {
     // LOG_API_ARGS_2(id, reinterpret_cast<std::uintptr_t>(&f));
@@ -632,7 +669,7 @@ public:
     auto queue = get_task_queue(id);
     if (!queue) {
       LOG_ERROR("task queue {} does not exist", id);
-      return waitable_future<decltype(f())>(std::future<decltype(f())>());
+      return ffuture<decltype(f())>();
     }
 
     return queue->enqueue<F>(std::forward<F>(f));
@@ -643,17 +680,17 @@ public:
    *
    * This function takes a callable object `f` and posts it to the current task queue for execution.
    * If the current thread is not on a task queue, an error message is logged and an empty
-   * `waitable_future` is returned.
+   * `ffuture` is returned.
    *
    * @tparam F The type of the callable object.
    * @param f The callable object to be executed.
-   * @return A `waitable_future` representing the result of the task.
+   * @return A `ffuture` representing the result of the task.
    */
   template <typename F> static auto post_task(F &&f) {
     auto queue = get_current_task_queue();
     if (!queue) {
       LOG_ERROR("current thread: {} is not on a task queue", thread_util::get_thread_id());
-      return waitable_future<decltype(f())>(std::future<decltype(f())>());
+      return ffuture<decltype(f())>();
     }
 
     return queue->enqueue<F>(std::forward<F>(f));

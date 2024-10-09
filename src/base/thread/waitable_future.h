@@ -26,6 +26,7 @@ enum class waitable_future_status { ready, timeout, deferred, invalid };
  */
 template <typename T> class waitable_future {
 public:
+  waitable_future() {}
   /**
    * @brief Constructs a waitable_future object by moving a std::future.
    *
@@ -168,6 +169,7 @@ private:
  */
 template <> class waitable_future<void> {
 public:
+  waitable_future() {}
   /**
    * @brief Constructs a waitable_future object from a std::future<void> object.
    *

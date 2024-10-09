@@ -30,7 +30,10 @@ TEST(task_queue_test, enque) {
 }
 
 TEST(task_queue_test, enqueue_on_queue) {
-  auto queue = std::make_shared<traa::base::task_queue>(UINTPTR_MAX, 1, "test_queue");
+  // to test if the task is executed on the same queue, we need to create a queue by
+  // task_queue_manager, coz we need the valid tls key to store the queue pointer, which is used to
+  // check if the task is executed on the same queue to avoid dead lock.
+  auto queue = traa::base::task_queue_manager::create_queue(1, "test_queue");
 
   auto task = std::packaged_task<int()>([]() { return 9527; });
   auto future = task.get_future();
@@ -39,6 +42,8 @@ TEST(task_queue_test, enqueue_on_queue) {
   future1.wait();
 
   EXPECT_EQ(future.get(), 9527);
+
+  traa::base::task_queue_manager::release_queue(1);
 }
 
 TEST(task_queue_test, enque_after) {
@@ -188,18 +193,27 @@ TEST(task_queue_test, enqueue_at_after_repeatly) {
   }
 }
 
-// TODO @sylar: fix the test case
-// Still can not find a way to avoid the block of wait after stop and delete the queue before the
-// task is executed.
-// TEST(task_queue_test, no_block_after_stop_and_delete) {
-//   // stop
-//   {
-//     auto queue = std::make_shared<traa::base::task_queue>(UINTPTR_MAX, 1, "test_queue");
-//     queue->stop();
-//     auto future = queue->enqueue([]() { return 9527; });
-//     future.wait();
-//   }
-// }
+TEST(task_queue_test, no_block_after_stop_and_delete) {
+  // stop
+  {
+    auto queue = std::make_shared<traa::base::task_queue>(UINTPTR_MAX, 1, "test_queue");
+
+    queue->enqueue([]() {
+      std::this_thread::sleep_for(std::chrono::milliseconds(4000));
+      printf("task 1\r\n");
+      return 9527;
+    });
+    auto future = queue->enqueue([]() { 
+      printf("task 2\r\n");
+      return 9527; 
+      });
+    queue->stop();
+    printf("stopped\r\n");
+    
+    auto result = future.get(1234);
+    EXPECT_EQ(result, 1234);
+  }
+}
 
 TEST(task_queue_manager_test, init_shutdown) {
   traa::base::task_queue_manager::init();

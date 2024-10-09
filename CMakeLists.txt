@@ -138,7 +138,8 @@ if(WIN32)
         /wd26437 \
         /wd4297 \
         /wd4100 \
-        /wd4505")
+        /wd4505 \
+        /wd4127")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -g \
@@ -312,9 +313,12 @@ set(TRAA_LIBRARY_BASE_STRINGS_FILES
 # traa::base::thread
 set(TRAA_LIBRARY_BASE_THREAD_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/callback.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/ffuture.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/ffuture.cc"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock.h"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/task_queue.h"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/waitable_future.h"
 )
 
 if(WIN32)
@@ -512,7 +516,7 @@ if(APPLE)
             TARGET ${TRAA_LIBRARY}
             POST_BUILD
             COMMAND strip -r -S -x
-            "${TRAA_OUTPUT_DIR_REAL}/${TRAA_LIBRARY_OUTPUT_NAME}.framework/${TRAA_LIBRARY_OUTPUT_NAME}"
+            "${TRAA_OUTPUT_DIR_REAL}/${TRAA_LIBRARY_NAME}.framework/${TRAA_LIBRARY_NAME}"
             COMMENT "Strip debug and local symbols done on final binary."
         )
     endif()
@@ -531,14 +535,14 @@ elseif(ANDROID)
         TARGET ${TRAA_LIBRARY}
         POST_BUILD
         COMMAND cp -RP
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_OUTPUT_NAME}.so"
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_OUTPUT_NAME}-symbol.so"
+        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}.so"
+        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}-symbol.so"
     )
     add_custom_command(
         TARGET ${TRAA_LIBRARY}
         POST_BUILD
         COMMAND "${ANDROID_TOOLCHAIN_ROOT}/bin/llvm-strip" --strip-all
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_OUTPUT_NAME}.so"
+        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}.so"
         COMMENT "Strip debug symbols done on final binary."
     )
 elseif(UNIX)
