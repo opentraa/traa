@@ -2,6 +2,8 @@
 
 #include "base/thread/task_queue.h"
 
+#include "utils/test_logger.h"
+
 #include <functional>
 #include <memory>
 #include <thread>
@@ -199,17 +201,20 @@ TEST(task_queue_test, no_block_after_stop_and_delete) {
     auto queue = std::make_shared<traa::base::task_queue>(UINTPTR_MAX, 1, "test_queue");
 
     queue->enqueue([]() {
-      std::this_thread::sleep_for(std::chrono::milliseconds(4000));
-      printf("task 1\r\n");
+      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      TEST_LOG_INFO("task 1\r\n");
       return 9527;
     });
-    auto future = queue->enqueue([]() { 
-      printf("task 2\r\n");
-      return 9527; 
-      });
+    auto future = queue->enqueue([]() {
+      TEST_LOG_INFO("task 2\r\n");
+      return 9527;
+    });
     queue->stop();
-    printf("stopped\r\n");
-    
+    TEST_LOG_INFO("stopped\r\n");
+
+    EXPECT_EQ(future.wait_for(std::chrono::milliseconds(100)),
+              traa::base::waitable_future_status::invalid);
+
     auto result = future.get(1234);
     EXPECT_EQ(result, 1234);
   }

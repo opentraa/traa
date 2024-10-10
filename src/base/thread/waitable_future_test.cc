@@ -9,7 +9,7 @@ using namespace traa::base;
 TEST(waitable_future_test, get) {
   // invalid future
   {
-    std::future<int> future;
+    ffuture<int> future;
     waitable_future<int> waitable_res(std::move(future));
 
     EXPECT_EQ(waitable_res.get(9527), 9527);
@@ -17,8 +17,8 @@ TEST(waitable_future_test, get) {
 
   // valid future
   {
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
+    fpromise<int> promise;
+    ffuture<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -40,7 +40,7 @@ TEST(waitable_future_test, get) {
 TEST(waitable_future_test, get_for) {
   // invalid future
   {
-    std::future<int> future;
+    ffuture<int> future;
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -52,8 +52,8 @@ TEST(waitable_future_test, get_for) {
 
   // valid future
   {
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
+    fpromise<int> promise;
+    ffuture<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -81,7 +81,7 @@ TEST(waitable_future_test, get_for) {
 TEST(waitable_future_test, get_until) {
   // invalid future
   {
-    std::future<int> future;
+    ffuture<int> future;
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -93,8 +93,8 @@ TEST(waitable_future_test, get_until) {
 
   // valid future
   {
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
+    fpromise<int> promise;
+    ffuture<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -104,8 +104,8 @@ TEST(waitable_future_test, get_until) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
-    std::promise<void> promise2;
-    std::future<void> future2 = promise2.get_future();
+    fpromise<void> promise2;
+    ffuture<void> future2 = promise2.get_future();
     std::thread t([&promise, &promise2]() {
       promise2.set_value();
       std::this_thread::sleep_for(std::chrono::milliseconds(800));
@@ -129,7 +129,7 @@ TEST(waitable_future_test, get_until) {
 TEST(waitable_future_test, wait) {
   // invalid future
   {
-    std::future<int> future;
+    ffuture<int> future;
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -140,8 +140,8 @@ TEST(waitable_future_test, wait) {
 
   // valid future
   {
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
+    fpromise<int> promise;
+    ffuture<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
     std::thread t([&promise]() {
@@ -164,7 +164,7 @@ TEST(waitable_future_test, wait) {
 TEST(waitable_future_test, wait_for) {
   // invalid future
   {
-    std::future<int> future;
+    ffuture<int> future;
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -177,8 +177,8 @@ TEST(waitable_future_test, wait_for) {
 
   // valid future
   {
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
+    fpromise<int> promise;
+    ffuture<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -188,8 +188,8 @@ TEST(waitable_future_test, wait_for) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
-    std::promise<void> promise2;
-    std::future<void> future2 = promise2.get_future();
+    fpromise<void> promise2;
+    ffuture<void> future2 = promise2.get_future();
     std::thread t([&promise, &promise2]() {
       promise2.set_value();
       std::this_thread::sleep_for(std::chrono::milliseconds(800));
@@ -214,7 +214,7 @@ TEST(waitable_future_test, wait_for) {
 TEST(waitable_future_test, wait_until) {
   // invalid future
   {
-    std::future<int> future;
+    ffuture<int> future;
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -227,8 +227,8 @@ TEST(waitable_future_test, wait_until) {
 
   // valid future
   {
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
+    fpromise<int> promise;
+    ffuture<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -238,8 +238,8 @@ TEST(waitable_future_test, wait_until) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
-    std::promise<void> promise2;
-    std::future<void> future2 = promise2.get_future();
+    fpromise<void> promise2;
+    ffuture<void> future2 = promise2.get_future();
     std::thread t([&promise, &promise2]() {
       promise2.set_value();
       std::this_thread::sleep_for(std::chrono::milliseconds(800));
@@ -264,8 +264,8 @@ TEST(waitable_future_test, wait_until) {
 TEST(waitable_future_test, valid) {
   // valid future
   {
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
+    fpromise<int> promise;
+    ffuture<int> future = promise.get_future();
     waitable_future<int> waitable_res(std::move(future));
 
     EXPECT_TRUE(waitable_res.valid());
@@ -277,7 +277,7 @@ TEST(waitable_future_test, valid) {
 
   // invalid future
   {
-    std::future<int> future;
+    ffuture<int> future;
     waitable_future<int> waitable_res(std::move(future));
 
     EXPECT_FALSE(waitable_res.valid());
@@ -287,7 +287,7 @@ TEST(waitable_future_test, valid) {
 TEST(waitable_future_void_test, wait) {
   // invalid future
   {
-    std::future<void> future;
+    ffuture<void> future;
     waitable_future<void> waitable_res(std::move(future));
 
     waitable_res.wait();
@@ -295,12 +295,12 @@ TEST(waitable_future_void_test, wait) {
 
   // valid future
   {
-    std::promise<void> promise;
-    std::future<void> future = promise.get_future();
+    fpromise<void> promise;
+    ffuture<void> future = promise.get_future();
     waitable_future<void> waitable_res(std::move(future));
 
-    std::promise<void> promise2;
-    std::future<void> future2 = promise2.get_future();
+    fpromise<void> promise2;
+    ffuture<void> future2 = promise2.get_future();
     std::thread t([&promise, &promise2]() {
       promise2.set_value();
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -322,7 +322,7 @@ TEST(waitable_future_void_test, wait) {
 TEST(waitable_future_void_test, wait_for) {
   // invalid future
   {
-    std::future<void> future;
+    ffuture<void> future;
     waitable_future<void> waitable_res(std::move(future));
 
     EXPECT_EQ(waitable_res.wait_for(std::chrono::milliseconds(100)),
@@ -331,8 +331,8 @@ TEST(waitable_future_void_test, wait_for) {
 
   // valid future
   {
-    std::promise<void> promise;
-    std::future<void> future = promise.get_future();
+    fpromise<void> promise;
+    ffuture<void> future = promise.get_future();
     waitable_future<void> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -342,8 +342,8 @@ TEST(waitable_future_void_test, wait_for) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
-    std::promise<void> promise2;
-    std::future<void> future2 = promise2.get_future();
+    fpromise<void> promise2;
+    ffuture<void> future2 = promise2.get_future();
     std::thread t([&promise, &promise2]() {
       promise2.set_value();
       std::this_thread::sleep_for(std::chrono::milliseconds(800));
@@ -366,7 +366,7 @@ TEST(waitable_future_void_test, wait_for) {
 TEST(waitable_future_void_test, wait_until) {
   // invalid future
   {
-    std::future<void> future;
+    ffuture<void> future;
     waitable_future<void> waitable_res(std::move(future));
 
     auto timeout_time = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
@@ -375,8 +375,8 @@ TEST(waitable_future_void_test, wait_until) {
 
   // valid future
   {
-    std::promise<void> promise;
-    std::future<void> future = promise.get_future();
+    fpromise<void> promise;
+    ffuture<void> future = promise.get_future();
     waitable_future<void> waitable_res(std::move(future));
 
     auto start = std::chrono::steady_clock::now();
@@ -386,8 +386,8 @@ TEST(waitable_future_void_test, wait_until) {
     auto end = std::chrono::steady_clock::now();
     EXPECT_GE(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 150);
 
-    std::promise<void> promise2;
-    std::future<void> future2 = promise2.get_future();
+    fpromise<void> promise2;
+    ffuture<void> future2 = promise2.get_future();
     std::thread t([&promise, &promise2]() {
       promise2.set_value();
       std::this_thread::sleep_for(std::chrono::milliseconds(800));
@@ -410,8 +410,8 @@ TEST(waitable_future_void_test, wait_until) {
 TEST(waitable_future_void_test, valid) {
   // valid future
   {
-    std::promise<void> promise;
-    std::future<void> future = promise.get_future();
+    fpromise<void> promise;
+    ffuture<void> future = promise.get_future();
     waitable_future<void> waitable_res(std::move(future));
 
     EXPECT_TRUE(waitable_res.valid());
@@ -423,7 +423,7 @@ TEST(waitable_future_void_test, valid) {
 
   // invalid future
   {
-    std::future<void> future;
+    ffuture<void> future;
     waitable_future<void> waitable_res(std::move(future));
 
     EXPECT_FALSE(waitable_res.valid());

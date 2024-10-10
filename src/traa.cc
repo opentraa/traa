@@ -31,6 +31,15 @@ static traa::base::rw_lock g_main_queue_rw_lock;
 thread_local traa::main::engine *g_engine_instance = nullptr;
 } // namespace
 
+#define USE_MAIN_QUEUE_LOCK 0
+#if USE_MAIN_QUEUE_LOCK
+#define MAIN_QUEUE_LOCK_W traa::base::rw_lock_guard guard(g_main_queue_rw_lock, true);
+#define MAIN_QUEUE_LOCK_R traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
+#else
+#define MAIN_QUEUE_LOCK_W
+#define MAIN_QUEUE_LOCK_R
+#endif
+
 int traa_init(const traa_config *config) {
   if (config == nullptr) {
     LOG_ERROR("traa_config is null");
@@ -45,7 +54,7 @@ int traa_init(const traa_config *config) {
 
   LOG_API_ARGS_1(traa::main::obj_string::to_string(config));
 
-  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, true);
+  MAIN_QUEUE_LOCK_W
 
   // no need to lock here coz we have rw lock in task_queue_manager
   auto main_queue = traa::base::task_queue_manager::get_task_queue(g_main_queue_id);
@@ -92,7 +101,7 @@ int traa_init(const traa_config *config) {
 void traa_release() {
   LOG_API_ARGS_0();
 
-  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, true);
+  MAIN_QUEUE_LOCK_W
 
   traa::base::task_queue_manager::post_task(g_main_queue_id, []() {
     delete g_engine_instance;
@@ -109,7 +118,7 @@ int traa_set_event_handler(const traa_event_handler *handler) {
     return traa_error::TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
+  MAIN_QUEUE_LOCK_R
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id,
@@ -148,7 +157,7 @@ int traa_enum_device_info(traa_device_type type, traa_device_info **infos, int *
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
+  MAIN_QUEUE_LOCK_R
 
   return traa::base::task_queue_manager::post_task(g_main_queue_id,
                                                    [type, infos, count]() {
@@ -165,7 +174,7 @@ int traa_free_device_info(traa_device_info infos[]) {
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
+  MAIN_QUEUE_LOCK_R
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id, [infos]() { return g_engine_instance->free_device_info(infos); })
