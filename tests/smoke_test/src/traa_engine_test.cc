@@ -8,50 +8,25 @@ TEST(multi_thread_call, traa_init_release) {
   traa_config config;
   traa_event_handler event_handler;
 
-  auto t1 = std::thread([&]() {
-    for (int i = 0; i < 100; i++) {
+  auto worker = [&]() {
+    for (int i = 0; i < 10000; i++) {
       traa_init(&config);
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       traa_set_event_handler(&event_handler);
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       traa_release();
     }
-  });
+  };
 
-  auto t2 = std::thread([&]() {
-    for (int i = 0; i < 100; i++) {
-      traa_init(&config);
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      traa_set_event_handler(&event_handler);
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      traa_release();
-    }
-  });
+  std::vector<std::thread> threads;
+  for (int i = 0; i < 4; i++) {
+    threads.push_back(std::thread(worker));
+  }
 
-  auto t3 = std::thread([&]() {
-    for (int i = 0; i < 100; i++) {
-      traa_init(&config);
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      traa_set_event_handler(&event_handler);
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      traa_release();
-    }
-  });
-
-  auto t4 = std::thread([&]() {
-    for (int i = 0; i < 100; i++) {
-      traa_init(&config);
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      traa_set_event_handler(&event_handler);
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      traa_release();
-    }
-  });
-
-  t1.join();
-  t2.join();
-  t3.join();
-  t4.join();
+  for (auto &t : threads) {
+    if (t.joinable())
+      t.join();
+  }
 }
 
 class traa_engine_test : public testing::Test {
