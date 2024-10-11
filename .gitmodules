@@ -4,12 +4,6 @@
 [submodule "thirdparty/json"]
 	path = thirdparty/json
 	url = git@github.com:nlohmann/json.git
-[submodule "thirdparty/spdlog"]
-	path = thirdparty/spdlog
-	url = git@github.com:gabime/spdlog.git
-[submodule "thirdparty/asio"]
-	path = thirdparty/asio
-	url = git@github.com:chriskohlhoff/asio.git
 [submodule "thirdparty/abseil-cpp"]
 	path = thirdparty/abseil-cpp
 	url = git@github.com:abseil/abseil-cpp.git
@@ -17,3 +11,9 @@
 	path = thirdparty/libyuv-static/yuv
 	url = https://chromium.googlesource.com/libyuv/libyuv
 	branch = main
+[submodule "thirdparty/spdlog"]
+	path = thirdparty/spdlog
+	url = git@github.com:peilinok/spdlog.git
+[submodule "thirdparty/asio"]
+	path = thirdparty/asio
+	url = git@github.com:peilinok/asio.git
