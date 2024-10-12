@@ -72,7 +72,9 @@ ffuture<void>::~ffuture() {
 }
 
 void ffuture<void>::get() {
-  std::unique_ptr<_fshared_count, __release_shared_count> __(__state_);
+  // to make sure that the __release_shared() is called after the __state_ is set to nullptr, then
+  // the destructor of the ffutre will not call __release_shared() again.
+  std::unique_ptr<_fshared_count, _frelease_shared_count> __(__state_);
   _fassoc_sub_state *__s = __state_;
   __state_ = nullptr;
   __s->copy();

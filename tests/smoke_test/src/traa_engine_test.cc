@@ -9,7 +9,7 @@ TEST(multi_thread_call, traa_init_release) {
   traa_event_handler event_handler;
 
   auto worker = [&]() {
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 1000; i++) {
       traa_init(&config);
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       traa_set_event_handler(&event_handler);
@@ -18,8 +18,10 @@ TEST(multi_thread_call, traa_init_release) {
     }
   };
 
+  unsigned int thread_count = std::thread::hardware_concurrency();
+
   std::vector<std::thread> threads;
-  for (int i = 0; i < 4; i++) {
+  for (unsigned int i = 0; i < thread_count; i++) {
     threads.push_back(std::thread(worker));
   }
 

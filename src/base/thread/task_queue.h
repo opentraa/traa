@@ -275,14 +275,14 @@ public:
   auto enqueue(F &&f) {
     ffuture<decltype(f())> ft;
     {
+      auto closure = std::make_shared<fpackaged_task<decltype(f())()>>(std::forward<F>(f));
+      ft = closure->get_future();
+      auto task = [closure]() { (*closure)(); };
+
       std::unique_lock<std::mutex> lock(tasks_mutex_, std::defer_lock);
       if (!is_on_current_queue()) {
         lock.lock();
       }
-
-      auto closure = std::make_shared<fpackaged_task<decltype(f())()>>(std::forward<F>(f));
-      ft = closure->get_future();
-      auto task = [closure]() { (*closure)(); };
       tasks_.emplace(task);
     }
     asio::post(aio_, std::bind(&task_queue::__execute, this));
@@ -306,14 +306,14 @@ public:
   auto enqueue(F &&f) {
     ffuture<void> ft;
     {
+      auto closure = std::make_shared<fpackaged_task<void()>>(std::forward<F>(f));
+      ft = closure->get_future();
+      auto task = [closure]() { (*closure)(); };
+
       std::unique_lock<std::mutex> lock(tasks_mutex_, std::defer_lock);
       if (!is_on_current_queue()) {
         lock.lock();
       }
-
-      auto closure = std::make_shared<fpackaged_task<void()>>(std::forward<F>(f));
-      ft = closure->get_future();
-      auto task = [closure]() { (*closure)(); };
       tasks_.emplace(task);
     }
     asio::post(aio_, std::bind(&task_queue::__execute, this));
@@ -440,7 +440,7 @@ private:
  * ```
  * task_queue_manager::init();
  * auto queue = task_queue_manager::create_queue(1, "traa_task_queue");
- * auto res_int queue->enque([]() {
+ * auto res_int queue->enqueue([]() {
  *     // Task code here
  *     return 1;
  * });

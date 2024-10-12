@@ -104,8 +104,10 @@ void traa_release() {
   MAIN_QUEUE_LOCK_W
 
   traa::base::task_queue_manager::post_task(g_main_queue_id, []() {
-    delete g_engine_instance;
-    g_engine_instance = nullptr;
+    if (g_engine_instance) {
+      delete g_engine_instance;
+      g_engine_instance = nullptr;
+    }
   }).wait();
 
   traa::base::task_queue_manager::shutdown();

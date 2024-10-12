@@ -400,25 +400,32 @@ class _fshared_count {
 
 protected:
   std::atomic<long> __shared_owners_;
-  virtual ~_fshared_count() {};
+  virtual ~_fshared_count(){};
 
 private:
   virtual void __on_zero_shared() noexcept = 0;
 
 public:
-  explicit _fshared_count(long __refs = 0) noexcept : __shared_owners_(__refs) {}
+  explicit _fshared_count() noexcept : __shared_owners_(0) {}
 
   void __add_shared() noexcept { __shared_owners_.fetch_add(1, std::memory_order_relaxed); }
 
   bool __release_shared() noexcept {
-    if (__shared_owners_.fetch_add(-1, std::memory_order::memory_order_acq_rel) == -1) {
+    if (__shared_owners_.fetch_add(-1, std::memory_order::memory_order_acq_rel) == 0) {
       __on_zero_shared();
       return true;
     }
     return false;
   }
 
-  long use_count() const noexcept { return __shared_owners_.load(std::memory_order_relaxed) + 1; }
+  long use_count() const noexcept {
+    // coz fpromise do not call __add_shared, so we need to add 1 here
+    return __shared_owners_.load(std::memory_order_relaxed) + 1;
+  }
+};
+
+struct _frelease_shared_count {
+  void operator()(_fshared_count *__p) { __p->__release_shared(); }
 };
 
 class _fassoc_sub_state : public _fshared_count {
@@ -1039,17 +1046,15 @@ template <class _Rp> ffuture<_Rp>::ffuture(_fassoc_state<_Rp> *__state) : __stat
   __state_->__attach_future();
 }
 
-struct __release_shared_count {
-  void operator()(_fshared_count *__p) { __p->__release_shared(); }
-};
-
 template <class _Rp> ffuture<_Rp>::~ffuture() {
   if (__state_)
     __state_->__release_shared();
 }
 
 template <class _Rp> _Rp ffuture<_Rp>::get(_Rp default_value) {
-  std::unique_ptr<_fshared_count, __release_shared_count> __guard(__state_);
+  // to make sure that the __release_shared() is called after the __state_ is set to nullptr, then
+  // the destructor of the ffutre will not call __release_shared() again.
+  std::unique_ptr<_fshared_count, _frelease_shared_count> __guard(__state_);
   _fassoc_state<_Rp> *__s = __state_;
   __state_ = nullptr;
   return __s->move(default_value);
@@ -1112,7 +1117,9 @@ template <class _Rp> ffuture<_Rp &>::~ffuture() {
 }
 
 template <class _Rp> _Rp &ffuture<_Rp &>::get(_Rp &default_value) {
-  std::unique_ptr<_fshared_count, __release_shared_count> __guard(__state_);
+  // to make sure that the __release_shared() is called after the __state_ is set to nullptr, then
+  // the destructor of the ffutre will not call __release_shared() again.
+  std::unique_ptr<_fshared_count, _frelease_shared_count> __guard(__state_);
   _fassoc_state<_Rp &> *__s = __state_;
   __state_ = nullptr;
   return __s->copy(default_value);
