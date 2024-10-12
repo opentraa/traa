@@ -394,13 +394,18 @@ struct _fstrip_signature<_Rp (_Gp::*) (_Ap...) const volatile & noexcept> { usin
 // clang-format on
 #endif // _LIBCPP_STD_VER >= 17
 
+#if defined(TRAA_UNIT_TEST)
+static std::atomic<long> __call_add_count_{0};
+static std::atomic<long> __call_release_count_{0};
+#endif // TRAA_UNIT_TEST
+
 class _fshared_count {
   _fshared_count(const _fshared_count &rhs) = delete;
   _fshared_count &operator=(const _fshared_count &rhs) = delete;
 
 protected:
   std::atomic<long> __shared_owners_;
-  virtual ~_fshared_count(){};
+  virtual ~_fshared_count() {};
 
 private:
   virtual void __on_zero_shared() noexcept = 0;
@@ -408,9 +413,19 @@ private:
 public:
   explicit _fshared_count() noexcept : __shared_owners_(0) {}
 
-  void __add_shared() noexcept { __shared_owners_.fetch_add(1, std::memory_order_relaxed); }
+  void __add_shared() noexcept {
+    __shared_owners_.fetch_add(1, std::memory_order_relaxed);
+#if defined(TRAA_UNIT_TEST)
+    printf("__call_add_count_: %ld\r\n",
+           __call_add_count_.fetch_add(1, std::memory_order_relaxed) + 1);
+#endif // TRAA_UNIT_TEST
+  }
 
   bool __release_shared() noexcept {
+#if defined(TRAA_UNIT_TEST)
+    printf("__call_release_count_: %ld\r\n",
+           __call_release_count_.fetch_add(1, std::memory_order_relaxed) + 1);
+#endif // TRAA_UNIT_TEST
     if (__shared_owners_.fetch_add(-1, std::memory_order::memory_order_acq_rel) == 0) {
       __on_zero_shared();
       return true;

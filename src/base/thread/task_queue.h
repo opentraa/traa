@@ -530,8 +530,8 @@ public:
   /**
    * @brief Registers a new task queue.
    * @param id The ID of the task queue to register.
-   * @param queue The task queue to register.
-   * @return int An error code indicating the result of the operation.
+   * @param name The name of the task queue to register.
+   * @return queue A shared pointer to the created task queue or existing task queue.
    *
    * This method registers a new task queue with the specified ID. If a task queue with the same ID
    * already exists, an error code is returned. Otherwise, the task queue is registered and an error
@@ -545,7 +545,7 @@ public:
     rw_lock_guard guard(self.lock_, true);
     if (self.task_queues_.find(id) != self.task_queues_.end()) {
       LOG_ERROR("task queue {} already exists", id);
-      return nullptr;
+      return self.task_queues_[id];
     }
 
     self.task_queues_[id] = task_queue::make_queue(self.tls_key_.load(), id, name);

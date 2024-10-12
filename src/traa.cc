@@ -31,7 +31,7 @@ static traa::base::rw_lock g_main_queue_rw_lock;
 thread_local traa::main::engine *g_engine_instance = nullptr;
 } // namespace
 
-#define USE_MAIN_QUEUE_LOCK 0
+#define USE_MAIN_QUEUE_LOCK 1
 #if USE_MAIN_QUEUE_LOCK
 #define MAIN_QUEUE_LOCK_W traa::base::rw_lock_guard guard(g_main_queue_rw_lock, true);
 #define MAIN_QUEUE_LOCK_R traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
@@ -39,6 +39,11 @@ thread_local traa::main::engine *g_engine_instance = nullptr;
 #define MAIN_QUEUE_LOCK_W
 #define MAIN_QUEUE_LOCK_R
 #endif
+
+#if defined(TRAA_UNIT_TEST)
+static std::atomic<long> g_new_count(0);
+static std::atomic<long> g_delete_count(0);
+#endif // TRAA_UNIT_TEST
 
 int traa_init(const traa_config *config) {
   if (config == nullptr) {
@@ -57,12 +62,8 @@ int traa_init(const traa_config *config) {
   MAIN_QUEUE_LOCK_W
 
   // no need to lock here coz we have rw lock in task_queue_manager
-  auto main_queue = traa::base::task_queue_manager::get_task_queue(g_main_queue_id);
-  if (!main_queue) {
-    main_queue = traa::base::task_queue_manager::create_queue(g_main_queue_id, g_main_queue_name);
-  }
-
-  if (!main_queue) {
+  if (!traa::base::task_queue_manager::get_task_queue(g_main_queue_id) &&
+      !traa::base::task_queue_manager::create_queue(g_main_queue_id, g_main_queue_name)) {
     LOG_FATAL("failed to create main queue");
     return traa_error::TRAA_ERROR_UNKNOWN;
   }
@@ -70,6 +71,9 @@ int traa_init(const traa_config *config) {
   int ret = traa::base::task_queue_manager::post_task(g_main_queue_id, [&config]() {
               if (g_engine_instance == nullptr) {
                 g_engine_instance = new traa::main::engine();
+#if defined(TRAA_UNIT_TEST)
+                printf("new engine instance: %ld\r\n", g_new_count.fetch_add(1) + 1);
+#endif // TRAA_UNIT_TEST
               }
 
               if (g_engine_instance == nullptr) {
@@ -107,6 +111,9 @@ void traa_release() {
     if (g_engine_instance) {
       delete g_engine_instance;
       g_engine_instance = nullptr;
+#if defined(TRAA_UNIT_TEST)
+      printf("delete engine instance: %ld\r\n", g_delete_count.fetch_add(1) + 1);
+#endif // TRAA_UNIT_TEST
     }
   }).wait();
 
