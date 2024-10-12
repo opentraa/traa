@@ -5,7 +5,9 @@
 namespace traa {
 namespace base {
 
-#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
+#if defined(_WIN32) ||                                                                             \
+    (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
+     (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
     defined(__linux__)
 int screen_source_info_enumerator::free_screen_source_info(traa_screen_source_info infos[],
                                                            int count) {
@@ -23,7 +25,8 @@ int screen_source_info_enumerator::free_screen_source_info(traa_screen_source_in
 
   return traa_error::TRAA_ERROR_NONE;
 }
-#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
+       // || !TARGET_OS_VISION)) || __linux__
 
 } // namespace base
 } // namespace traa

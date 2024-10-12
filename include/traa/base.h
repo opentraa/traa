@@ -313,7 +313,9 @@ typedef struct traa_device_info {
         orientation(TRAA_DEVICE_ORIENTATION_UNKNOWN), state(TRAA_DEVICE_STATE_IDLE) {}
 } traa_device_info;
 
-#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
+#if defined(_WIN32) ||                                                                             \
+    (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
+     (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
     defined(__linux__)
 
 /**
@@ -583,7 +585,8 @@ typedef struct traa_screen_source_info {
         is_minimized(false), is_maximized(false), rect(), icon_size(), thumbnail_size(),
         title("\0"), process_path("\0"), icon_data(nullptr), thumbnail_data(nullptr) {}
 } traa_screen_source_info;
-#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && (!defined(TARGET_OS_VISION) ||
+       // !TARGET_OS_VISION)) || __linux__
 
 /**
  * @brief The log level for TRAA.

@@ -21,8 +21,8 @@ static const char *g_main_queue_name = "traa_main";
 // 2. destroy the main queue before the task is executed, which will happen in multi-threading.
 // 3. task.wait() will block forever, coz the main queue is destroyed, and the task is not executed.
 //
-// TODO @sylar: remove this later, coz we use ffuture and task_queue::at_exit to resolve the issue above. 
-// The main queue rw lock.
+// TODO @sylar: remove this later, coz we use ffuture and task_queue::at_exit to resolve the issue
+// above. The main queue rw lock.
 static traa::base::rw_lock g_main_queue_rw_lock;
 #define USE_MAIN_QUEUE_LOCK 0
 #if USE_MAIN_QUEUE_LOCK
@@ -191,7 +191,9 @@ int traa_free_device_info(traa_device_info infos[]) {
       .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }
 
-#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
+#if defined(_WIN32) ||                                                                             \
+    (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
+     (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
     defined(__linux__)
 int traa_enum_screen_source_info(const traa_size icon_size, const traa_size thumbnail_size,
                                  const unsigned int external_flags, traa_screen_source_info **infos,
@@ -218,4 +220,5 @@ int traa_free_screen_source_info(traa_screen_source_info infos[], int count) {
 
   return traa::main::engine::free_screen_source_info(infos, count);
 }
-#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
+       // || !TARGET_OS_VISION)) || __linux__

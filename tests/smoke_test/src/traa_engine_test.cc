@@ -72,7 +72,9 @@ TEST_F(traa_engine_test, traa_set_log) {
   EXPECT_TRUE(traa_set_log(&log_config) == traa_error::TRAA_ERROR_NONE);
 }
 
-#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
+#if defined(_WIN32) ||                                                                             \
+    (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
+     (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
     defined(__linux__)
 TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
   auto output_screen_source_info = [](traa_screen_source_info *info) {
@@ -176,4 +178,5 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
     EXPECT_TRUE(traa_free_screen_source_info(infos, count) == traa_error::TRAA_ERROR_NONE);
   }
 }
-#endif
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
+       // || !TARGET_OS_VISION)) || __linux__

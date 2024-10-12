@@ -39,6 +39,9 @@
 #if TARGET_OS_IPHONE
 #define TRAA_OS_IOS 1
 #endif
+#if TARGET_OS_VISION
+#define TRAA_OS_VISION 1
+#endif
 #elif defined __DragonFly__
 #define TRAA_OS_DRAGONFLY 1
 #elif defined __FreeBSD__

@@ -24,7 +24,9 @@ int engine::enum_device_info(traa_device_type type, traa_device_info **infos, in
 
 int engine::free_device_info(traa_device_info infos[]) { return traa_error::TRAA_ERROR_NONE; }
 
-#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE) ||               \
+#if defined(_WIN32) ||                                                                             \
+    (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
+     (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
     defined(__linux__)
 int engine::enum_screen_source_info(const traa_size icon_size, const traa_size thumbnail_size,
                                     const unsigned int external_flags,
@@ -36,7 +38,8 @@ int engine::enum_screen_source_info(const traa_size icon_size, const traa_size t
 int engine::free_screen_source_info(traa_screen_source_info infos[], int count) {
   return base::screen_source_info_enumerator::free_screen_source_info(infos, count);
 }
-#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE) || __linux__
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
+       // || !TARGET_OS_VISION)) || __linux__
 
 } // namespace main
 } // namespace traa
