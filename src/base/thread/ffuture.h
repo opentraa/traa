@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <type_traits>
@@ -848,13 +849,8 @@ template <class _Rp, class... _ArgTypes> class _fpackaged_task_function<_Rp(_Arg
 
   __base *__get_buf() { return (__base *)&__buf_; }
 
-#if !defined(_MSC_VER)
-  _LIBCPP_SUPPRESS_DEPRECATED_PUSH
-#endif
   typename std::aligned_storage<3 * sizeof(void *)>::type __buf_;
-#if !defined(_MSC_VER)
-  _LIBCPP_SUPPRESS_DEPRECATED_POP
-#endif
+
   __base *__f_;
 
 public:
@@ -962,13 +958,7 @@ _fpackaged_task_function<_Rp(_ArgTypes...)>::~_fpackaged_task_function() {
 template <class _Rp, class... _ArgTypes>
 void _fpackaged_task_function<_Rp(_ArgTypes...)>::swap(_fpackaged_task_function &__f) noexcept {
   if (__f_ == (__base *)&__buf_ && __f.__f_ == (__base *)&__f.__buf_) {
-#if !defined(_MSC_VER)
-    _LIBCPP_SUPPRESS_DEPRECATED_PUSH
-#endif // !defined(_MSC_VER)
     typename std::aligned_storage<sizeof(__buf_)>::type __tempbuf;
-#if !defined(_MSC_VER)
-    _LIBCPP_SUPPRESS_DEPRECATED_POP
-#endif // !defined(_MSC_VER)
     __base *__t = (__base *)&__tempbuf;
     __f_->__move_to(__t);
     __f_->destroy();

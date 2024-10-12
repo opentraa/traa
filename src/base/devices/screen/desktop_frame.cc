@@ -3,6 +3,7 @@
 #include <libyuv.h>
 
 #include <cmath>
+#include <cstring>
 
 namespace traa {
 namespace base {
