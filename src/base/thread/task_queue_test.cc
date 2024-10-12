@@ -234,8 +234,8 @@ TEST(task_queue_manager_test, init_shutdown) {
   EXPECT_TRUE(traa::base::task_queue_manager::create_queue(1, "test_queue") != nullptr);
   EXPECT_EQ(traa::base::task_queue_manager::get_task_queue_count(), 1);
 
-  // create the same queue, expect return nullptr
-  EXPECT_TRUE(traa::base::task_queue_manager::create_queue(1, "test_queue") == nullptr);
+  // create the same queue, expect not return nullptr
+  EXPECT_TRUE(traa::base::task_queue_manager::create_queue(1, "test_queue") != nullptr);
   EXPECT_EQ(traa::base::task_queue_manager::get_task_queue_count(), 1);
 
   // release the queue

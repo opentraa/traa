@@ -394,10 +394,11 @@ struct _fstrip_signature<_Rp (_Gp::*) (_Ap...) const volatile & noexcept> { usin
 // clang-format on
 #endif // _LIBCPP_STD_VER >= 17
 
-#if defined(TRAA_UNIT_TEST)
+#define TRAA_TEST_ENABLE_FUTURE_COUNT 0
+#if TRAA_TEST_ENABLE_FUTURE_COUNT
 static std::atomic<long> __call_add_count_{0};
 static std::atomic<long> __call_release_count_{0};
-#endif // TRAA_UNIT_TEST
+#endif // TRAA_TEST_ENABLE_FUTURE_COUNT
 
 class _fshared_count {
   _fshared_count(const _fshared_count &rhs) = delete;
@@ -405,7 +406,7 @@ class _fshared_count {
 
 protected:
   std::atomic<long> __shared_owners_;
-  virtual ~_fshared_count() {};
+  virtual ~_fshared_count(){};
 
 private:
   virtual void __on_zero_shared() noexcept = 0;
@@ -415,17 +416,17 @@ public:
 
   void __add_shared() noexcept {
     __shared_owners_.fetch_add(1, std::memory_order_relaxed);
-#if defined(TRAA_UNIT_TEST)
+#if TRAA_TEST_ENABLE_FUTURE_COUNT
     printf("__call_add_count_: %ld\r\n",
            __call_add_count_.fetch_add(1, std::memory_order_relaxed) + 1);
-#endif // TRAA_UNIT_TEST
+#endif // TRAA_TEST_ENABLE_FUTURE_COUNT
   }
 
   bool __release_shared() noexcept {
-#if defined(TRAA_UNIT_TEST)
+#if TRAA_TEST_ENABLE_FUTURE_COUNT
     printf("__call_release_count_: %ld\r\n",
            __call_release_count_.fetch_add(1, std::memory_order_relaxed) + 1);
-#endif // TRAA_UNIT_TEST
+#endif // TRAA_TEST_ENABLE_FUTURE_COUNT
     if (__shared_owners_.fetch_add(-1, std::memory_order::memory_order_acq_rel) == 0) {
       __on_zero_shared();
       return true;

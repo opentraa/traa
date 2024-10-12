@@ -21,17 +21,10 @@ static const char *g_main_queue_name = "traa_main";
 // 2. destroy the main queue before the task is executed, which will happen in multi-threading.
 // 3. task.wait() will block forever, coz the main queue is destroyed, and the task is not executed.
 //
+// TODO @sylar: remove this later, coz we use ffuture and task_queue::at_exit to resolve the issue above. 
 // The main queue rw lock.
 static traa::base::rw_lock g_main_queue_rw_lock;
-
-// The engine instance.
-// The engine instance is created when traa_init is called and deleted when traa_release is called.
-// The engine instance is a thread local variable to avoid the need for locking when accessing it,
-// so do not use it outside of the main queue.
-thread_local traa::main::engine *g_engine_instance = nullptr;
-} // namespace
-
-#define USE_MAIN_QUEUE_LOCK 1
+#define USE_MAIN_QUEUE_LOCK 0
 #if USE_MAIN_QUEUE_LOCK
 #define MAIN_QUEUE_LOCK_W traa::base::rw_lock_guard guard(g_main_queue_rw_lock, true);
 #define MAIN_QUEUE_LOCK_R traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
@@ -40,9 +33,20 @@ thread_local traa::main::engine *g_engine_instance = nullptr;
 #define MAIN_QUEUE_LOCK_R
 #endif
 
-#if defined(TRAA_UNIT_TEST)
+// The engine instance.
+// The engine instance is created when traa_init is called and deleted when traa_release is called.
+// The engine instance is a thread local variable to avoid the need for locking when accessing it,
+// so do not use it outside of the main queue.
+thread_local traa::main::engine *g_engine_instance = nullptr;
+} // namespace
+
+// TODO @sylar: replace this with api counters in the future.
+#define TRAA_TEST_ENABLE_API_COUNTER 0
+#if TRAA_TEST_ENABLE_API_COUNTER
 static std::atomic<long> g_new_count(0);
 static std::atomic<long> g_delete_count(0);
+static std::atomic<long> g_traa_init_count(0);
+static std::atomic<long> g_traa_release_count(0);
 #endif // TRAA_UNIT_TEST
 
 int traa_init(const traa_config *config) {
@@ -62,16 +66,28 @@ int traa_init(const traa_config *config) {
   MAIN_QUEUE_LOCK_W
 
   // no need to lock here coz we have rw lock in task_queue_manager
-  if (!traa::base::task_queue_manager::get_task_queue(g_main_queue_id) &&
-      !traa::base::task_queue_manager::create_queue(g_main_queue_id, g_main_queue_name)) {
+  if (!traa::base::task_queue_manager::is_task_queue_exist(g_main_queue_id) &&
+      !traa::base::task_queue_manager::create_queue(g_main_queue_id, g_main_queue_name, []() {
+        if (g_engine_instance) {
+          delete g_engine_instance;
+          g_engine_instance = nullptr;
+#if TRAA_TEST_ENABLE_API_COUNTER
+          printf("delete engine instance: %ld\r\n", g_delete_count.fetch_add(1) + 1);
+#endif // TRAA_UNIT_TEST
+        }
+      })) {
     LOG_FATAL("failed to create main queue");
     return traa_error::TRAA_ERROR_UNKNOWN;
   }
 
+#if TRAA_TEST_ENABLE_API_COUNTER
+  printf("traa_init: %ld\r\n", g_traa_init_count.fetch_add(1) + 1);
+#endif // TRAA_UNIT_TEST
+
   int ret = traa::base::task_queue_manager::post_task(g_main_queue_id, [&config]() {
               if (g_engine_instance == nullptr) {
                 g_engine_instance = new traa::main::engine();
-#if defined(TRAA_UNIT_TEST)
+#if TRAA_TEST_ENABLE_API_COUNTER
                 printf("new engine instance: %ld\r\n", g_new_count.fetch_add(1) + 1);
 #endif // TRAA_UNIT_TEST
               }
@@ -81,16 +97,7 @@ int traa_init(const traa_config *config) {
                 return static_cast<int>(traa_error::TRAA_ERROR_UNKNOWN);
               }
 
-              int ret = g_engine_instance->init(config);
-              if (ret != traa_error::TRAA_ERROR_NONE &&
-                  ret != traa_error::TRAA_ERROR_ALREADY_INITIALIZED) {
-                // to make sure that the engine instance is deleted if the engine initialization
-                // failed.
-                delete g_engine_instance;
-                g_engine_instance = nullptr;
-              }
-
-              return ret;
+              return g_engine_instance->init(config);
             }).get(traa_error::TRAA_ERROR_UNKNOWN);
 
   if (ret != traa_error::TRAA_ERROR_NONE && ret != traa_error::TRAA_ERROR_ALREADY_INITIALIZED) {
@@ -107,15 +114,9 @@ void traa_release() {
 
   MAIN_QUEUE_LOCK_W
 
-  traa::base::task_queue_manager::post_task(g_main_queue_id, []() {
-    if (g_engine_instance) {
-      delete g_engine_instance;
-      g_engine_instance = nullptr;
-#if defined(TRAA_UNIT_TEST)
-      printf("delete engine instance: %ld\r\n", g_delete_count.fetch_add(1) + 1);
+#if TRAA_TEST_ENABLE_API_COUNTER
+  printf("traa_release: %ld\r\n", g_traa_release_count.fetch_add(1) + 1);
 #endif // TRAA_UNIT_TEST
-    }
-  }).wait();
 
   traa::base::task_queue_manager::shutdown();
 }

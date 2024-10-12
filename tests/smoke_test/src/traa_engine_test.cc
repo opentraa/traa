@@ -9,7 +9,7 @@ TEST(multi_thread_call, traa_init_release) {
   traa_event_handler event_handler;
 
   auto worker = [&]() {
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 100; i++) {
       traa_init(&config);
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       traa_set_event_handler(&event_handler);

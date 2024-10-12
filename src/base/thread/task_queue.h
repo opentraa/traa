@@ -170,6 +170,7 @@ class task_queue : public std::enable_shared_from_this<task_queue> {
 
 public:
   using task_queue_id = uint32_t;
+  using at_exit = std::function<void()>;
 
 private:
   friend class task_queue_manager;
@@ -187,8 +188,10 @@ public:
    * @param id The ID of the task queue.
    * @param name The name of the task queue.
    */
-  explicit task_queue(std::uintptr_t tls_key, task_queue_id id, const char *name)
-      : t_id_(0), tls_key_(tls_key), id_(id), name_(name), work_(asio::make_work_guard(aio_)) {
+  explicit task_queue(std::uintptr_t tls_key, task_queue_id id, const char *name,
+                      at_exit exit = nullptr)
+      : t_id_(0), tls_key_(tls_key), id_(id), name_(name), exit_(exit),
+        work_(asio::make_work_guard(aio_)) {
     t_ = std::thread([this] {
       t_id_ = thread_util::get_thread_id();
       thread_util::set_thread_name(name_.c_str());
@@ -202,6 +205,10 @@ public:
       std::lock_guard<std::mutex> lock(tasks_mutex_);
 
       tasks_ = std::queue<std::function<void()>>();
+
+      if (exit_) {
+        exit_();
+      }
     });
   }
 
@@ -216,8 +223,8 @@ public:
    * @return A shared pointer to the newly created task queue.
    */
   static std::shared_ptr<task_queue> make_queue(std::uintptr_t tls_key, task_queue_id id,
-                                                const char *name) {
-    return std::shared_ptr<task_queue>(new task_queue(tls_key, id, name));
+                                                const char *name, at_exit exit = nullptr) {
+    return std::shared_ptr<task_queue>(new task_queue(tls_key, id, name, exit));
   }
 
   /**
@@ -408,6 +415,7 @@ private:
   std::atomic<std::uintptr_t> tls_key_; // The TLS key for the task queue.
   std::atomic<task_queue_id> id_;       // The ID of the task queue.
   std::atomic<std::uintptr_t> t_id_;    // The ID of the thread running the task queue.
+  at_exit exit_;                        // The function to be executed at exit.
 
   asio::io_context aio_; // The io_context for asynchronous task execution.
   asio::executor_work_guard<asio::io_context::executor_type>
@@ -537,7 +545,8 @@ public:
    * already exists, an error code is returned. Otherwise, the task queue is registered and an error
    * code indicating success is returned.
    */
-  static std::shared_ptr<task_queue> create_queue(task_queue::task_queue_id id, const char *name) {
+  static std::shared_ptr<task_queue> create_queue(task_queue::task_queue_id id, const char *name,
+                                                  task_queue::at_exit exit = nullptr) {
     LOG_API_ARGS_2(id, name);
 
     auto &self = instance();
@@ -548,7 +557,7 @@ public:
       return self.task_queues_[id];
     }
 
-    self.task_queues_[id] = task_queue::make_queue(self.tls_key_.load(), id, name);
+    self.task_queues_[id] = task_queue::make_queue(self.tls_key_.load(), id, name, exit);
 
     return self.task_queues_[id];
   }

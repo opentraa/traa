@@ -159,8 +159,11 @@ else()
         -Wno-unused-function \
         -Wno-unused-parameter \
         -Wno-error=unused-but-set-variable \
-        -Wno-error=unused-const-variable \
-        -Wno-error=shorten-64-to-32")
+        -Wno-error=unused-const-variable")
+        
+    if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=shorten-64-to-32")
+    endif()
 
     if(APPLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
