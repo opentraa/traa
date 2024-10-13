@@ -1,8 +1,10 @@
 #include "base/devices/screen/desktop_geometry.h"
 #include "base/devices/screen/enumerator.h"
 #include "base/devices/screen/mouse_cursor.h"
+#include "base/devices/screen/utils.h"
 #include "base/devices/screen/win/cursor.h"
 #include "base/devices/screen/win/scoped_object_gdi.h"
+#include "base/devices/screen/win/thumbnail.h"
 #include "base/log/logger.h"
 #include "base/strings/string_trans.h"
 #include "base/utils/win/version.h"
@@ -318,27 +320,6 @@ bool get_window_maximized_rect(HWND window, desktop_rect *intersects_rect) {
   return true;
 }
 
-desktop_size calc_scaled_size(const desktop_size &source, const desktop_size &dest) {
-  if (source.width() == 0 || source.height() == 0 || dest.width() == 0 || dest.height() == 0) {
-    return desktop_size(0, 0);
-  }
-
-  auto src_image_size = source.width() * source.height();
-  auto dst_image_size = dest.width() * dest.height();
-  if (src_image_size <= dst_image_size) {
-    return source;
-  }
-
-  // Calculate the scale factor to fit the source image into the destination image.
-  double scale_factor = sqrt(static_cast<double>(dst_image_size) / src_image_size);
-
-  // The codec requires the width and height to be multiples of 2.
-  int32_t scaled_width = static_cast<int32_t>(source.width() * scale_factor) & 0xFFFFFFFE;
-  int32_t scaled_height = static_cast<int32_t>(source.height() * scale_factor) & 0xFFFFFFFE;
-
-  return desktop_size(scaled_width, scaled_height);
-}
-
 bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t **icon_data) {
   HICON hicon = nullptr;
   ::ExtractIconExW(process_path, 0, &hicon, nullptr, 1);
@@ -424,8 +405,8 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
     return TRUE;
   }
 
-  // skip windows which are not responding unless the TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE flag
-  // is set.
+  // skip windows which are not responding unless the
+  // TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE flag is set.
   if (!is_window_responding(window) &&
       !(param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE)) {
     return TRUE;
@@ -537,14 +518,24 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
   }
 
   // get the icon data
-  if (has_process_path && param->icon_size.width > 0 && param->icon_size.height > 0 &&
-      get_process_icon_data(process_path,
-                            desktop_size(param->icon_size.width, param->icon_size.height),
-                            const_cast<uint8_t **>(&window_info.icon_data))) {
-    window_info.icon_size = param->icon_size;
+  if (has_process_path && param->icon_size.width > 0 && param->icon_size.height > 0) {
+    if (get_process_icon_data(process_path,
+                              desktop_size(param->icon_size.width, param->icon_size.height),
+                              const_cast<uint8_t **>(&window_info.icon_data))) {
+      window_info.icon_size = param->icon_size;
+    } else {
+      LOG_ERROR("get icon data failed");
+    }
   }
 
   // get the thumbnail data
+  if (param->thumbnail_size.width > 0 && param->thumbnail_size.height > 0) {
+    if (!get_thumbnail_data(window, param->thumbnail_size,
+                            const_cast<uint8_t **>(&window_info.thumbnail_data),
+                            window_info.thumbnail_size)) {
+      LOG_ERROR("get thumbnail data failed");
+    }
+  }
 
   // push the window to the list
   param->infos.push_back(window_info);

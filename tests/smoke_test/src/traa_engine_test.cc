@@ -160,16 +160,16 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
         EXPECT_GE(infos[i].screen_id, TRAA_FULLSCREEN_SCREEN_ID);
         EXPECT_GT(infos[i].rect.right - infos[i].rect.left, 0);
         EXPECT_GT(infos[i].rect.bottom - infos[i].rect.top, 0);
-        EXPECT_EQ(infos[i].icon_size.width, icon_size.width);
-        EXPECT_EQ(infos[i].icon_size.height, icon_size.height);
+        EXPECT_GE(icon_size.width * icon_size.height,
+                  infos[i].icon_size.width * infos[i].icon_size.height);
         EXPECT_TRUE(std::strlen(infos[i].title) > 0);
         EXPECT_TRUE(std::strlen(infos[i].process_path) > 0);
         EXPECT_NE(infos[i].icon_data, nullptr);
       }
 
-      EXPECT_EQ(infos[i].thumbnail_size.width, thumbnail_size.width);
-      EXPECT_EQ(infos[i].thumbnail_size.height, thumbnail_size.height);
       EXPECT_NE(infos[i].thumbnail_data, nullptr);
+      EXPECT_GE(thumbnail_size.width * thumbnail_size.height,
+                infos[i].thumbnail_size.width * infos[i].thumbnail_size.height);
 
       output_screen_source_info(&infos[i]);
     }

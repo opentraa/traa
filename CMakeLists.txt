@@ -259,13 +259,18 @@ if(WIN32 OR MACOS OR LINUX)
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/mouse_cursor.cc"
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/shared_memory.h"
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/shared_memory.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/utils.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/utils.cc"
     )
 endif()
 
 if(WIN32)
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/enumerator_win.cc")
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cursor.h")
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cursor.cc")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/enumerator_win.cc")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/scoped_object_gdi.h")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/thumbnail.h")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/thumbnail.cc")
 elseif(APPLE AND NOT IOS AND NOT VISIONOS)
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/enumerator_darwin.mm")
 elseif(UNIX)
