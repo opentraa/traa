@@ -894,17 +894,18 @@ template <class _Fp>
 _fpackaged_task_function<_Rp(_ArgTypes...)>::_fpackaged_task_function(_Fp &&__f) : __f_(nullptr) {
   typedef std::remove_reference_t<std::decay_t<_Fp>> _FR;
   typedef _fpackaged_task_func<_FR, std::allocator<_FR>, _Rp(_ArgTypes...)> _FF;
-  if (sizeof(_FF) <= sizeof(__buf_)) {
-    ::new ((void *)&__buf_) _FF(std::forward<_Fp>(__f));
-    __f_ = (__base *)&__buf_;
-  } else {
+  // TODO @sylar: on linux has error
+  // if (sizeof(_FF) <= sizeof(__buf_)) {
+  //   ::new ((void *)&__buf_) _FF(std::forward<_Fp>(__f));
+  //   __f_ = (__base *)&__buf_;
+  // } else {
     typedef std::allocator<_FF> _Ap;
     _Ap __a;
     typedef _fallocator_destructor<_Ap> _Dp;
     std::unique_ptr<__base, _Dp> __hold(__a.allocate(1), _Dp(__a, 1));
     ::new ((void *)__hold.get()) _FF(std::forward<_Fp>(__f), std::allocator<_FR>(__a));
     __f_ = __hold.release();
-  }
+  // }
 }
 
 template <class _Rp, class... _ArgTypes>
@@ -914,17 +915,18 @@ _fpackaged_task_function<_Rp(_ArgTypes...)>::_fpackaged_task_function(std::alloc
     : __f_(nullptr) {
   typedef std::remove_reference_t<std::decay_t<_Fp>> _FR;
   typedef _fpackaged_task_func<_FR, _Alloc, _Rp(_ArgTypes...)> _FF;
-  if (sizeof(_FF) <= sizeof(__buf_)) {
-    __f_ = (__base *)&__buf_;
-    ::new ((void *)__f_) _FF(std::forward<_Fp>(__f));
-  } else {
+  // TODO @sylar: on linux has error
+  // if (sizeof(_FF) <= sizeof(__buf_)) {
+  //   __f_ = (__base *)&__buf_;
+  //   ::new ((void *)__f_) _FF(std::forward<_Fp>(__f));
+  // } else {
     typedef typename std::allocator_traits<_Alloc>::template rebind_alloc<_FF> _Ap;
     _Ap __a(__a0);
     typedef _fallocator_destructor<_Ap> _Dp;
     std::unique_ptr<__base, _Dp> __hold(__a.allocate(1), _Dp(__a, 1));
     ::new ((void *)std::addressof(*__hold.get())) _FF(std::forward<_Fp>(__f), _Alloc(__a));
     __f_ = std::addressof(*__hold.release());
-  }
+  // }
 }
 
 template <class _Rp, class... _ArgTypes>
@@ -1777,7 +1779,7 @@ inline void swap(traa::base::fpromise<_Rp> &__x, traa::base::fpromise<_Rp> &__y)
 }
 
 template <class _Rp, class _Alloc>
-struct std::uses_allocator<traa::base::fpromise<_Rp>, _Alloc> : public std::true_type {};
+struct uses_allocator<traa::base::fpromise<_Rp>, _Alloc> : public true_type {};
 
 template <class _Rp, class... _ArgTypes>
 inline void swap(traa::base::fpackaged_task<_Rp(_ArgTypes...)> &__x,
@@ -1787,8 +1789,7 @@ inline void swap(traa::base::fpackaged_task<_Rp(_ArgTypes...)> &__x,
 
 #if _LIBCPP_STD_VER <= 14
 template <class _Callable, class _Alloc>
-struct std::uses_allocator<traa::base::fpackaged_task<_Callable>, _Alloc> : public std::true_type {
-};
+struct uses_allocator<traa::base::fpackaged_task<_Callable>, _Alloc> : public true_type {};
 #endif
 } // namespace std
 

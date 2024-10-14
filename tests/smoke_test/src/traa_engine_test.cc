@@ -2,7 +2,9 @@
 
 #include <traa/traa.h>
 
+#include <cstring>
 #include <thread>
+
 
 TEST(multi_thread_call, traa_init_release) {
   traa_config config;
@@ -83,17 +85,18 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
            "rect: (%d, %d, %d, %d), title: %s, process_path:%s, icon_size: (%d, "
            "%d), "
            "icon_data: %p, thumbnail_size: (%d, %d), thumbnail_data: %p\n",
-           info->id, info->screen_id, info->is_window, info->is_minimized, info->is_maximized,
-           info->rect.left, info->rect.top, info->rect.right, info->rect.bottom, info->title,
-           info->process_path, info->icon_size.width, info->icon_size.height, info->icon_data,
+           static_cast<long long>(info->id), static_cast<long long>(info->screen_id),
+           info->is_window, info->is_minimized, info->is_maximized, info->rect.left, info->rect.top,
+           info->rect.right, info->rect.bottom, info->title, info->process_path,
+           info->icon_size.width, info->icon_size.height, info->icon_data,
            info->thumbnail_size.width, info->thumbnail_size.height, info->thumbnail_data);
 
     // print id and title
-    // printf("info: id: %lld, title: %s\n", info->id, info->title);
+    // printf("info: id: %lld, title: %s\n", static_cast<long long>(info->id), info->title);
 
     // print id 、title and process_path
-    /*printf("info: id: %lld, title: %s, process_path: %s\n", info->id, info->title,
-           info->process_path);*/
+    /*printf("info: id: %lld, title: %s, process_path: %s\n", static_cast<long long>(info->id),
+       info->title, info->process_path);*/
   };
 
   // enum without icon_size and thumbnail_size.

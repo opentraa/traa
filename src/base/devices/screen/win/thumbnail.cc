@@ -1,4 +1,5 @@
 #include "base/devices/screen/win/thumbnail.h"
+
 #include "base/devices/screen/desktop_frame.h"
 #include "base/devices/screen/desktop_geometry.h"
 #include "base/devices/screen/utils.h"
