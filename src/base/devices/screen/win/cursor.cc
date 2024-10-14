@@ -22,14 +22,14 @@ namespace {
 
 #endif // !defined(ARCH_LITTLE_ENDIAN)
 
-const int kBytesPerPixel = desktop_frame::kBytesPerPixel;
+constexpr int kBytesPerPixel = desktop_frame::kBytesPerPixel;
 
 // Pixel colors used when generating cursor outlines.
-const uint32_t kPixelRgbaBlack = RGBA(0, 0, 0, 0xff);
-const uint32_t kPixelRgbaWhite = RGBA(0xff, 0xff, 0xff, 0xff);
-const uint32_t kPixelRgbaTransparent = RGBA(0, 0, 0, 0);
+constexpr uint32_t kPixelRgbaBlack = RGBA(0, 0, 0, 0xff);
+constexpr uint32_t kPixelRgbaWhite = RGBA(0xff, 0xff, 0xff, 0xff);
+constexpr uint32_t kPixelRgbaTransparent = RGBA(0, 0, 0, 0);
 
-const uint32_t kPixelRgbWhite = RGB(0xff, 0xff, 0xff);
+constexpr uint32_t kPixelRgbWhite = RGB(0xff, 0xff, 0xff);
 
 // Expands the cursor shape to add a white outline for visibility against
 // dark backgrounds.

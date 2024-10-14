@@ -35,7 +35,7 @@ bool get_thumbnail_data_from_gdi(HWND window, const traa_size &thumbnail_size, u
   bmi.bmiHeader.biPlanes = 1;
   bmi.bmiHeader.biBitCount = 32;
   bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-  bmi.bmiHeader.biSizeImage = window_size.width() * window_size.height() * 4;
+  bmi.bmiHeader.biSizeImage = window_size.width() * window_size.height() * desktop_frame::kBytesPerPixel;
 
   bool result = false;
   HANDLE section = nullptr;
@@ -64,7 +64,7 @@ bool get_thumbnail_data_from_gdi(HWND window, const traa_size &thumbnail_size, u
       break;
     }
 
-    *data = new uint8_t[scaled_size.width() * scaled_size.height() * 4];
+    *data = new uint8_t[scaled_size.width() * scaled_size.height() * desktop_frame::kBytesPerPixel];
     if (!*data) {
       LOG_ERROR("alloc memory for thumbnail data failed: {}", ::GetLastError());
       break;
@@ -73,11 +73,17 @@ bool get_thumbnail_data_from_gdi(HWND window, const traa_size &thumbnail_size, u
     constexpr int bytes_per_pixel = desktop_frame::kBytesPerPixel;
 
     if (os_get_version() >= version_alias::VERSION_WIN8) {
-      result = ::PrintWindow(window, compatible_dc, 2);
+      result = ::PrintWindow(window, compatible_dc, PW_RENDERFULLCONTENT);
       if (result) {
-        libyuv::ARGBScale(bitmap_data, window_size.width() * bytes_per_pixel, window_size.width(),
-                          window_size.height(), *data, scaled_size.width() * bytes_per_pixel,
-                          scaled_size.width(), scaled_size.height(), libyuv::kFilterBox);
+        if (scaled_size.equals(window_size)) {
+          memcpy_s(*data, scaled_size.width() * scaled_size.height() * bytes_per_pixel, bitmap_data,
+                   window_size.width() * window_size.height() * bytes_per_pixel);
+        } else {
+          // use libyuv to scale the image
+          libyuv::ARGBScale(bitmap_data, window_size.width() * bytes_per_pixel, window_size.width(),
+                            window_size.height(), *data, scaled_size.width() * bytes_per_pixel,
+                            scaled_size.width(), scaled_size.height(), libyuv::kFilterBox);
+        }
       }
     }
 

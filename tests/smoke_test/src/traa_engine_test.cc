@@ -143,7 +143,7 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
   // enum with icon_size and thumbnail_size
   {
     traa_size icon_size(100, 100);
-    traa_size thumbnail_size(100, 100);
+    traa_size thumbnail_size(960, 640);
     unsigned int external_flags = 0;
 
     traa_screen_source_info *infos = nullptr;

@@ -535,6 +535,14 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
                             window_info.thumbnail_size)) {
       LOG_ERROR("get thumbnail data failed");
     }
+
+#define DUMP_THUMBNAIL_DATA 0
+#if DUMP_THUMBNAIL_DATA
+    if (window_info.thumbnail_data) {
+      dump_bmp(window_info.thumbnail_data, window_info.thumbnail_size,
+               (std::string("thumbnail_") + std::to_string(window_info.id) + ".bmp").c_str());
+    }
+#endif
   }
 
   // push the window to the list
