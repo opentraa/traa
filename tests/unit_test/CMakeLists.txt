@@ -80,6 +80,9 @@ if(APPLE)
 
     set_target_properties(${TRAA_UNIT_TEST} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
 elseif(WIN32)
+    target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
+        dwmapi.lib
+    )
 elseif(ANDROID)
     set_target_properties(${TRAA_UNIT_TEST} PROPERTIES
         CXX_VISIBILITY_PRESET hidden

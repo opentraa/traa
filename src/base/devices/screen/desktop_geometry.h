@@ -43,6 +43,7 @@ class desktop_size {
 public:
   desktop_size() : width_(0), height_(0) {}
   desktop_size(int32_t width, int32_t height) : width_(width), height_(height) {}
+  desktop_size(const traa_size &size) : width_(size.width), height_(size.height) {}
 
   int32_t width() const { return width_; }
   int32_t height() const { return height_; }

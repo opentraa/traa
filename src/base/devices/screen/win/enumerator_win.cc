@@ -2,9 +2,9 @@
 #include "base/devices/screen/enumerator.h"
 #include "base/devices/screen/mouse_cursor.h"
 #include "base/devices/screen/utils.h"
+#include "base/devices/screen/win/capture_utils.h"
 #include "base/devices/screen/win/cursor.h"
 #include "base/devices/screen/win/scoped_object_gdi.h"
-#include "base/devices/screen/win/thumbnail.h"
 #include "base/log/logger.h"
 #include "base/strings/string_trans.h"
 #include "base/utils/win/version.h"
@@ -321,7 +321,8 @@ bool get_window_maximized_rect(HWND window, desktop_rect *intersects_rect) {
   return true;
 }
 
-bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t **icon_data) {
+bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t **icon_data,
+                           traa_size &size) {
   HICON hicon = nullptr;
   ::ExtractIconExW(process_path, 0, &hicon, nullptr, 1);
 
@@ -364,6 +365,8 @@ bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t
                     cursor->image()->size().width(), cursor->image()->size().height(), *icon_data,
                     scaled_size.width() * desktop_frame::kBytesPerPixel, scaled_size.width(),
                     scaled_size.height(), libyuv::kFilterBox);
+
+  size = scaled_size.to_traa_size();
 
   return true;
 }
@@ -520,14 +523,20 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
 
   // get the icon data
   if (has_process_path && param->icon_size.width > 0 && param->icon_size.height > 0) {
-    if (get_process_icon_data(process_path,
-                              desktop_size(param->icon_size.width, param->icon_size.height),
-                              const_cast<uint8_t **>(&window_info.icon_data))) {
-      window_info.icon_size = param->icon_size;
+    if (get_process_icon_data(
+            process_path, desktop_size(param->icon_size.width, param->icon_size.height),
+            const_cast<uint8_t **>(&window_info.icon_data), window_info.icon_size)) {
     } else {
       LOG_ERROR("get icon data failed");
     }
   }
+
+#if 0
+  if (window_info.icon_data) {
+    capture_utils::dump_bmp(window_info.icon_data, window_info.icon_size,
+             (std::string("icon_") + std::to_string(window_info.id) + ".bmp").c_str());
+  }
+#endif
 
   // get the thumbnail data
   if (param->thumbnail_size.width > 0 && param->thumbnail_size.height > 0 &&
@@ -538,10 +547,9 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
       LOG_ERROR("get thumbnail data failed");
     }
 
-#define DUMP_THUMBNAIL_DATA 0
-#if DUMP_THUMBNAIL_DATA
+#if 0
     if (window_info.thumbnail_data) {
-      dump_bmp(window_info.thumbnail_data, window_info.thumbnail_size,
+      capture_utils::dump_bmp(window_info.thumbnail_data, window_info.thumbnail_size,
                (std::string("thumbnail_") + std::to_string(window_info.id) + ".bmp").c_str());
     }
 #endif

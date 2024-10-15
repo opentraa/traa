@@ -8,10 +8,6 @@ namespace base {
 
 desktop_size calc_scaled_size(const desktop_size &source, const desktop_size &dest);
 
-#if defined(_WIN32)
-void dump_bmp(const uint8_t *data, const traa_size &size, const char *file_name);
-#endif // _WIN32
-
 } // namespace base
 } // namespace traa
 
