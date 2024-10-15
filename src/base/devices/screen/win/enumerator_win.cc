@@ -35,6 +35,7 @@ struct enumerator_param {
   traa_size thumbnail_size;
   unsigned int external_flags;
   std::vector<traa_screen_source_info> infos;
+  thumbnail *thumbnail_instance;
 };
 
 // https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmgetwindowattribute
@@ -529,10 +530,11 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
   }
 
   // get the thumbnail data
-  if (param->thumbnail_size.width > 0 && param->thumbnail_size.height > 0) {
-    if (!get_thumbnail_data(window, param->thumbnail_size,
-                            const_cast<uint8_t **>(&window_info.thumbnail_data),
-                            window_info.thumbnail_size)) {
+  if (param->thumbnail_size.width > 0 && param->thumbnail_size.height > 0 &&
+      param->thumbnail_instance) {
+    if (!param->thumbnail_instance->get_thumbnail_data(
+            window, param->thumbnail_size, const_cast<uint8_t **>(&window_info.thumbnail_data),
+            window_info.thumbnail_size)) {
       LOG_ERROR("get thumbnail data failed");
     }
 
@@ -556,7 +558,13 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
                                                            const unsigned int external_flags,
                                                            traa_screen_source_info **infos,
                                                            int *count) {
-  enumerator_param param = {icon_size, thumbnail_size, external_flags, {}};
+  std::unique_ptr<thumbnail> thumbnail_instance;
+  if (thumbnail_size.width > 0 && thumbnail_size.height > 0) {
+    thumbnail_instance.reset(new thumbnail());
+  }
+
+  enumerator_param param = {
+      icon_size, thumbnail_size, external_flags, {}, thumbnail_instance.get()};
 
   BOOL ret = ::EnumWindows(enum_screen_source_info_proc, reinterpret_cast<LPARAM>(&param));
   if (!ret) {
