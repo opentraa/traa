@@ -155,6 +155,13 @@ typedef enum traa_error {
   TRAA_ERROR_ALREADY_INITIALIZED = 20,
 
   /**
+   * @brief Enumerate screen source info failed error.
+   *
+   * This is an enumerate screen source info failed error.
+   */
+  TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED = 21,
+
+  /**
    * @brief Error count.
    *
    * This is the error count.

@@ -9,6 +9,19 @@
 
 #include <traa/base.h>
 
+#define OBJ_STRING_STREAM_DEFINE std::stringstream ss
+#define OBJ_STRING_SEP ss << ", "
+#define OBJ_STRING_OBJ_BEGIN ss << "{"
+#define OBJ_STRING_OBJ_END ss << "}"
+#define OBJ_STRING_POINTER_NULL ss << "null"
+#define OBJ_STRING_PROPERTY(OBJ, PROP) ss << "\"" #PROP "\": " << (OBJ).PROP
+#define OBJ_STRING_PROPERTY_STR(OBJ, PROP)                                                         \
+  ss << "\"" #PROP "\": \"" << ((OBJ).PROP ? (OBJ).PROP : "empty") << "\""
+#define OBJ_STRING_PROPERTY_POINTER(OBJ, PROP)                                                     \
+  ss << "\"" #PROP "\": " << number_to_hexstring(reinterpret_cast<std::uintptr_t>((OBJ).PROP))
+#define OBJ_STRING_PROPERTY_TRAA_OBJ(OBJ, PROP) ss << "\"" #PROP "\": " << to_string((OBJ).PROP)
+#define OBJ_STRING_STREAM_RETURN return ss.str()
+
 namespace traa {
 namespace main {
 /**
@@ -53,6 +66,110 @@ public:
   }
 
   /**
+   * @brief Convert a TRAA size to a string.
+   *
+   * This function converts a TRAA size to a string.
+   *
+   * @param size The TRAA size.
+   *
+   * @return The string.
+   */
+  static std::string to_string(const traa_size &size) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEGIN;
+
+    OBJ_STRING_PROPERTY(size, width);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(size, height);
+
+    OBJ_STRING_OBJ_END;
+
+    OBJ_STRING_STREAM_RETURN;
+  }
+
+  /**
+   * @brief Convert a TRAA point to a string.
+   *
+   * This function converts a TRAA point to a string.
+   *
+   * @param point The TRAA point.
+   *
+   * @return The string.
+   */
+  static std::string to_string(const traa_point &point) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEGIN;
+
+    OBJ_STRING_PROPERTY(point, x);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(point, y);
+
+    OBJ_STRING_OBJ_END;
+
+    OBJ_STRING_STREAM_RETURN;
+  }
+
+  /**
+   * @brief Convert a TRAA rect to a string.
+   *
+   * This function converts a TRAA rect to a string.
+   *
+   * @param rect The TRAA rect.
+   *
+   * @return The string.
+   */
+  static std::string to_string(const traa_rect &rect) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEGIN;
+
+    OBJ_STRING_PROPERTY(rect, left);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(rect, top);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(rect, right);
+
+    OBJ_STRING_SEP;
+    OBJ_STRING_PROPERTY(rect, bottom);
+
+    OBJ_STRING_OBJ_END;
+
+    OBJ_STRING_STREAM_RETURN;
+  }
+
+  /**
+   * @brief Convert a TRAA device type to a string.
+   *
+   * This function converts a TRAA device type to a string.
+   *
+   * @param type The TRAA device type.
+   *
+   * @return The string.
+   */
+  static std::string to_string(traa_device_type type) {
+    switch (type) {
+    case TRAA_DEVICE_TYPE_UNKNOWN:
+      return "unknown";
+    case TRAA_DEVICE_TYPE_CAMERA:
+      return "camera";
+    case TRAA_DEVICE_TYPE_MICROPHONE:
+      return "microphone";
+    case TRAA_DEVICE_TYPE_SPEAKER:
+      return "speaker";
+    case TRAA_DEVICE_TYPE_MEDIA_FILE:
+      return "media_file";
+    default:
+      return "unknown";
+    }
+  }
+
+  /**
    * @brief Convert a TRAA log level to a string.
    *
    * This function converts a TRAA log level to a string.
@@ -83,24 +200,36 @@ public:
    *
    * This function converts a TRAA log config to a string.
    *
-   * @param log_config The TRAA log config.
+   * @param config The TRAA log config.
    *
    * @return The string.
    */
-  static std::string to_string(const traa_log_config *log_config) {
-    std::stringstream ss;
-    if (log_config == nullptr) {
-      ss << "{null}";
+  static std::string to_string(const traa_log_config *config) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEGIN;
+
+    if (config == nullptr) {
+      OBJ_STRING_POINTER_NULL;
     } else {
-      ss << "{"
-         << "\"log_file\": " << (log_config->log_file ? log_config->log_file : "null") << ", "
-         << "\"max_size\": " << log_config->max_size << ", "
-         << "\"max_files\": " << log_config->max_files << ", "
-         << "\"level\": " << to_string(log_config->level) << "}";
+      OBJ_STRING_PROPERTY_STR(*config, log_file);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY(*config, max_size);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY(*config, max_files);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY(*config, level);
     }
 
-    return ss.str();
+    OBJ_STRING_OBJ_END;
+
+    OBJ_STRING_STREAM_RETURN;
   }
+
+  static std::string to_string(const traa_log_config &config) { return to_string(&config); }
 
   /**
    * @brief Convert a TRAA event handler to a string.
@@ -111,22 +240,24 @@ public:
    *
    * @return The string.
    */
-  static std::string to_string(const traa_event_handler *event_handler) {
-    std::stringstream ss;
-    if (event_handler == nullptr) {
-      ss << "{null}";
+  static std::string to_string(const traa_event_handler *handler) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEGIN;
+
+    if (handler == nullptr) {
+      OBJ_STRING_POINTER_NULL;
     } else {
-      ss << "{"
-         << "\"on_error\": "
-         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_error)) << ", "
-         << "\"on_device_event\": "
-         << number_to_hexstring(reinterpret_cast<std::uintptr_t>(event_handler->on_device_event))
-         << ", "
-         << "}";
+      OBJ_STRING_PROPERTY_POINTER(*handler, on_error);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY_POINTER(*handler, on_device_event);
     }
 
-    return ss.str();
+    OBJ_STRING_STREAM_RETURN;
   }
+
+  static std::string to_string(const traa_event_handler &handler) { return to_string(&handler); }
 
   /**
    * @brief Convert a TRAA config to a string.
@@ -138,19 +269,26 @@ public:
    * @return The string.
    */
   static std::string to_string(const traa_config *config) {
-    std::stringstream ss;
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEGIN;
+
     if (config == nullptr) {
-      ss << "{null}";
+      OBJ_STRING_POINTER_NULL;
     } else {
-      ss << "{"
-         << "\"userdata\": " << to_string(config->userdata) << ", "
-         << "\"log_config\": " << to_string(&config->log_config) << ", "
-         << "\"event_handler\": " << to_string(&config->event_handler) << "}";
+      OBJ_STRING_PROPERTY_TRAA_OBJ(*config, userdata);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY_TRAA_OBJ(*config, log_config);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY_TRAA_OBJ(*config, event_handler);
     }
 
-    return ss.str();
+    OBJ_STRING_STREAM_RETURN;
   }
 };
+
 } // namespace main
 } // namespace traa
 

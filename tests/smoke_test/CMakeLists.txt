@@ -15,7 +15,12 @@ set(TRAA_SMOKE_TEST_INCLUDE_DIRS
 )
 
 add_executable(${TRAA_SMOKE_TEST} ${TRAA_SMOKE_TEST_FILES})
-target_link_libraries(${TRAA_SMOKE_TEST} PRIVATE ${TRAA_LIBRARY} gtest gtest_main gmock gmock_main)
+target_link_libraries(${TRAA_SMOKE_TEST} PRIVATE
+    ${TRAA_LIBRARY}
+    gtest
+    gtest_main
+    gmock
+    gmock_main)
 
 target_include_directories(${TRAA_SMOKE_TEST} PRIVATE "$<BUILD_INTERFACE:${TRAA_SMOKE_TEST_INCLUDE_DIRS}>")
 set_target_properties(${TRAA_SMOKE_TEST} PROPERTIES

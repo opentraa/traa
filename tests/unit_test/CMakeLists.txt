@@ -15,13 +15,25 @@ file(GLOB_RECURSE TRAA_UNIT_TEST_FILES "${CMAKE_HOME_DIRECTORY}/src/*_test.*")
 source_group("test" FILES ${TRAA_UNIT_TEST_FILES})
 source_group(TREE ${CMAKE_HOME_DIRECTORY} PREFIX "traa" FILES ${TRAA_LIBRARY_FILES})
 
+file(GLOB_RECURSE TRAA_UNIT_TEST_UTILS_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/**)
+
+set(TRAA_UNIT_TEST_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${TRAA_LIBRARY_INCLUDE_DIRS}
+)
+
 add_executable(${TRAA_UNIT_TEST}
     ${TRAA_LIBRARY_FILES}
     ${TRAA_UNIT_TEST_FILES}
+    ${TRAA_UNIT_TEST_UTILS_FILES}
 )
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
-target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE SPDLOG_NO_EXCEPTIONS)
-target_link_libraries(${TRAA_UNIT_TEST} PRIVATE gtest gtest_main gmock gmock_main)
+target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
+    yuv
+    gtest
+    gtest_main
+    gmock
+    gmock_main)
 
 if(TRAA_ENABLE_ABSL)
     target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
@@ -41,7 +53,7 @@ if(TRAA_ENABLE_ABSL)
     )
 endif()
 
-target_include_directories(${TRAA_UNIT_TEST} PRIVATE "$<BUILD_INTERFACE:${TRAA_LIBRARY_INCLUDE_DIRS}>")
+target_include_directories(${TRAA_UNIT_TEST} PRIVATE "$<BUILD_INTERFACE:${TRAA_UNIT_TEST_INCLUDE_DIRS}>")
 set_target_properties(${TRAA_UNIT_TEST} PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR}"
     LIBRARY_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR}"
@@ -68,6 +80,9 @@ if(APPLE)
 
     set_target_properties(${TRAA_UNIT_TEST} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
 elseif(WIN32)
+    target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
+        dwmapi.lib
+    )
 elseif(ANDROID)
     set_target_properties(${TRAA_UNIT_TEST} PROPERTIES
         CXX_VISIBILITY_PRESET hidden
@@ -95,4 +110,11 @@ gtest_discover_tests(${TRAA_UNIT_TEST})
 # Enable sanitizer for only Linux and MacOS
 if(MACOS OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     traa_enable_sanitizer(${TRAA_UNIT_TEST})
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        # https://learn.microsoft.com/en-us/cpp/sanitizers/asan?view=msvc-170
+        # on the official document, , /MTd is supported but the version of msvc on our CI is too old
+        # so that the /MTd and -fsanitize=address can't be used together
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
+    endif()
 endif()

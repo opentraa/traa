@@ -135,21 +135,7 @@ private:
 
 // Because this is by far the most commonly-requested value from the above
 // singleton, we add a global-scope accessor here as syntactic sugar.
-version_alias get_version();
-
-bool is_win_xp_or_later() { return get_version() >= VERSION_XP; }
-
-bool is_win_vista_or_later() { return get_version() >= VERSION_VISTA; }
-
-bool is_win_7_or_later() { return get_version() >= VERSION_WIN7; }
-
-bool is_win_8_or_later() { return get_version() >= VERSION_WIN8; }
-
-bool is_win_8_1_or_later() { return get_version() >= VERSION_WIN8_1; }
-
-bool is_win_10_or_later() { return get_version() >= VERSION_WIN10; }
-
-bool is_win_11_or_later() { return get_version() >= VERSION_WIN11; }
+version_alias os_get_version();
 
 } // namespace base
 } // namespace traa

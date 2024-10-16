@@ -31,20 +31,69 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # ##############################################################################
 
 # Name project traa.
-project(traa)
+project(traa C CXX)
 message(STATUS "[TRAA] configuring...")
-
-# Reuqire C++17.
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # CMAKE_SYSTEM_NAME only be set after project defined.
 message(STATUS "[TRAA] current target system name ${CMAKE_SYSTEM_NAME}")
 message(STATUS "[TRAA] current host system name ${CMAKE_HOST_SYSTEM_NAME}")
 
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set(LINUX TRUE)
+endif()
+
 # Determine whether current host system is supported or not.
-if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND NOT LINUX)
     message(FATAL_ERROR "[TRAA] current host system ${CMAKE_HOST_SYSTEM_NAME} is not supported to build for now")
+endif()
+
+# Reuqire C++17.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Disable exception and rtti.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    # Use the highest warning level for Visual Studio.
+    set(CMAKE_CXX_WARNING_LEVEL 4)
+
+    if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+        string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    else(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+    endif(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+
+    # Disable C++ exceptions.
+    string(REGEX REPLACE "/EH[a-z]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
+    add_definitions(-D_HAS_EXCEPTIONS=0)
+
+    # Disable RTTI.
+    string(REGEX REPLACE "/GR" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+else()
+    # Use -Wall for clang and gcc.
+    if(NOT CMAKE_CXX_FLAGS MATCHES "-Wall")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    endif(NOT CMAKE_CXX_FLAGS MATCHES "-Wall")
+
+    # Use -Wextra for clang and gcc.
+    if(NOT CMAKE_CXX_FLAGS MATCHES "-Wextra")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
+    endif(NOT CMAKE_CXX_FLAGS MATCHES "-Wextra")
+
+    # Use -Werror for clang and gcc.
+    if(NOT CMAKE_CXX_FLAGS MATCHES "-Werror")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    endif(NOT CMAKE_CXX_FLAGS MATCHES "-Werror")
+
+    # Disable C++ exceptions.
+    string(REGEX REPLACE "-fexceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+
+    # Disable RTTI.
+    string(REGEX REPLACE "-frtti" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif()
 
 # Preset flags for compiler.
@@ -54,21 +103,119 @@ endif()
 # android Oz
 # ios Oz
 if(WIN32)
+    # https://learn.microsoft.com/en-us/cpp/build/reference/debug-generate-debug-info?view=msvc-170
+    # The /DEBUG option puts the debugging information from linked object and library files
+    # into a program database (PDB) file. It updates the PDB during subsequent builds of the program.
+    #
+    # An executable (an EXE or DLL file) created for debugging contains the name and path of the corresponding PDB.
+    # The debugger reads the embedded name and uses the PDB when you debug the program.
+    # The linker uses the base name of the program and the extension .pdb to name the program database,
+    # and embeds the path where it was created. To override this default, set the /PDB option and specify a different file name.
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
+
+    # /MTx is used to link the static library runtime, which is required by the official sdk.
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
 
     # /wd is used to disable specific warning messages.
     # /wo is used to treat specific warning messages as errors.
     # /we is used to treat all warnings as errors.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4297")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MT /Zi")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT /Zi")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT /Zi")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT /Zi")
-elseif(UNIX)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -ggdb -Wall -O3 -fPIC -Wno-error=deprecated-declarations -Wno-deprecated-declarations -Werror=uninitialized -Werror=return-type -Wno-reorder -Wexceptions")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -ggdb -Wall -O3 -fPIC -Wno-error=deprecated-declarations -Wno-deprecated-declarations -Werror=uninitialized -Werror=return-type -Wno-reorder -Wno-unused-function -Wexceptions")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        /Zi \
+        /O2 \
+        /wo4018 \
+        /wo4251 \
+        /wo4275 \
+        /we4033 \
+        /we4700 \
+        /wd26812 \
+        /wd4996 \
+        /wd4819 \
+        /wd26495 \
+        /wd4275 \
+        /wd26439 \
+        /wd26498 \
+        /wd6285 \
+        /wd26451 \
+        /wd28020 \
+        /wd26437 \
+        /wd4297 \
+        /wd4100 \
+        /wd4505 \
+        /wd4127")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -g \
+        -std=c++17 \
+        -ggdb \
+        -Wall \
+        -fPIC \
+        -fno-omit-frame-pointer \
+        -fmerge-all-constants \
+        -fno-strict-aliasing \
+        -Wno-unknown-warning-option \
+        -Wno-error=deprecated-declarations \
+        -Wno-deprecated-declarations \
+        -Werror=uninitialized \
+        -Werror=return-type \
+        -Wno-reorder \
+        -Wno-unused-function \
+        -Wno-unused-parameter \
+        -Wno-error=unused-but-set-variable \
+        -Wno-error=unused-const-variable")
+
+    if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=shorten-64-to-32")
+    endif()
+
+    if(APPLE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+    endif()
+
+    # Set visibility hidden for all symbols by default.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
+
+    # Hide symbols from the other static libraries
+    if(APPLE)
+    # The macOS ld linker allows you to hide symbols from a specific static library,
+    # via -hidden-l instead of -l. Here's a quote from man ld on Mac:
+    #
+    # -hidden-lx  This is the same as the -lx for locating a static library,
+    # but treats all global symbols from the static library as if
+    # they are visibility hidden.  Useful when building a dynamic
+    # library that uses a static library but does not want to
+    # export anything from that static library.
+    # set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} \
+    # -Wl,-hidden-lxxxx")
+    #
+    # Do not use `-Wl,-hidden-lxxx`, it will hide all symbols from xxx.a static library.
+    # Depending on https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/DynamicLibraryDesignGuidelines.html
+    elseif(ANDROID)
+        # Hide symbols from libc++ and libc++abi
+        # see https://developer.android.com/ndk/guides/middleware-vendors#using_the_stl
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} \
+            -Wl,--exclude-libs,libc++_static.a \
+            -Wl,--exclude-libs,libc++abi.a")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} \
+                -Wl,--gc-sections \
+                -Wl,-z,noexecstack \
+                -Wl,-z,now \
+                -Wl,-z,relro \
+                -Wl,-z,defs \
+                -Wl,--as-needed \
+                -Wl,--no-undefined \
+                -Wl,--build-id=sha1 -lc -ldl -landroid")
+
+        #
+        # Do not use -Wl,--exclude-libs,ALL, it will exclude all symbols from all static libraries,
+        # We need to export jni interfaces from libxxxx.a
+        # Instead, we choose to use `-Wl,--version-script=${CMAKE_HOME_DIRECTORY}/cmake/symbols.sym`
+        # set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} \
+        # -Wl,--exclude-libs,ALL")
+    endif()
 endif()
 
 if(MACOS)
@@ -80,6 +227,8 @@ elseif(IOS)
 elseif(ANDROID)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Oz")
 endif()
+
+message(STATUS "[TRAA] ${CMAKE_CXX_FLAGS}")
 
 # Define output directory.
 set(TRAA_OUTPUT_DIR "${CMAKE_BINARY_DIR}/output")
@@ -99,6 +248,39 @@ endif()
 set(TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/include)
 file(GLOB_RECURSE TRAA_LIBRARY_PUBLIC_HEADER_FILES ${TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR}/*.h)
 
+# traa::base::devices
+if(WIN32 OR MACOS OR CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set(TRAA_LIBRARY_BASE_DEVICES_FILES
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_geometry.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_geometry.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_region.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_region.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/mouse_cursor.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/mouse_cursor.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/shared_memory.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/shared_memory.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/utils.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/utils.cc"
+    )
+endif()
+
+if(WIN32)
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/capture_utils.h")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/capture_utils.cc")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cursor.h")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cursor.cc")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/enumerator_win.cc")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/scoped_object_gdi.h")
+elseif(APPLE AND NOT IOS AND NOT VISIONOS)
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/enumerator_darwin.mm")
+elseif(LINUX)
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/posix/enumerator_posix.cc")
+endif()
+
 # traa::base::folder
 set(TRAA_LIBRARY_BASE_FOLDER_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder.h"
@@ -111,7 +293,7 @@ elseif(ANDROID)
     list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_android.cc")
 elseif(APPLE)
     list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_darwin.mm")
-elseif(UNIX)
+elseif(LINUX)
     list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_posix.cc")
 endif()
 
@@ -143,9 +325,12 @@ set(TRAA_LIBRARY_BASE_STRINGS_FILES
 # traa::base::thread
 set(TRAA_LIBRARY_BASE_THREAD_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/callback.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/ffuture.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/ffuture.cc"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock.h"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/task_queue.h"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/waitable_future.h"
 )
 
 if(WIN32)
@@ -157,7 +342,7 @@ elseif(ANDROID)
 elseif(APPLE)
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_darwin.cc")
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_darwin.cc")
-elseif(UNIX)
+elseif(LINUX)
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_posix.cc")
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_posix.cc")
 endif()
@@ -183,6 +368,7 @@ set(TRAA_LIBRARY_MAIN_FILES
 )
 
 # thirdparty spdlog
+add_definitions(-DSPDLOG_NO_EXCEPTIONS=ON)
 set(TRAA_THIRDPARTY_SPDLOG_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/spdlog/include")
 add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/spdlog)
 set_property(TARGET spdlog PROPERTY FOLDER "thirdparty")
@@ -195,6 +381,14 @@ set(TRAA_THIRDPARTY_JSON_FILE
 )
 source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_THIRDPARTY_JSON_FILE})
 
+# thirdparty libyuv-static
+add_definitions(-DLIBYUV_ENABLE_NEON=OFF) # TODO @sylar: how to enable neon?
+add_definitions(-DLIBYUV_ENABLE_SVE=OFF) # TODO @sylar: how to enable sve?
+add_definitions(-DLIBYUV_ENABLE_SME=OFF) # TODO @sylar: how to enable sme?
+add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/libyuv-static)
+set(TRAA_THIRDPARTY_LIBYUV_INCLUDE_DIR "${LIBYUV_INCLUDE_DIR}")
+set_property(TARGET yuv PROPERTY FOLDER "thirdparty/libyuv")
+
 # TODO @sylar: do we really need absl?
 # thirdparty absil-cpp
 if(TRAA_ENABLE_ABSL)
@@ -203,6 +397,8 @@ if(TRAA_ENABLE_ABSL)
 endif()
 
 # thirdparty asio
+add_compile_definitions(ASIO_NO_EXCEPTIONS)
+add_compile_definitions(ASIO_NO_TYPEID)
 set(TRAA_THIRDPARTY_ASIO_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/asio/asio/include")
 file(GLOB_RECURSE TRAA_THIRDPARTY_ASIO_FILES
     ${CMAKE_HOME_DIRECTORY}/thirdparty/asio/asio/include/asio/*.hpp
@@ -214,6 +410,7 @@ set(TRAA_LIBRARY_INCLUDE_DIRS
     ${TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR}
     ${TRAA_THIRDPARTY_SPDLOG_INCLUDE_DIR}
     ${TRAA_THIRDPARTY_JSON_INCLUDE_DIR}
+    ${TRAA_THIRDPARTY_LIBYUV_INCLUDE_DIR}
     ${TRAA_THIRDPARTY_ASIO_INCLUDE_DIR}
     ${TRAA_THIRDPARTY_ABSEIL_CPP_INCLUDE_DIR}
     "${CMAKE_HOME_DIRECTORY}/src"
@@ -221,10 +418,12 @@ set(TRAA_LIBRARY_INCLUDE_DIRS
 
 # library files
 set(TRAA_LIBRARY_FILES
+
     # traa public header files
     ${TRAA_LIBRARY_PUBLIC_HEADER_FILES}
 
     # traa base files
+    ${TRAA_LIBRARY_BASE_DEVICES_FILES}
     ${TRAA_LIBRARY_BASE_FOLDER_FILES}
     ${TRAA_LIBRARY_BASE_LOG_FILES}
     ${TRAA_LIBRARY_BASE_OS_FILES}
@@ -243,13 +442,17 @@ set(TRAA_LIBRARY_FILES
     "${CMAKE_HOME_DIRECTORY}/src/traa.cc"
     "${CMAKE_HOME_DIRECTORY}/src/main.cc"
 )
+
 if(WIN32)
     list(APPEND TRAA_LIBRARY_FILES ${TRAA_LIBRARY_BASE_STRINGS_FILES})
 
     # source files
-    configure_file(${CMAKE_HOME_DIRECTORY}/resources/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc @ONLY)
+    configure_file(${CMAKE_HOME_DIRECTORY}/resources/version.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/version.rc
+        @ONLY)
     list(APPEND TRAA_LIBRARY_FILES ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 endif()
+
 source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_LIBRARY_FILES})
 
 # add shared library
@@ -259,6 +462,9 @@ add_library(${TRAA_LIBRARY} SHARED ${TRAA_LIBRARY_FILES})
 
 # add include directories
 target_include_directories(${TRAA_LIBRARY} PUBLIC "$<BUILD_INTERFACE:${TRAA_LIBRARY_INCLUDE_DIRS}>")
+
+# add extra libraries libyuv
+target_link_libraries(${TRAA_LIBRARY} PRIVATE yuv)
 
 # add compile definitions
 target_compile_definitions(${TRAA_LIBRARY} PUBLIC TRAA_EXPORT)
@@ -275,7 +481,7 @@ set_target_properties(${TRAA_LIBRARY} PROPERTIES
 
 # thirdparty link
 if(TRAA_ENABLE_ABSL)
-    target_link_libraries(${TRAA_LIBRARY} PRIVATE 
+    target_link_libraries(${TRAA_LIBRARY} PRIVATE
         absl::algorithm
         absl::base
         absl::debugging
@@ -290,9 +496,6 @@ if(TRAA_ENABLE_ABSL)
         absl::time
         absl::utility)
 endif()
-
-# thirdparty compile definitions
-target_compile_definitions(${TRAA_LIBRARY} PRIVATE SPDLOG_NO_EXCEPTIONS)
 
 # platform flags
 if(APPLE)
@@ -315,15 +518,26 @@ if(APPLE)
         MACOSX_FRAMEWORK_IDENTIFIER "${TRAA_LIBRARY_IDENTIFIER}"
         MACOSX_FRAMEWORK_SHORT_VERSION_STRING "${TRAA_VERSION_SHORT}"
         MACOSX_FRAMEWORK_BUNDLE_VERSION "${TRAA_VERSION_SHORT}"
-        CXX_VISIBILITY_PRESET hidden
         LINK_FLAGS "-Wl ${TRAA_LIBRARY_FRAMEWORKS_FOLDERS} -rpath @loader_path"
     )
 
     set_target_properties(${TRAA_LIBRARY} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
+
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_custom_command(
+            TARGET ${TRAA_LIBRARY}
+            POST_BUILD
+            COMMAND strip -r -S -x
+            "${TRAA_OUTPUT_DIR_REAL}/${TRAA_LIBRARY_NAME}.framework/${TRAA_LIBRARY_NAME}"
+            COMMENT "Strip debug and local symbols done on final binary."
+        )
+    endif()
 elseif(WIN32)
+    target_link_libraries(${TRAA_LIBRARY} PRIVATE
+        dwmapi.lib
+    )
 elseif(ANDROID)
     set_target_properties(${TRAA_LIBRARY} PROPERTIES
-        CXX_VISIBILITY_PRESET hidden
         ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
         LIBRARY_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
         RUNTIME_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
@@ -336,14 +550,14 @@ elseif(ANDROID)
         TARGET ${TRAA_LIBRARY}
         POST_BUILD
         COMMAND cp -RP
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_OUTPUT_NAME}.so"
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_OUTPUT_NAME}-symbol.so"
+        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}.so"
+        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}-symbol.so"
     )
     add_custom_command(
         TARGET ${TRAA_LIBRARY}
         POST_BUILD
-        COMMAND "${ANDROID_TOOLCHAIN_PREFIX}strip" --strip-all --verbose
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_OUTPUT_NAME}.so"
+        COMMAND "${ANDROID_TOOLCHAIN_ROOT}/bin/llvm-strip" --strip-all
+        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}.so"
         COMMENT "Strip debug symbols done on final binary."
     )
 elseif(UNIX)
@@ -368,7 +582,7 @@ endif()
 # ##############################################################################
 # TRAA Unittest Section
 # ##############################################################################
-if (NOT IOS AND NOT VISIONOS AND NOT ANDROID)
+if(NOT IOS AND NOT VISIONOS AND NOT ANDROID)
     add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/googletest)
     set_property(TARGET gtest PROPERTY FOLDER "thirdparty/googletest")
     set_property(TARGET gtest_main PROPERTY FOLDER "thirdparty/googletest")

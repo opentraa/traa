@@ -6,6 +6,7 @@
 #include "base/disallow.h"
 #include "base/log/logger.h"
 #include "base/singleton.h"
+#include "base/thread/ffuture.h"
 #include "base/thread/rw_lock.h"
 #include "base/thread/thread_util.h"
 #include "base/thread/waitable_future.h"
@@ -13,8 +14,29 @@
 #include <atomic>
 #include <future>
 #include <mutex>
+#include <queue>
 #include <thread>
 #include <unordered_map>
+
+#if defined(ASIO_NO_EXCEPTIONS)
+
+#include <asio/detail/throw_exception.hpp>
+
+#include <exception>
+#include <iostream>
+
+namespace asio {
+namespace detail {
+
+template <typename Exception> void throw_exception(const Exception &e) {
+  std::cerr << "asio error: " << e.what() << std::endl;
+  std::terminate();
+}
+
+} // namespace detail
+} // namespace asio
+
+#endif // defined(ASIO_NO_EXCEPTIONS)
 
 #include <asio/executor_work_guard.hpp>
 #include <asio/io_context.hpp>
@@ -148,6 +170,7 @@ class task_queue : public std::enable_shared_from_this<task_queue> {
 
 public:
   using task_queue_id = uint32_t;
+  using at_exit = std::function<void()>;
 
 private:
   friend class task_queue_manager;
@@ -165,8 +188,10 @@ public:
    * @param id The ID of the task queue.
    * @param name The name of the task queue.
    */
-  explicit task_queue(std::uintptr_t tls_key, task_queue_id id, const char *name)
-      : t_id_(0), tls_key_(tls_key), id_(id), name_(name), work_(asio::make_work_guard(aio_)) {
+  explicit task_queue(std::uintptr_t tls_key, task_queue_id id, const char *name,
+                      at_exit exit = nullptr)
+      : t_id_(0), tls_key_(tls_key), id_(id), name_(name), exit_(exit),
+        work_(asio::make_work_guard(aio_)) {
     t_ = std::thread([this] {
       t_id_ = thread_util::get_thread_id();
       thread_util::set_thread_name(name_.c_str());
@@ -176,6 +201,14 @@ public:
       }
 
       aio_.run();
+
+      std::lock_guard<std::mutex> lock(tasks_mutex_);
+
+      tasks_ = std::queue<std::function<void()>>();
+
+      if (exit_) {
+        exit_();
+      }
     });
   }
 
@@ -190,8 +223,25 @@ public:
    * @return A shared pointer to the newly created task queue.
    */
   static std::shared_ptr<task_queue> make_queue(std::uintptr_t tls_key, task_queue_id id,
-                                                const char *name) {
-    return std::shared_ptr<task_queue>(new task_queue(tls_key, id, name));
+                                                const char *name, at_exit exit = nullptr) {
+    return std::shared_ptr<task_queue>(new task_queue(tls_key, id, name, exit));
+  }
+
+  /**
+   * @brief Stops the task_queue.
+   *
+   * This function stops the execution of the io_context and waits for the thread to finish its
+   * execution.
+   */
+  void stop() {
+    if (!aio_.stopped()) {
+      std::lock_guard<std::mutex> lock(t_mutex_);
+
+      aio_.stop();
+      if (t_.joinable()) {
+        t_.join();
+      }
+    }
   }
 
 public:
@@ -202,21 +252,6 @@ public:
    * It also waits for the thread to finish its execution.
    */
   virtual ~task_queue() { stop(); }
-
-  /**
-   * @brief Stops the task_queue.
-   *
-   * This function stops the execution of the io_context and waits for the thread to finish its
-   * execution.
-   */
-  void stop() {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    aio_.stop();
-    if (t_.joinable()) {
-      t_.join();
-    }
-  }
 
   /**
    * @brief Gets the ID of the task queue.
@@ -243,10 +278,53 @@ public:
    * @param f The callable object to be executed asynchronously.
    * @return A waitable_future object representing the result of the task.
    */
-  template <typename F> auto enqueue(F &&f) {
-    auto task = std::make_shared<std::packaged_task<decltype(f())()>>(std::forward<F>(f));
-    asio::post(aio_, [task]() { (*task)(); });
-    return waitable_future<decltype(f())>(task->get_future());
+  template <typename F, std::enable_if_t<!std::is_same_v<void, std::invoke_result_t<F>>, int> = 0>
+  auto enqueue(F &&f) {
+    ffuture<decltype(f())> ft;
+    {
+      auto closure = std::make_shared<fpackaged_task<decltype(f())()>>(std::forward<F>(f));
+      ft = closure->get_future();
+      auto task = [closure]() { (*closure)(); };
+
+      std::unique_lock<std::mutex> lock(tasks_mutex_, std::defer_lock);
+      if (!is_on_current_queue()) {
+        lock.lock();
+      }
+      tasks_.emplace(task);
+    }
+    asio::post(aio_, std::bind(&task_queue::__execute, this));
+
+    return waitable_future<decltype(f())>(std::move(ft));
+  }
+
+  /**
+   * @brief Enqueues a task for asynchronous execution.
+   *
+   * This function takes a callable object and enqueues it for execution in the io_context's thread
+   * pool. The task will be executed
+   * asynchronously and its result can be obtained through the returned waitable_future object.
+   * This function is a specialization for void return type.
+   *
+   * @tparam F The type of the callable object.
+   * @param f The callable object to be executed asynchronously.
+   * @return A waitable_future object representing the result of the task.
+   */
+  template <typename F, std::enable_if_t<std::is_same_v<void, std::invoke_result_t<F>>, int> = 0>
+  auto enqueue(F &&f) {
+    ffuture<void> ft;
+    {
+      auto closure = std::make_shared<fpackaged_task<void()>>(std::forward<F>(f));
+      ft = closure->get_future();
+      auto task = [closure]() { (*closure)(); };
+
+      std::unique_lock<std::mutex> lock(tasks_mutex_, std::defer_lock);
+      if (!is_on_current_queue()) {
+        lock.lock();
+      }
+      tasks_.emplace(task);
+    }
+    asio::post(aio_, std::bind(&task_queue::__execute, this));
+    return waitable_future<void>(std::move(ft));
   }
 
   /**
@@ -306,16 +384,45 @@ public:
   }
 
 private:
+  bool is_on_current_queue() const {
+    if (tls_key_.load() == UINTPTR_MAX) {
+      return false;
+    }
+
+    return thread_util::tls_get(tls_key_.load()) == this;
+  }
+
+  // TODO @sylar: find a better way to implement the executor other than push the __execute every
+  // time
+  void __execute() {
+    std::function<void()> task;
+    {
+      std::lock_guard<std::mutex> lock(tasks_mutex_);
+      if (!tasks_.empty()) {
+        task = std::move(tasks_.front());
+        tasks_.pop();
+      }
+    }
+    if (task) {
+      task();
+    }
+  }
+
+private:
   std::string name_;                    // The name of the task queue.
   std::thread t_;                       // The thread object that runs the io_context.
-  std::mutex mutex_;                    // The mutex to protect the task queue.
+  std::mutex t_mutex_;                  // The mutex to protect the thread.
   std::atomic<std::uintptr_t> tls_key_; // The TLS key for the task queue.
   std::atomic<task_queue_id> id_;       // The ID of the task queue.
   std::atomic<std::uintptr_t> t_id_;    // The ID of the thread running the task queue.
+  at_exit exit_;                        // The function to be executed at exit.
 
   asio::io_context aio_; // The io_context for asynchronous task execution.
   asio::executor_work_guard<asio::io_context::executor_type>
       work_; // The work guard to keep the io_context active.
+
+  std::queue<std::function<void()>> tasks_; // The queue of tasks to be executed.
+  std::mutex tasks_mutex_;                  // The mutex to protect the task queue.
 };
 
 /**
@@ -341,7 +448,7 @@ private:
  * ```
  * task_queue_manager::init();
  * auto queue = task_queue_manager::create_queue(1, "traa_task_queue");
- * auto res_int queue->enque([]() {
+ * auto res_int queue->enqueue([]() {
  *     // Task code here
  *     return 1;
  * });
@@ -364,11 +471,11 @@ public:
    * If the allocation fails, the function logs an error message and aborts the program.
    */
   static void init() {
-    LOG_API_NO_ARGS();
+    LOG_API_ARGS_0();
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
+    rw_lock_guard guard(self.lock_, true);
     if (self.tls_key_.load() == UINTPTR_MAX) {
       std::uintptr_t key = UINTPTR_MAX;
       int ret = thread_util::tls_alloc(&key, nullptr);
@@ -389,11 +496,11 @@ public:
    * shut down and no further tasks can be enqueued or executed.
    */
   static void shutdown() {
-    LOG_API_NO_ARGS();
+    LOG_API_ARGS_0();
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
+    rw_lock_guard guard(self.lock_, true);
     for (auto &it : self.task_queues_) {
       it.second->stop();
     }
@@ -424,32 +531,33 @@ public:
   static size_t get_task_queue_count() {
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::READ);
+    rw_lock_guard guard(self.lock_, false);
     return self.task_queues_.size();
   }
 
   /**
    * @brief Registers a new task queue.
    * @param id The ID of the task queue to register.
-   * @param queue The task queue to register.
-   * @return int An error code indicating the result of the operation.
+   * @param name The name of the task queue to register.
+   * @return queue A shared pointer to the created task queue or existing task queue.
    *
    * This method registers a new task queue with the specified ID. If a task queue with the same ID
    * already exists, an error code is returned. Otherwise, the task queue is registered and an error
    * code indicating success is returned.
    */
-  static std::shared_ptr<task_queue> create_queue(task_queue::task_queue_id id, const char *name) {
-    LOG_API_TWO_ARGS(id, name);
+  static std::shared_ptr<task_queue> create_queue(task_queue::task_queue_id id, const char *name,
+                                                  task_queue::at_exit exit = nullptr) {
+    LOG_API_ARGS_2(id, name);
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
+    rw_lock_guard guard(self.lock_, true);
     if (self.task_queues_.find(id) != self.task_queues_.end()) {
       LOG_ERROR("task queue {} already exists", id);
-      return nullptr;
+      return self.task_queues_[id];
     }
 
-    self.task_queues_[id] = task_queue::make_queue(self.tls_key_.load(), id, name);
+    self.task_queues_[id] = task_queue::make_queue(self.tls_key_.load(), id, name, exit);
 
     return self.task_queues_[id];
   }
@@ -464,11 +572,11 @@ public:
    * unregistered and an error code indicating success is returned.
    */
   static int release_queue(task_queue::task_queue_id id) {
-    LOG_API_ONE_ARG(id);
+    LOG_API_ARGS_1(id);
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::WRITE);
+    rw_lock_guard guard(self.lock_, true);
     auto it = self.task_queues_.find(id);
     if (it == self.task_queues_.end()) {
       LOG_ERROR("task queue {} does not exist", id);
@@ -494,11 +602,11 @@ public:
    * returned.
    */
   static std::shared_ptr<task_queue> get_task_queue(task_queue::task_queue_id id) {
-    // LOG_API_ONE_ARG(id);
+    // LOG_API_ARGS_1(id);
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::READ);
+    rw_lock_guard guard(self.lock_, false);
     auto it = self.task_queues_.find(id);
     if (it == self.task_queues_.end()) {
       return nullptr;
@@ -516,7 +624,7 @@ public:
   static bool is_task_queue_exist(task_queue::task_queue_id id) {
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, rw_lock_guard::rw_lock_type::READ);
+    rw_lock_guard guard(self.lock_, false);
     return self.task_queues_.find(id) != self.task_queues_.end();
   }
 
@@ -530,6 +638,17 @@ public:
 
     auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_.load()));
     return queue != nullptr;
+  }
+
+  static bool is_on_task_queue(task_queue::task_queue_id id) {
+    auto &self = instance();
+
+    auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_.load()));
+    if (!queue) {
+      return false;
+    }
+
+    return queue->id_ == id;
   }
 
   /**
@@ -561,12 +680,12 @@ public:
    * queue and a waitable_future object representing the result of the task is returned.
    */
   template <typename F> static auto post_task(task_queue::task_queue_id id, F &&f) {
-    // LOG_API_TWO_ARGS(id, reinterpret_cast<std::uintptr_t>(&f));
+    // LOG_API_ARGS_2(id, reinterpret_cast<std::uintptr_t>(&f));
 
     auto queue = get_task_queue(id);
     if (!queue) {
       LOG_ERROR("task queue {} does not exist", id);
-      return waitable_future<decltype(f())>(std::future<decltype(f())>());
+      return waitable_future<decltype(f())>();
     }
 
     return queue->enqueue<F>(std::forward<F>(f));
@@ -587,7 +706,7 @@ public:
     auto queue = get_current_task_queue();
     if (!queue) {
       LOG_ERROR("current thread: {} is not on a task queue", thread_util::get_thread_id());
-      return waitable_future<decltype(f())>(std::future<decltype(f())>());
+      return waitable_future<decltype(f())>();
     }
 
     return queue->enqueue<F>(std::forward<F>(f));

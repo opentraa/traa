@@ -84,16 +84,14 @@ private:
  */
 class rw_lock_guard {
 public:
-  enum class rw_lock_type { READ, WRITE };
-
   /**
    * @brief Constructs a `rw_lock_guard` object and acquires the lock.
    *
    * @param lock The read-write lock to guard.
    * @param write Specifies whether to acquire a write lock (true) or a read lock (false).
    */
-  rw_lock_guard(rw_lock &lock, rw_lock_type type) : lock_(lock), type_(type) {
-    if (type_ == rw_lock_type::WRITE) {
+  rw_lock_guard(rw_lock &lock, bool is_write) : lock_(lock), is_write_(is_write) {
+    if (is_write_) {
       lock_.write_lock();
     } else {
       lock_.read_lock();
@@ -107,7 +105,7 @@ public:
    * Otherwise, it is released using `read_unlock()`.
    */
   ~rw_lock_guard() {
-    if (type_ == rw_lock_type::WRITE) {
+    if (is_write_) {
       lock_.write_unlock();
     } else {
       lock_.read_unlock();
@@ -115,8 +113,8 @@ public:
   }
 
 private:
-  rw_lock &lock_;     // The read-write lock being guarded.
-  rw_lock_type type_; // Specifies whether the lock was acquired for write.
+  rw_lock &lock_; // The read-write lock being guarded.
+  bool is_write_; // Specifies whether the lock was acquired for write or read.
 };
 
 } // namespace base

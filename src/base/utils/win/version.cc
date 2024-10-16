@@ -439,7 +439,7 @@ os_info::wow64_status os_info::get_wow64_status(HANDLE process_handle) {
   return is_wow64 ? WOW64_ENABLED : WOW64_DISABLED;
 }
 
-version_alias get_version() { return os_info::instance()->version(); }
+version_alias os_get_version() { return os_info::instance()->version(); }
 
 } // namespace base
 } // namespace traa
