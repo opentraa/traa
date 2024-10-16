@@ -3,6 +3,7 @@
 #include "base/devices/screen/desktop_frame.h"
 #include "base/devices/screen/desktop_geometry.h"
 #include "base/devices/screen/utils.h"
+#include "base/devices/screen/win/scoped_object_gdi.h"
 #include "base/log/logger.h"
 #include "base/utils/win/version.h"
 
@@ -12,10 +13,49 @@
 #include <mutex>
 #include <stdio.h>
 
+#include <shellscalingapi.h>
+
+#ifdef min
+#undef min
+#endif // min
+
+#ifdef max
+#undef max
+#endif // max
+
 namespace traa {
 namespace base {
 
-// capture utils
+// dpi
+
+float capture_utils::get_dpi_scale(HWND window) {
+  const int dpi = ::GetDpiForWindow(window);
+  return static_cast<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
+}
+
+bool capture_utils::is_dpi_aware() {
+  if (os_get_version() < version_alias::VERSION_WIN8) {
+    return true;
+  }
+
+  PROCESS_DPI_AWARENESS dpi_aware = PROCESS_DPI_UNAWARE;
+  if (SUCCEEDED(::GetProcessDpiAwareness(nullptr, &dpi_aware))) {
+    return dpi_aware != PROCESS_DPI_UNAWARE;
+  }
+
+  return false;
+}
+
+bool capture_utils::is_dpi_aware(HWND window) {
+  if (!window) {
+    return is_dpi_aware();
+  }
+
+  const int dpi = ::GetDpiForWindow(window);
+  return dpi != USER_DEFAULT_SCREEN_DPI;
+}
+
+// gdi
 
 void capture_utils::dump_bmp(const uint8_t *data, const traa_size &size, const char *file_name) {
   if (!data || size.width <= 0 || size.height <= 0) {
@@ -64,11 +104,127 @@ bool capture_utils::is_window_response(HWND window) {
   return ::SendMessageTimeoutW(window, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, timeout, nullptr) != 0;
 }
 
+bool capture_utils::is_window_maximized(HWND window, bool *result) {
+  WINDOWPLACEMENT placement;
+  ::memset(&placement, 0, sizeof(WINDOWPLACEMENT));
+  placement.length = sizeof(WINDOWPLACEMENT);
+  if (!::GetWindowPlacement(window, &placement)) {
+    return false;
+  }
+
+  *result = (placement.showCmd == SW_SHOWMAXIMIZED);
+  return true;
+}
+
+bool capture_utils::is_window_owned_by_current_process(HWND window) {
+  DWORD process_id;
+  ::GetWindowThreadProcessId(window, &process_id);
+  return process_id == ::GetCurrentProcessId();
+}
+
+bool capture_utils::get_window_rect(HWND window, desktop_rect *rect) {
+  RECT rc;
+  if (!::GetWindowRect(window, &rc)) {
+    LOG_ERROR("get window rect failed: {}", ::GetLastError());
+    return false;
+  }
+
+  *rect = desktop_rect::make_ltrb(rc.left, rc.top, rc.right, rc.bottom);
+
+  // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
+  // GetWindowRect is virtualized for DPI.
+  //
+  // https://stackoverflow.com/questions/8060280/getting-an-dpi-aware-correct-rect-from-getwindowrect-from-a-external-window
+  // if the window is not owned by the current process, and the current process is not DPI aware, we
+  // need to scale the rect.
+  //
+  // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setthreaddpiawarenesscontext
+  // should we need to consider the case that the window is owned by the current process, but the
+  // aware context is not the same with current thread? they may use SetThreadDpiAwarenessContext to
+  // change the aware context after windows 10 1607.
+  //
+  // https://github.com/obsproject/obs-studio/issues/8706
+  // https://github.com/obsproject/obs-studio/blob/e9ef38e3d38e08bffcabbb59230b94baa41ede96/plugins/win-capture/window-capture.c#L604-L612
+  // obs also faced this issue, and they use SetThreadDpiAwarenessContext to change current thread's
+  // aware context to the same with the window.
+  //
+  // WTF!!!!!
+  //
+  // howerver, the dpi awareness context is set to aware for most of the time, so we do not need to
+  // consider this too much for now.
+  //
+#if 0 // !!!!!!!!!!!!!!!!!!!!!!! THIS DO NOT TAKE ANY EFFECT !!!!!!!!!!!!!!!!
+  std::unique_ptr<scoped_dpi_awareness_context> pre_awareness_context;
+  if (os_get_version() >= VERSION_WIN10_RS1) {
+    const DPI_AWARENESS_CONTEXT context = ::GetWindowDpiAwarenessContext(window);
+    pre_awareness_context.reset(
+        new scoped_dpi_awareness_context(::SetThreadDpiAwarenessContext(context)));
+  } else {
+#endif
+  if (!is_window_owned_by_current_process(window) && !is_dpi_aware()) {
+    const float scale_factor = get_dpi_scale(window);
+    rect->scale(scale_factor, scale_factor);
+  }
+#if 0
+  }
+#endif
+
+  return true;
+}
+
+bool capture_utils::get_window_cropped_rect(HWND window, bool avoid_cropping_border,
+                                            desktop_rect *cropped_rect,
+                                            desktop_rect *original_rect) {
+  if (!get_window_rect(window, original_rect)) {
+    return false;
+  }
+
+  *cropped_rect = *original_rect;
+
+  bool is_maximized = false;
+  if (!is_window_maximized(window, &is_maximized)) {
+    return false;
+  }
+
+  // As of Windows8, transparent resize borders are added by the OS at
+  // left/bottom/right sides of a resizeable window. If the cropped window
+  // doesn't remove these borders, the background will be exposed a bit.
+  if (os_get_version() >= VERSION_WIN8 || is_maximized) {
+    // Only apply this cropping to windows with a resize border (otherwise,
+    // it'd clip the edges of captured pop-up windows without this border).
+    RECT rect;
+    DwmGetWindowAttribute(window, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(RECT));
+    // it's means that the window edge is not transparent
+    if (original_rect && rect.left == original_rect->left()) {
+      return true;
+    }
+    LONG style = GetWindowLong(window, GWL_STYLE);
+    if (style & WS_THICKFRAME || style & DS_MODALFRAME) {
+      int width = GetSystemMetrics(SM_CXSIZEFRAME);
+      int bottom_height = GetSystemMetrics(SM_CYSIZEFRAME);
+      const int visible_border_height = GetSystemMetrics(SM_CYBORDER);
+      int top_height = visible_border_height;
+
+      // If requested, avoid cropping the visible window border. This is used
+      // for pop-up windows to include their border, but not for the outermost
+      // window (where a partially-transparent border may expose the
+      // background a bit).
+      if (avoid_cropping_border) {
+        width = std::max(0, width - GetSystemMetrics(SM_CXBORDER));
+        bottom_height = std::max(0, bottom_height - visible_border_height);
+        top_height = 0;
+      }
+      cropped_rect->extend(-width, -top_height, -width, -bottom_height);
+    }
+  }
+
+  return true;
+}
+
 bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target_size,
                                             uint8_t **data, traa_size &scaled_size) {
-  RECT rect;
-  if (!::GetWindowRect(window, &rect)) {
-    LOG_ERROR("get window rect failed: {}", ::GetLastError());
+  desktop_rect rect;
+  if (!get_window_rect(window, &rect)) {
     return false;
   }
 
@@ -78,7 +234,7 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
     return false;
   }
 
-  desktop_size window_size(rect.right - rect.left, rect.bottom - rect.top);
+  desktop_size window_size = rect.size();
 
   BITMAPINFO bmi = {};
   bmi.bmiHeader.biHeight = -window_size.height();
@@ -183,32 +339,23 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
   return result;
 }
 
-bool capture_utils::is_dwm_supported() {
-#if defined(TRAA_SUPPORT_XP)
-  static std::once_flag _flag;
-  static std::atomic<bool> _supported(false);
+bool capture_utils::is_dwm_composition_enabled() {
+  BOOL enabled = FALSE;
+  if (SUCCEEDED(::DwmIsCompositionEnabled(&enabled))) {
+    return enabled == TRUE;
+  }
+  return false;
+}
 
-  std::call_once(_flag, [&]() {
-    HINSTANCE dwmapi = ::LoadLibraryW(L"dwmapi.dll");
-    if (dwmapi != nullptr) {
-      _supported.store(true, std::memory_order_release);
-      ::FreeLibrary(dwmapi);
-    }
-  });
-
-  return _supported.load(std::memory_order_acquire);
-#else
-  return true;
-#endif
+bool capture_utils::is_window_cloaked(HWND window) {
+  DWORD cloaked;
+  HRESULT hr = DwmGetWindowAttribute(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked));
+  return SUCCEEDED(hr) && cloaked;
 }
 
 bool capture_utils::get_window_image_by_dwm(HWND dwm_window, HWND window,
                                             const traa_size &target_size, uint8_t **data,
                                             traa_size &scaled_size) {
-  if (!is_dwm_supported()) {
-    return false;
-  }
-
   if (!dwm_window || !window || target_size.width <= 0 || target_size.height <= 0) {
     return false;
   }
@@ -269,11 +416,6 @@ bool capture_utils::get_window_image_by_dwm(HWND dwm_window, HWND window,
 // thumbnail
 
 thumbnail::thumbnail() : dwm_window_(nullptr) {
-  if (!capture_utils::is_dwm_supported()) {
-    LOG_INFO("dwm is not supported");
-    return;
-  }
-
   HMODULE current_module = nullptr;
   if (!::GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                                 GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,

@@ -535,6 +535,7 @@ if(APPLE)
 elseif(WIN32)
     target_link_libraries(${TRAA_LIBRARY} PRIVATE
         dwmapi.lib
+        Shcore.lib
     )
 elseif(ANDROID)
     set_target_properties(${TRAA_LIBRARY} PROPERTIES
