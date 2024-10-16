@@ -5,7 +5,6 @@
 #include <cstring>
 #include <thread>
 
-
 TEST(multi_thread_call, traa_init_release) {
   traa_config config;
   traa_event_handler event_handler;
@@ -74,6 +73,7 @@ TEST_F(traa_engine_test, traa_set_log) {
   EXPECT_TRUE(traa_set_log(&log_config) == traa_error::TRAA_ERROR_NONE);
 }
 
+#if defined(_WIN32)
 #if defined(_WIN32) ||                                                                             \
     (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
      (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
@@ -183,3 +183,4 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
 }
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
        // || !TARGET_OS_VISION)) || __linux__
+#endif // _WIN32
