@@ -143,7 +143,8 @@ if(WIN32)
         /wd4297 \
         /wd4100 \
         /wd4505 \
-        /wd4127")
+        /wd4127 \
+        /wd4702")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -g \
@@ -535,6 +536,7 @@ if(APPLE)
 elseif(WIN32)
     target_link_libraries(${TRAA_LIBRARY} PRIVATE
         dwmapi.lib
+        Shcore.lib
     )
 elseif(ANDROID)
     set_target_properties(${TRAA_LIBRARY} PROPERTIES

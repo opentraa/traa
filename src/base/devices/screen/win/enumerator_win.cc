@@ -19,17 +19,10 @@
 #include <shellapi.h>
 #include <windows.h>
 
-#ifdef min
-#undef min
-#endif // min
-
-#ifdef max
-#undef max
-#endif // max
-
 namespace traa {
 namespace base {
 
+namespace {
 struct enumerator_param {
   traa_size icon_size;
   traa_size thumbnail_size;
@@ -37,72 +30,6 @@ struct enumerator_param {
   std::vector<traa_screen_source_info> infos;
   thumbnail *thumbnail_instance;
 };
-
-// https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmgetwindowattribute
-// Minimum supported client	Windows Vista [desktop apps only]
-// Retrieves the current value of a specified Desktop Window Manager (DWM) attribute applied to a
-// window. For programming guidance, and code examples, see Controlling non-client region rendering.
-typedef HRESULT(WINAPI *FuncDwmGetWindowAttribute)(HWND window, DWORD dwAttribute,
-                                                   PVOID pvAttribute, DWORD cbAttribute);
-
-FuncDwmGetWindowAttribute helper_get_dwmapi_get_window_attribute() {
-  HINSTANCE dwmapi = LoadLibraryW(L"Dwmapi.dll");
-  if (dwmapi == nullptr) {
-    return nullptr;
-  }
-
-  FuncDwmGetWindowAttribute dwmapi_get_window_attribute =
-      (FuncDwmGetWindowAttribute)GetProcAddress(dwmapi, "DwmGetWindowAttribute");
-  if (dwmapi_get_window_attribute == nullptr) {
-    return nullptr;
-  }
-
-  return dwmapi_get_window_attribute;
-}
-
-bool is_window_invisible_win10_background_app(HWND window) {
-  HINSTANCE dwmapi = LoadLibraryW(L"Dwmapi.dll");
-  if (dwmapi != nullptr) {
-    auto dwmapi_get_window_attribute = helper_get_dwmapi_get_window_attribute();
-    if (!dwmapi_get_window_attribute) {
-      return false;
-    }
-
-    int cloaked_val = 0;
-    HRESULT hres = dwmapi_get_window_attribute(window, 14 /*DWMWA_CLOAKED*/, &cloaked_val,
-                                               sizeof(cloaked_val));
-    if (hres != S_OK) {
-      cloaked_val = 0;
-    }
-    return cloaked_val ? true : false;
-  }
-  return false;
-}
-
-bool is_window_responding(HWND window) {
-  // 50ms is chosen in case the system is under heavy load, but it's also not
-  // too long to delay window enumeration considerably.
-  const UINT timeout_ms = 50;
-  return ::SendMessageTimeoutW(window, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, timeout_ms, nullptr);
-}
-
-bool is_window_owned_by_current_process(HWND window) {
-  DWORD process_id;
-  ::GetWindowThreadProcessId(window, &process_id);
-  return process_id == ::GetCurrentProcessId();
-}
-
-bool is_window_maximized(HWND window, bool *result) {
-  WINDOWPLACEMENT placement;
-  ::memset(&placement, 0, sizeof(WINDOWPLACEMENT));
-  placement.length = sizeof(WINDOWPLACEMENT);
-  if (!::GetWindowPlacement(window, &placement)) {
-    return false;
-  }
-
-  *result = (placement.showCmd == SW_SHOWMAXIMIZED);
-  return true;
-}
 
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-internalgetwindowtext
 // [This function is not intended for general use. It may be altered or unavailable in subsequent
@@ -209,73 +136,8 @@ bool get_window_owned_screen_work_rect(HWND window, desktop_rect *rect) {
   return true;
 }
 
-bool get_window_rect(HWND window, desktop_rect *rect) {
-  RECT rc;
-  if (!::GetWindowRect(window, &rc)) {
-    return false;
-  }
-
-  *rect = desktop_rect::make_ltrb(rc.left, rc.top, rc.right, rc.bottom);
-
-  return true;
-}
-
-bool get_window_cropped_rect(HWND window, bool avoid_cropping_border, desktop_rect *cropped_rect,
-                             desktop_rect *original_rect) {
-  if (!get_window_rect(window, original_rect)) {
-    return false;
-  }
-
-  *cropped_rect = *original_rect;
-
-  bool is_maximized = false;
-  if (!is_window_maximized(window, &is_maximized)) {
-    return false;
-  }
-
-  // As of Windows8, transparent resize borders are added by the OS at
-  // left/bottom/right sides of a resizeable window. If the cropped window
-  // doesn't remove these borders, the background will be exposed a bit.
-  if (os_get_version() >= VERSION_WIN8 || is_maximized) {
-    auto dwmapi_get_window_attribute = helper_get_dwmapi_get_window_attribute();
-    if (!dwmapi_get_window_attribute) {
-      return false;
-    }
-
-    // Only apply this cropping to windows with a resize border (otherwise,
-    // it'd clip the edges of captured pop-up windows without this border).
-    RECT rect;
-    dwmapi_get_window_attribute(window, 9 /*DWMWINDOWATTRIBUTE::DWMWA_EXTENDED_FRAME_BOUNDS = 9*/,
-                                &rect, sizeof(RECT));
-    // it's means that the window edge is not transparent
-    if (original_rect && rect.left == original_rect->left()) {
-      return true;
-    }
-    LONG style = GetWindowLong(window, GWL_STYLE);
-    if (style & WS_THICKFRAME || style & DS_MODALFRAME) {
-      int width = GetSystemMetrics(SM_CXSIZEFRAME);
-      int bottom_height = GetSystemMetrics(SM_CYSIZEFRAME);
-      const int visible_border_height = GetSystemMetrics(SM_CYBORDER);
-      int top_height = visible_border_height;
-
-      // If requested, avoid cropping the visible window border. This is used
-      // for pop-up windows to include their border, but not for the outermost
-      // window (where a partially-transparent border may expose the
-      // background a bit).
-      if (avoid_cropping_border) {
-        width = std::max(0, width - GetSystemMetrics(SM_CXBORDER));
-        bottom_height = std::max(0, bottom_height - visible_border_height);
-        top_height = 0;
-      }
-      cropped_rect->extend(-width, -top_height, -width, -bottom_height);
-    }
-  }
-
-  return true;
-}
-
 bool get_window_content_rect(HWND window, desktop_rect *result) {
-  if (!get_window_rect(window, result)) {
+  if (!capture_utils::get_window_rect(window, result)) {
     return false;
   }
 
@@ -310,7 +172,7 @@ bool get_window_content_rect(HWND window, desktop_rect *result) {
 }
 
 bool get_window_maximized_rect(HWND window, desktop_rect *intersects_rect) {
-  if (!get_window_rect(window, intersects_rect))
+  if (!capture_utils::get_window_rect(window, intersects_rect))
     return false;
 
   desktop_rect work_rect;
@@ -371,7 +233,7 @@ bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t
   return true;
 }
 
-BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
+BOOL WINAPI enum_windows_cb(HWND window, LPARAM lParam) {
   auto *param = reinterpret_cast<enumerator_param *>(lParam);
 
   // skip invisible and minimized windows and the shell window
@@ -386,12 +248,12 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
 
   // skip windows if the window rect is empty
   desktop_rect window_rect = desktop_rect::make_ltrb(0, 0, 0, 0);
-  if (!get_window_rect(window, &window_rect) || window_rect.is_empty()) {
+  if (!capture_utils::get_window_rect(window, &window_rect) || window_rect.is_empty()) {
     return TRUE;
   }
 
   // skip windows which are background app windows on Windows 10
-  if (is_window_invisible_win10_background_app(window)) {
+  if (capture_utils::is_window_cloaked(window)) {
     return TRUE;
   }
 
@@ -411,7 +273,7 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
 
   // skip windows which are not responding unless the
   // TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE flag is set.
-  if (!is_window_responding(window) &&
+  if (!capture_utils::is_window_response(window) &&
       !(param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE)) {
     return TRUE;
   }
@@ -429,7 +291,7 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
   //
   // skip windows owned by the current process if the TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS
   // flag is set.
-  bool owned_by_current_process = is_window_owned_by_current_process(window);
+  bool owned_by_current_process = capture_utils::is_window_owned_by_current_process(window);
   if ((param->external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS) &&
       owned_by_current_process) {
     return TRUE;
@@ -500,7 +362,8 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
   window_info.is_window = true;
   window_info.is_minimized = ::IsIconic(window);
 
-  if (is_window_maximized(window, &window_info.is_maximized) && window_info.is_maximized) {
+  if (capture_utils::is_window_maximized(window, &window_info.is_maximized) &&
+      window_info.is_maximized) {
     get_window_maximized_rect(window, &window_rect);
   }
   window_info.rect = window_rect.to_traa_rect();
@@ -549,8 +412,9 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
 
 #if 0
     if (window_info.thumbnail_data) {
-      capture_utils::dump_bmp(window_info.thumbnail_data, window_info.thumbnail_size,
-               (std::string("thumbnail_") + std::to_string(window_info.id) + ".bmp").c_str());
+      capture_utils::dump_bmp(
+          window_info.thumbnail_data, window_info.thumbnail_size,
+          (std::string("thumbnail_") + std::to_string(window_info.id) + ".bmp").c_str());
     }
 #endif
   }
@@ -560,6 +424,78 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
 
   return TRUE;
 }
+
+int enum_windows(enumerator_param &param) {
+  BOOL ret = ::EnumWindows(enum_windows_cb, reinterpret_cast<LPARAM>(&param));
+  if (!ret) {
+    LOG_ERROR("call ::EnumWindows failed: {}", ::GetLastError());
+    return traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED;
+  }
+
+  return traa_error::TRAA_ERROR_NONE;
+}
+
+int enum_screens(enumerator_param &param) {
+  BOOL enum_result = TRUE;
+  for (int device_index = 0;; ++device_index) {
+    DISPLAY_DEVICEW device;
+    device.cb = sizeof(device);
+    enum_result = EnumDisplayDevicesW(NULL, device_index, &device, 0);
+
+    // `enum_result` is 0 if we have enumerated all devices.
+    if (!enum_result) {
+      break;
+    }
+
+    // We only care about active displays.
+    if (!(device.StateFlags & DISPLAY_DEVICE_ACTIVE)) {
+      continue;
+    }
+
+    bool is_primary = false;
+    if (device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) {
+      is_primary = true;
+    }
+
+    DEVMODEW device_mode;
+    device_mode.dmSize = sizeof(device_mode);
+    device_mode.dmDriverExtra = 0;
+    BOOL result = EnumDisplaySettingsExW(device.DeviceName, ENUM_CURRENT_SETTINGS, &device_mode, 0);
+    if (!result) {
+      break;
+    }
+
+    traa_screen_source_info screen_info;
+    screen_info.is_window = false;
+    screen_info.id = device_index;
+    screen_info.rect = traa_rect(device_mode.dmPosition.x, device_mode.dmPosition.y,
+                                 device_mode.dmPelsWidth, device_mode.dmPelsHeight);
+    auto utf8_name = string_trans::unicode_to_utf8(device.DeviceName);
+    strncpy_s(const_cast<char *>(screen_info.title), sizeof(screen_info.title) - 1,
+              utf8_name.c_str(), utf8_name.length());
+
+    if (param.thumbnail_size.width > 0 && param.thumbnail_size.height > 0 &&
+        param.thumbnail_instance) {
+      capture_utils::get_screen_image_by_gdi(screen_info.rect, param.thumbnail_size,
+                                             const_cast<uint8_t **>(&screen_info.thumbnail_data),
+                                             screen_info.thumbnail_size);
+
+#if 0
+      if (screen_info.thumbnail_data) {
+        capture_utils::dump_bmp(
+            screen_info.thumbnail_data, screen_info.thumbnail_size,
+            (std::string("thumbnail_screen_") + std::to_string(screen_info.id) + ".bmp").c_str());
+      }
+#endif
+    }
+
+    param.infos.push_back(screen_info);
+  }
+
+  return traa_error::TRAA_ERROR_NONE;
+}
+
+} // namespace
 
 int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_size,
                                                            const traa_size thumbnail_size,
@@ -574,10 +510,10 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
   enumerator_param param = {
       icon_size, thumbnail_size, external_flags, {}, thumbnail_instance.get()};
 
-  BOOL ret = ::EnumWindows(enum_screen_source_info_proc, reinterpret_cast<LPARAM>(&param));
-  if (!ret) {
-    LOG_ERROR("call ::EnumWindows failed: {}", ::GetLastError());
-    return traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED;
+  enum_windows(param);
+
+  if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN)) {
+    enum_screens(param);
   }
 
   *count = static_cast<int>(param.infos.size());
@@ -592,10 +528,15 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
     auto &source_info = param.infos[i];
     auto &dest_info = (*infos)[i];
     memcpy(&dest_info, &source_info, sizeof(traa_screen_source_info));
-    strncpy_s(const_cast<char *>(dest_info.title), sizeof(dest_info.title) - 1, source_info.title,
-              std::strlen(source_info.title));
-    strncpy_s(const_cast<char *>(dest_info.process_path), sizeof(dest_info.process_path) - 1,
-              source_info.process_path, std::strlen(source_info.process_path));
+    if (std::strlen(source_info.title) > 0) {
+      strncpy_s(const_cast<char *>(dest_info.title), sizeof(dest_info.title) - 1, source_info.title,
+                std::strlen(source_info.title));
+    }
+
+    if (std::strlen(source_info.process_path) > 0) {
+      strncpy_s(const_cast<char *>(dest_info.process_path), sizeof(dest_info.process_path) - 1,
+                source_info.process_path, std::strlen(source_info.process_path));
+    }
   }
 
   return traa_error::TRAA_ERROR_NONE;

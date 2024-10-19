@@ -82,9 +82,27 @@ public:
   }
 };
 
+class recovery_thread_dpi_awareness_traits {
+public:
+  recovery_thread_dpi_awareness_traits() = delete;
+  recovery_thread_dpi_awareness_traits(
+      const recovery_thread_dpi_awareness_traits &) = delete;
+  recovery_thread_dpi_awareness_traits &
+  operator=(const recovery_thread_dpi_awareness_traits &) = delete;
+
+  // Closes the handle.
+  static void close(DPI_AWARENESS_CONTEXT context) {
+    if (context)
+      ::SetThreadDpiAwarenessContext(context);
+  }
+};
+
 typedef scoped_object_gdi<HBITMAP, delete_object_traits<HBITMAP>> scoped_bitmap;
 typedef scoped_object_gdi<HCURSOR, destroy_cursor_traits> scoped_cursor;
 typedef scoped_object_gdi<HICON, destroy_icon_traits> scoped_icon;
+typedef scoped_object_gdi<DPI_AWARENESS_CONTEXT,
+                          recovery_thread_dpi_awareness_traits>
+    scoped_dpi_awareness_context;
 
 } // namespace base
 } // namespace traa
