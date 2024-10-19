@@ -234,17 +234,6 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
     return false;
   }
 
-  desktop_size window_size = rect.size();
-
-  BITMAPINFO bmi = {};
-  bmi.bmiHeader.biHeight = -window_size.height();
-  bmi.bmiHeader.biWidth = window_size.width();
-  bmi.bmiHeader.biPlanes = 1;
-  bmi.bmiHeader.biBitCount = 32;
-  bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-  bmi.bmiHeader.biSizeImage =
-      window_size.width() * window_size.height() * desktop_frame::kBytesPerPixel;
-
   bool result = false;
   HANDLE section = nullptr;
   uint8_t *bitmap_data = nullptr;
@@ -252,6 +241,18 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
   HDC compatible_dc = nullptr;
   HGDIOBJ old_obj = nullptr;
   do {
+    constexpr int bytes_per_pixel = desktop_frame::kBytesPerPixel;
+
+    desktop_size window_size = rect.size();
+
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biHeight = -window_size.height();
+    bmi.bmiHeader.biWidth = window_size.width();
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+    bmi.bmiHeader.biSizeImage = window_size.width() * window_size.height() * bytes_per_pixel;
+
     bitmap = ::CreateDIBSection(window_dc, &bmi, DIB_RGB_COLORS, (void **)&bitmap_data, section, 0);
     if (!bitmap) {
       LOG_ERROR("create dib section failed: {}", ::GetLastError());
@@ -272,14 +273,11 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
       break;
     }
 
-    *data = new uint8_t[scaled_desktop_size.width() * scaled_desktop_size.height() *
-                        desktop_frame::kBytesPerPixel];
+    *data = new uint8_t[scaled_desktop_size.width() * scaled_desktop_size.height() * bytes_per_pixel];
     if (!*data) {
       LOG_ERROR("alloc memory for thumbnail data failed: {}", ::GetLastError());
       break;
     }
-
-    constexpr int bytes_per_pixel = desktop_frame::kBytesPerPixel;
 
     if (os_get_version() >= version_alias::VERSION_WIN8 && is_window_response(window)) {
       result = ::PrintWindow(window, compatible_dc, PW_RENDERFULLCONTENT);
@@ -325,7 +323,9 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
   }
 
   if (compatible_dc) {
-    ::SelectObject(compatible_dc, old_obj);
+    if (old_obj) {
+      ::SelectObject(compatible_dc, old_obj);
+    }
     ::DeleteDC(compatible_dc);
   }
 
@@ -337,6 +337,95 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
   }
 
   return result;
+}
+
+bool capture_utils::get_screen_image_by_gdi(const traa_rect &rect, const traa_size &target_size,
+                                            uint8_t **data, traa_size &scaled_size) {
+  const desktop_size scaled_desktop_size =
+      calc_scaled_size(desktop_size(rect.right - rect.left, rect.bottom - rect.top),
+                       desktop_size(target_size.width, target_size.height));
+  if (scaled_desktop_size.is_empty()) {
+    LOG_ERROR("calc scaled scaled_size failed, get empty scaled_size");
+    return false;
+  }
+
+  HDC screen_dc = ::GetDC(nullptr);
+  if (!screen_dc) {
+    LOG_ERROR("get screen dc failed: {}", ::GetLastError());
+    return false;
+  }
+
+  bool result = false;
+  HANDLE section = nullptr;
+  uint8_t *bitmap_data = nullptr;
+  HBITMAP bitmap = nullptr;
+  HDC compatible_dc = nullptr;
+  HGDIOBJ old_obj = nullptr;
+
+  do {
+    constexpr int bytes_per_pixel = desktop_frame::kBytesPerPixel;
+
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biWidth = scaled_desktop_size.width();
+    bmi.bmiHeader.biHeight = -scaled_desktop_size.height();
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+    bmi.bmiHeader.biSizeImage =
+        scaled_desktop_size.width() * scaled_desktop_size.height() * bytes_per_pixel;
+
+    bitmap = ::CreateDIBSection(screen_dc, &bmi, DIB_RGB_COLORS, (void **)&bitmap_data, section, 0);
+    if (!bitmap) {
+      LOG_ERROR("create dib section failed: {}", ::GetLastError());
+      break;
+    }
+
+    compatible_dc = ::CreateCompatibleDC(screen_dc);
+    old_obj = ::SelectObject(compatible_dc, bitmap);
+    if (!old_obj || old_obj == HGDI_ERROR) {
+      LOG_ERROR("select object failed: {}", ::GetLastError());
+      break;
+    }
+
+    SetStretchBltMode(compatible_dc, COLORONCOLOR);
+    result = ::StretchBlt(compatible_dc, 0, 0, scaled_desktop_size.width(),
+                          scaled_desktop_size.height(), screen_dc, rect.left, rect.top,
+                          rect.right - rect.left, rect.bottom - rect.top, SRCCOPY | CAPTUREBLT);
+    if (!result) {
+      LOG_ERROR("stretch blt failed: {}", ::GetLastError());
+      break;
+    }
+
+    *data = new uint8_t[bmi.bmiHeader.biSizeImage];
+    if (!*data) {
+      LOG_ERROR("alloc memory for thumbnail data failed: {}", ::GetLastError());
+      break;
+    }
+
+    memcpy_s(*data, bmi.bmiHeader.biSizeImage, bitmap_data, bmi.bmiHeader.biSizeImage);
+
+    scaled_size = scaled_desktop_size.to_traa_size();
+  } while (0);
+
+  if (bitmap) {
+    ::DeleteObject(bitmap);
+  }
+
+  if (compatible_dc) {
+    if (old_obj) {
+      ::SelectObject(compatible_dc, old_obj);
+    }
+    ::DeleteDC(compatible_dc);
+  }
+
+  ::ReleaseDC(nullptr, screen_dc);
+
+  if (!result && *data) {
+    delete[] * data;
+    *data = nullptr;
+  }
+
+  return true;
 }
 
 bool capture_utils::is_dwm_composition_enabled() {

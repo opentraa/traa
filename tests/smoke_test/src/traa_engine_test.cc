@@ -103,7 +103,7 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
   {
     traa_size icon_size;
     traa_size thumbnail_size;
-    unsigned int external_flags = 0;
+    unsigned int external_flags = TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN;
 
     traa_screen_source_info *infos = nullptr;
     int count = 0;
@@ -117,17 +117,19 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
 
     // check the infos.
     for (int i = 0; i < count; i++) {
+      // expect all the infos are window, coz we set the external_flags to
+      // TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN.
+      EXPECT_TRUE(infos[i].is_window);
+
       EXPECT_GE(infos[i].id, 0);
-      if (infos[i].is_window) {
-        EXPECT_GE(infos[i].screen_id, TRAA_FULLSCREEN_SCREEN_ID);
-        EXPECT_GT(infos[i].rect.right - infos[i].rect.left, 0);
-        EXPECT_GT(infos[i].rect.bottom - infos[i].rect.top, 0);
-        EXPECT_EQ(infos[i].icon_size.width, 0);
-        EXPECT_EQ(infos[i].icon_size.height, 0);
-        EXPECT_TRUE(std::strlen(infos[i].title) > 0);
-        EXPECT_TRUE(std::strlen(infos[i].process_path) > 0);
-        EXPECT_EQ(infos[i].icon_data, nullptr);
-      }
+      EXPECT_GE(infos[i].screen_id, TRAA_FULLSCREEN_SCREEN_ID);
+      EXPECT_GT(infos[i].rect.right - infos[i].rect.left, 0);
+      EXPECT_GT(infos[i].rect.bottom - infos[i].rect.top, 0);
+      EXPECT_EQ(infos[i].icon_size.width, 0);
+      EXPECT_EQ(infos[i].icon_size.height, 0);
+      EXPECT_TRUE(std::strlen(infos[i].title) > 0);
+      EXPECT_TRUE(std::strlen(infos[i].process_path) > 0);
+      EXPECT_EQ(infos[i].icon_data, nullptr);
 
       EXPECT_EQ(infos[i].thumbnail_size.width, 0);
       EXPECT_EQ(infos[i].thumbnail_size.height, 0);
@@ -143,7 +145,7 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
   // enum with icon_size and thumbnail_size
   {
     traa_size icon_size(100, 100);
-    traa_size thumbnail_size(960, 640);
+    traa_size thumbnail_size(1920, 1080);
     unsigned int external_flags = 0;
 
     traa_screen_source_info *infos = nullptr;

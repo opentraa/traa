@@ -38,6 +38,9 @@ public:
   static bool get_window_image_by_gdi(HWND window, const traa_size &target_size, uint8_t **data,
                                       traa_size &scaled_size);
 
+  static bool get_screen_image_by_gdi(const traa_rect &rect, const traa_size &target_size,
+                                      uint8_t **data, traa_size &scaled_size);
+
   // dwm
   static bool is_dwm_composition_enabled();
 

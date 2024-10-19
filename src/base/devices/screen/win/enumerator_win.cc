@@ -22,6 +22,7 @@
 namespace traa {
 namespace base {
 
+namespace {
 struct enumerator_param {
   traa_size icon_size;
   traa_size thumbnail_size;
@@ -232,7 +233,7 @@ bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t
   return true;
 }
 
-BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
+BOOL WINAPI enum_windows_cb(HWND window, LPARAM lParam) {
   auto *param = reinterpret_cast<enumerator_param *>(lParam);
 
   // skip invisible and minimized windows and the shell window
@@ -424,6 +425,78 @@ BOOL WINAPI enum_screen_source_info_proc(HWND window, LPARAM lParam) {
   return TRUE;
 }
 
+int enum_windows(enumerator_param &param) {
+  BOOL ret = ::EnumWindows(enum_windows_cb, reinterpret_cast<LPARAM>(&param));
+  if (!ret) {
+    LOG_ERROR("call ::EnumWindows failed: {}", ::GetLastError());
+    return traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED;
+  }
+
+  return traa_error::TRAA_ERROR_NONE;
+}
+
+int enum_screens(enumerator_param &param) {
+  BOOL enum_result = TRUE;
+  for (int device_index = 0;; ++device_index) {
+    DISPLAY_DEVICEW device;
+    device.cb = sizeof(device);
+    enum_result = EnumDisplayDevicesW(NULL, device_index, &device, 0);
+
+    // `enum_result` is 0 if we have enumerated all devices.
+    if (!enum_result) {
+      break;
+    }
+
+    // We only care about active displays.
+    if (!(device.StateFlags & DISPLAY_DEVICE_ACTIVE)) {
+      continue;
+    }
+
+    bool is_primary = false;
+    if (device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) {
+      is_primary = true;
+    }
+
+    DEVMODEW device_mode;
+    device_mode.dmSize = sizeof(device_mode);
+    device_mode.dmDriverExtra = 0;
+    BOOL result = EnumDisplaySettingsExW(device.DeviceName, ENUM_CURRENT_SETTINGS, &device_mode, 0);
+    if (!result) {
+      break;
+    }
+
+    traa_screen_source_info screen_info;
+    screen_info.is_window = false;
+    screen_info.id = device_index;
+    screen_info.rect = traa_rect(device_mode.dmPosition.x, device_mode.dmPosition.y,
+                                 device_mode.dmPelsWidth, device_mode.dmPelsHeight);
+    auto utf8_name = string_trans::unicode_to_utf8(device.DeviceName);
+    strncpy_s(const_cast<char *>(screen_info.title), sizeof(screen_info.title) - 1,
+              utf8_name.c_str(), utf8_name.length());
+
+    if (param.thumbnail_size.width > 0 && param.thumbnail_size.height > 0 &&
+        param.thumbnail_instance) {
+      capture_utils::get_screen_image_by_gdi(screen_info.rect, param.thumbnail_size,
+                                             const_cast<uint8_t **>(&screen_info.thumbnail_data),
+                                             screen_info.thumbnail_size);
+
+#if 0
+      if (screen_info.thumbnail_data) {
+        capture_utils::dump_bmp(
+            screen_info.thumbnail_data, screen_info.thumbnail_size,
+            (std::string("thumbnail_screen_") + std::to_string(screen_info.id) + ".bmp").c_str());
+      }
+#endif
+    }
+
+    param.infos.push_back(screen_info);
+  }
+
+  return traa_error::TRAA_ERROR_NONE;
+}
+
+} // namespace
+
 int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_size,
                                                            const traa_size thumbnail_size,
                                                            const unsigned int external_flags,
@@ -437,10 +510,10 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
   enumerator_param param = {
       icon_size, thumbnail_size, external_flags, {}, thumbnail_instance.get()};
 
-  BOOL ret = ::EnumWindows(enum_screen_source_info_proc, reinterpret_cast<LPARAM>(&param));
-  if (!ret) {
-    LOG_ERROR("call ::EnumWindows failed: {}", ::GetLastError());
-    return traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED;
+  enum_windows(param);
+
+  if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN)) {
+    enum_screens(param);
   }
 
   *count = static_cast<int>(param.infos.size());
@@ -455,10 +528,15 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
     auto &source_info = param.infos[i];
     auto &dest_info = (*infos)[i];
     memcpy(&dest_info, &source_info, sizeof(traa_screen_source_info));
-    strncpy_s(const_cast<char *>(dest_info.title), sizeof(dest_info.title) - 1, source_info.title,
-              std::strlen(source_info.title));
-    strncpy_s(const_cast<char *>(dest_info.process_path), sizeof(dest_info.process_path) - 1,
-              source_info.process_path, std::strlen(source_info.process_path));
+    if (std::strlen(source_info.title) > 0) {
+      strncpy_s(const_cast<char *>(dest_info.title), sizeof(dest_info.title) - 1, source_info.title,
+                std::strlen(source_info.title));
+    }
+
+    if (std::strlen(source_info.process_path) > 0) {
+      strncpy_s(const_cast<char *>(dest_info.process_path), sizeof(dest_info.process_path) - 1,
+                source_info.process_path, std::strlen(source_info.process_path));
+    }
   }
 
   return traa_error::TRAA_ERROR_NONE;
