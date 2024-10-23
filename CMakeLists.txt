@@ -277,9 +277,11 @@ if(WIN32)
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/enumerator_win.cc")
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/scoped_object_gdi.h")
 elseif(APPLE AND NOT IOS AND NOT VISIONOS)
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/desktop_configuration.mm")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/desktop_configuration.mm")
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/enumerator_darwin.mm")
 elseif(LINUX)
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/posix/enumerator_posix.cc")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/enumerator_linux.cc")
 endif()
 
 # traa::base::folder
@@ -295,7 +297,7 @@ elseif(ANDROID)
 elseif(APPLE)
     list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_darwin.mm")
 elseif(LINUX)
-    list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_posix.cc")
+    list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_linux.cc")
 endif()
 
 # traa::base::log
@@ -338,14 +340,14 @@ if(WIN32)
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_win.cc")
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_win.cc")
 elseif(ANDROID)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_posix.cc")
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_posix.cc")
+    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_linux.cc")
+    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_linux.cc")
 elseif(APPLE)
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_darwin.cc")
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_darwin.cc")
 elseif(LINUX)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_posix.cc")
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_posix.cc")
+    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_linux.cc")
+    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_linux.cc")
 endif()
 
 # traa::base
@@ -370,6 +372,7 @@ set(TRAA_LIBRARY_MAIN_FILES
 
 # thirdparty spdlog
 add_definitions(-DSPDLOG_NO_EXCEPTIONS=ON)
+add_definitions(-DFMT_EXCEPTIONS=OFF)
 set(TRAA_THIRDPARTY_SPDLOG_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/spdlog/include")
 add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/spdlog)
 set_property(TARGET spdlog PROPERTY FOLDER "thirdparty")

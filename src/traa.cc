@@ -215,7 +215,7 @@ int traa_free_screen_source_info(traa_screen_source_info infos[], int count) {
   LOG_API_ARGS_2(traa::main::obj_string::to_string(infos), std::to_string(count));
 
   if (infos == nullptr) {
-    return TRAA_ERROR_INVALID_ARGUMENT;
+    return TRAA_ERROR_NONE;
   }
 
   return traa::main::engine::free_screen_source_info(infos, count);

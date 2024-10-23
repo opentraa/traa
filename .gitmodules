@@ -11,9 +11,9 @@
 	path = thirdparty/libyuv-static/yuv
 	url = https://chromium.googlesource.com/libyuv/libyuv
 	branch = main
-[submodule "thirdparty/spdlog"]
-	path = thirdparty/spdlog
-	url = git@github.com:peilinok/spdlog.git
 [submodule "thirdparty/asio"]
 	path = thirdparty/asio
-	url = git@github.com:peilinok/asio.git
+	url = git@github.com:opentraa/asio.git
+[submodule "thirdparty/spdlog"]
+	path = thirdparty/spdlog
+	url = git@github.com:opentraa/spdlog.git
