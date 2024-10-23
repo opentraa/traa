@@ -357,9 +357,9 @@ BOOL WINAPI enum_windows_cb(HWND window, LPARAM lParam) {
 
   // get window info, this should be placed after all the skip conditions
   traa_screen_source_info window_info;
+  window_info.is_window = true;
   window_info.id = reinterpret_cast<int64_t>(window);
   window_info.screen_id = get_window_owned_screen_id(window);
-  window_info.is_window = true;
   window_info.is_minimized = ::IsIconic(window);
 
   if (capture_utils::is_window_maximized(window, &window_info.is_maximized) &&
@@ -367,8 +367,6 @@ BOOL WINAPI enum_windows_cb(HWND window, LPARAM lParam) {
     get_window_maximized_rect(window, &window_rect);
   }
   window_info.rect = window_rect.to_traa_rect();
-  window_info.icon_size = param->icon_size;
-  window_info.thumbnail_size = param->thumbnail_size;
 
   // title
   if (has_title) {
@@ -452,11 +450,6 @@ int enum_screens(enumerator_param &param) {
       continue;
     }
 
-    bool is_primary = false;
-    if (device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) {
-      is_primary = true;
-    }
-
     DEVMODEW device_mode;
     device_mode.dmSize = sizeof(device_mode);
     device_mode.dmDriverExtra = 0;
@@ -467,6 +460,7 @@ int enum_screens(enumerator_param &param) {
 
     traa_screen_source_info screen_info;
     screen_info.is_window = false;
+    screen_info.is_primary = (device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE);
     screen_info.id = device_index;
     screen_info.rect = traa_rect(device_mode.dmPosition.x, device_mode.dmPosition.y,
                                  device_mode.dmPelsWidth, device_mode.dmPelsHeight);
@@ -503,17 +497,26 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
                                                            traa_screen_source_info **infos,
                                                            int *count) {
   std::unique_ptr<thumbnail> thumbnail_instance;
-  if (thumbnail_size.width > 0 && thumbnail_size.height > 0) {
-    thumbnail_instance.reset(new thumbnail());
+
+  if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_WINDOW)) {
+    if (thumbnail_size.width > 0 && thumbnail_size.height > 0) {
+      thumbnail_instance.reset(new thumbnail());
+    }
   }
 
   enumerator_param param = {
       icon_size, thumbnail_size, external_flags, {}, thumbnail_instance.get()};
 
-  enum_windows(param);
+  if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_WINDOW)) {
+    enum_windows(param);
+  }
 
   if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN)) {
     enum_screens(param);
+  }
+
+  if (param.infos.size() == 0) {
+    return traa_error::TRAA_ERROR_NONE;
   }
 
   *count = static_cast<int>(param.infos.size());

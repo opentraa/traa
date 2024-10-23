@@ -273,7 +273,8 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
       break;
     }
 
-    *data = new uint8_t[scaled_desktop_size.width() * scaled_desktop_size.height() * bytes_per_pixel];
+    int32_t data_size = scaled_desktop_size.width() * scaled_desktop_size.height() * bytes_per_pixel;
+    *data = new uint8_t[data_size];
     if (!*data) {
       LOG_ERROR("alloc memory for thumbnail data failed: {}", ::GetLastError());
       break;
@@ -283,9 +284,8 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
       result = ::PrintWindow(window, compatible_dc, PW_RENDERFULLCONTENT);
       if (result) {
         if (scaled_desktop_size.equals(window_size)) {
-          memcpy_s(*data,
-                   scaled_desktop_size.width() * scaled_desktop_size.height() * bytes_per_pixel,
-                   bitmap_data, window_size.width() * window_size.height() * bytes_per_pixel);
+          memcpy_s(*data, data_size, bitmap_data,
+                   window_size.width() * window_size.height() * bytes_per_pixel);
         } else {
           // use libyuv to scale the image
           libyuv::ARGBScale(

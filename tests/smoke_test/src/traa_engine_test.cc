@@ -40,9 +40,6 @@ protected:
     // set the userdata.
     config.userdata = reinterpret_cast<traa_userdata>(0x12345678);
 
-    // set the log config.
-    config.log_config.log_file = "./traa.log";
-
     // set the event handler.
     config.event_handler.on_error = [](traa_userdata userdata, traa_error error_code,
                                        const char *context) {
@@ -73,7 +70,8 @@ TEST_F(traa_engine_test, traa_set_log) {
   EXPECT_TRUE(traa_set_log(&log_config) == traa_error::TRAA_ERROR_NONE);
 }
 
-#if defined(_WIN32)
+#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                \
+                        (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION))
 #if defined(_WIN32) ||                                                                             \
     (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
      (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
@@ -81,15 +79,15 @@ TEST_F(traa_engine_test, traa_set_log) {
 TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
   auto output_screen_source_info = [](traa_screen_source_info *info) {
     // print all
-    printf("info: id: %lld, screen_id: %lld, is_window: %d, is_minimized: %d, is_maximized: %d, "
-           "rect: (%d, %d, %d, %d), title: %s, process_path:%s, icon_size: (%d, "
-           "%d), "
-           "icon_data: %p, thumbnail_size: (%d, %d), thumbnail_data: %p\n",
-           static_cast<long long>(info->id), static_cast<long long>(info->screen_id),
-           info->is_window, info->is_minimized, info->is_maximized, info->rect.left, info->rect.top,
-           info->rect.right, info->rect.bottom, info->title, info->process_path,
-           info->icon_size.width, info->icon_size.height, info->icon_data,
-           info->thumbnail_size.width, info->thumbnail_size.height, info->thumbnail_data);
+    printf(
+        "info: id: %lld, screen_id: %lld, is_window: %d, is_minimized: %d, is_maximized: %d, "
+        "is_primary: %d, rect: (%d, %d, %d, %d), title: %s, process_path:%s, icon_size: (%d, %d), "
+        "icon_data: %p, thumbnail_size: (%d, %d), thumbnail_data: %p\n",
+        static_cast<long long>(info->id), static_cast<long long>(info->screen_id), info->is_window,
+        info->is_minimized, info->is_maximized, info->is_primary, info->rect.left, info->rect.top,
+        info->rect.right, info->rect.bottom, info->title, info->process_path, info->icon_size.width,
+        info->icon_size.height, info->icon_data, info->thumbnail_size.width,
+        info->thumbnail_size.height, info->thumbnail_data);
 
     // print id and title
     // printf("info: id: %lld, title: %s\n", static_cast<long long>(info->id), info->title);
@@ -108,8 +106,14 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
     traa_screen_source_info *infos = nullptr;
     int count = 0;
 
-    EXPECT_TRUE(traa_enum_screen_source_info(icon_size, thumbnail_size, external_flags, &infos,
-                                             &count) == traa_error::TRAA_ERROR_NONE);
+    int ret =
+        traa_enum_screen_source_info(icon_size, thumbnail_size, external_flags, &infos, &count);
+    EXPECT_TRUE(ret == traa_error::TRAA_ERROR_NONE ||
+                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED);
+    if (ret == traa_error::TRAA_ERROR_PERMISSION_DENIED) {
+      printf("Permission denied\n");
+      return;
+    }
 
     // expect the infos and count are not nullptr.
     EXPECT_NE(infos, nullptr);
@@ -122,7 +126,9 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
       EXPECT_TRUE(infos[i].is_window);
 
       EXPECT_GE(infos[i].id, 0);
+#if defined(_WIN32)
       EXPECT_GE(infos[i].screen_id, TRAA_FULLSCREEN_SCREEN_ID);
+#endif // _WIN32
       EXPECT_GT(infos[i].rect.right - infos[i].rect.left, 0);
       EXPECT_GT(infos[i].rect.bottom - infos[i].rect.top, 0);
       EXPECT_EQ(infos[i].icon_size.width, 0);
@@ -151,8 +157,14 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
     traa_screen_source_info *infos = nullptr;
     int count = 0;
 
-    EXPECT_TRUE(traa_enum_screen_source_info(icon_size, thumbnail_size, external_flags, &infos,
-                                             &count) == traa_error::TRAA_ERROR_NONE);
+    int ret =
+        traa_enum_screen_source_info(icon_size, thumbnail_size, external_flags, &infos, &count);
+    EXPECT_TRUE(ret == traa_error::TRAA_ERROR_NONE ||
+                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED);
+    if (ret == traa_error::TRAA_ERROR_PERMISSION_DENIED) {
+      printf("Permission denied\n");
+      return;
+    }
 
     // expect the infos and count are not nullptr.
     EXPECT_NE(infos, nullptr);
@@ -162,7 +174,9 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
     for (int i = 0; i < count; i++) {
       EXPECT_GE(infos[i].id, 0);
       if (infos[i].is_window) {
+#if defined(_WIN32)
         EXPECT_GE(infos[i].screen_id, TRAA_FULLSCREEN_SCREEN_ID);
+#endif // _WIN32
         EXPECT_GT(infos[i].rect.right - infos[i].rect.left, 0);
         EXPECT_GT(infos[i].rect.bottom - infos[i].rect.top, 0);
         EXPECT_GE(icon_size.width * icon_size.height,
@@ -185,4 +199,6 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
 }
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
        // || !TARGET_OS_VISION)) || __linux__
-#endif // _WIN32
+#endif // _WIN32 || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&
+       // (!defined(TARGET_OS_VISION)
+       // || !TARGET_OS_VISION))

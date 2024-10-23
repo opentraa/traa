@@ -393,6 +393,13 @@ typedef enum traa_screen_source_flags {
   TRAA_SCREEN_SOURCE_FLAG_NOT_SKIP_SYSTEM_WINDOWS = 1 << 8,
 
   /**
+   * @brief Do not skip zero layer windows source.
+   *
+   * This flag indicates that the zero layer windows source should not be skipped.
+   */
+  TRAA_SCREEN_SOURCE_FLAG_NOT_SKIP_ZERO_LAYER_WINDOWS = 1 << 9,
+
+  /**
    * @brief All flags.
    *
    * This flag indicates all flags.
@@ -532,6 +539,13 @@ typedef struct traa_screen_source_info {
   bool is_maximized;
 
   /**
+   * @brief Indicates whether the source is primary.
+   *
+   * This flag indicates whether the source is primary.
+   */
+  bool is_primary;
+
+  /**
    * @brief The position and size of the source.
    *
    * This is the position and size of the source on the full virtual screen.
@@ -582,8 +596,9 @@ typedef struct traa_screen_source_info {
 
   traa_screen_source_info()
       : id(TRAA_INVALID_SCREEN_ID), screen_id(TRAA_INVALID_SCREEN_ID), is_window(false),
-        is_minimized(false), is_maximized(false), rect(), icon_size(), thumbnail_size(),
-        title("\0"), process_path("\0"), icon_data(nullptr), thumbnail_data(nullptr) {}
+        is_minimized(false), is_maximized(false), is_primary(false), rect(), icon_size(),
+        thumbnail_size(), title("\0"), process_path("\0"), icon_data(nullptr),
+        thumbnail_data(nullptr) {}
 } traa_screen_source_info;
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && (!defined(TARGET_OS_VISION) ||
        // !TARGET_OS_VISION)) || __linux__
