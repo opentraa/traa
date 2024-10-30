@@ -158,6 +158,10 @@ typedef enum traa_error {
    * @brief Enumerate screen source info failed error.
    *
    * This is an enumerate screen source info failed error.
+   *
+   * @note This error will be returned when the x11 is not enabled or current is running under
+   * wayland on linux. In this case, you don't need to call this function, just call the start
+   * screen capture function.
    */
   TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED = 21,
 

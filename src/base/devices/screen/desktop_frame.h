@@ -17,7 +17,7 @@ namespace base {
 class desktop_frame {
 public:
   // desktop_frame objects always hold BGRA data.
-  static const int kBytesPerPixel = 4;
+  static constexpr int bytes_per_pixel = 4;
 
   virtual ~desktop_frame();
 

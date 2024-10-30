@@ -46,3 +46,11 @@ build
 # CMake
 CMakeFiles
 CMakeCache.txt
+
+# dump data
+*.dump
+*.bmp
+*.png
+*.jpg
+*.ppm
+*.yuv

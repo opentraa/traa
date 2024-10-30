@@ -19,7 +19,7 @@ void desktop_frame::copy_pixels_from(const uint8_t *src_buffer, int src_stride,
                                      const desktop_rect &dest_rect) {
   uint8_t *dest = get_frame_data_at_pos(dest_rect.top_left());
   libyuv::CopyPlane(src_buffer, src_stride, dest, stride(),
-                    desktop_frame::kBytesPerPixel * dest_rect.width(), dest_rect.height());
+                    desktop_frame::bytes_per_pixel * dest_rect.width(), dest_rect.height());
 }
 
 void desktop_frame::copy_pixels_from(const desktop_frame &src_frame, const desktop_vector &src_pos,
@@ -87,7 +87,7 @@ float desktop_frame::scale_factor() const {
 }
 
 uint8_t *desktop_frame::get_frame_data_at_pos(const desktop_vector &pos) const {
-  return data() + stride() * pos.y() + desktop_frame::kBytesPerPixel * pos.x();
+  return data() + stride() * pos.y() + desktop_frame::bytes_per_pixel * pos.x();
 }
 
 void desktop_frame::copy_frame_info_from(const desktop_frame &other) {
@@ -128,8 +128,8 @@ void desktop_frame::set_frame_data_to_black() {
 }
 
 basic_desktop_frame::basic_desktop_frame(desktop_size size)
-    : desktop_frame(size, kBytesPerPixel * size.width(),
-                    new uint8_t[kBytesPerPixel * size.width() * size.height()](), nullptr) {}
+    : desktop_frame(size, bytes_per_pixel * size.width(),
+                    new uint8_t[bytes_per_pixel * size.width() * size.height()](), nullptr) {}
 
 basic_desktop_frame::~basic_desktop_frame() { delete[] data_; }
 
@@ -140,7 +140,7 @@ desktop_frame *basic_desktop_frame::copy_of(const desktop_frame &frame) {
   // the height or width is 0. Remove this once this change has been merged.
   if (frame.size().width() && frame.size().height()) {
     libyuv::CopyPlane(frame.data(), frame.stride(), result->data(), result->stride(),
-                      frame.size().width() * kBytesPerPixel, frame.size().height());
+                      frame.size().width() * bytes_per_pixel, frame.size().height());
   }
   result->copy_frame_info_from(frame);
   return result;

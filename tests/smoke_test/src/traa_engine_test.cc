@@ -70,8 +70,6 @@ TEST_F(traa_engine_test, traa_set_log) {
   EXPECT_TRUE(traa_set_log(&log_config) == traa_error::TRAA_ERROR_NONE);
 }
 
-#if defined(_WIN32) || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                \
-                        (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION))
 #if defined(_WIN32) ||                                                                             \
     (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
      (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
@@ -109,9 +107,16 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
     int ret =
         traa_enum_screen_source_info(icon_size, thumbnail_size, external_flags, &infos, &count);
     EXPECT_TRUE(ret == traa_error::TRAA_ERROR_NONE ||
-                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED);
+                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED ||
+                ret == traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED);
     if (ret == traa_error::TRAA_ERROR_PERMISSION_DENIED) {
       printf("Permission denied\n");
+      return;
+    }
+
+    // in linux, if is running under wayland, the ret is TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED.
+    if (ret == traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED) {
+      printf("Enum screen source info failed\n");
       return;
     }
 
@@ -160,7 +165,8 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
     int ret =
         traa_enum_screen_source_info(icon_size, thumbnail_size, external_flags, &infos, &count);
     EXPECT_TRUE(ret == traa_error::TRAA_ERROR_NONE ||
-                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED);
+                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED ||
+                ret == traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED);
     if (ret == traa_error::TRAA_ERROR_PERMISSION_DENIED) {
       printf("Permission denied\n");
       return;
@@ -199,6 +205,3 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
 }
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
        // || !TARGET_OS_VISION)) || __linux__
-#endif // _WIN32 || (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&
-       // (!defined(TARGET_OS_VISION)
-       // || !TARGET_OS_VISION))

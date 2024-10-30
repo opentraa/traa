@@ -38,12 +38,12 @@ message(STATUS "[TRAA] configuring...")
 message(STATUS "[TRAA] current target system name ${CMAKE_SYSTEM_NAME}")
 message(STATUS "[TRAA] current host system name ${CMAKE_HOST_SYSTEM_NAME}")
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(LINUX TRUE)
 endif()
 
 # Determine whether current host system is supported or not.
-if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND NOT LINUX)
+if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     message(FATAL_ERROR "[TRAA] current host system ${CMAKE_HOST_SYSTEM_NAME} is not supported to build for now")
 endif()
 
@@ -51,6 +51,16 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Options
+if(LINUX)
+    # To enable x11 you have install x11 and x11-xext and x11-xcomposite development packages.
+    # sudo apt-get install libx11-dev libxext-dev libxcomposite-dev
+    option(TRAA_OPTION_ENABLE_X11 "Enable X11 support" ON)
+
+    # TODO(@sylar) COPY FINDERS FROM OBS PROJECT AND USE list(APPEND CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/cmake/finders") TO INCLUDE THEM
+    option(TRAA_OPTION_ENABLE_WAYLAND "Enable Wayland support" ON)
+endif()
 
 # Disable exception and rtti.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -166,7 +176,7 @@ else()
         -Wno-error=unused-but-set-variable \
         -Wno-error=unused-const-variable")
 
-    if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=shorten-64-to-32")
     endif()
 
@@ -250,7 +260,7 @@ set(TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/include)
 file(GLOB_RECURSE TRAA_LIBRARY_PUBLIC_HEADER_FILES ${TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR}/*.h)
 
 # traa::base::devices
-if(WIN32 OR MACOS OR CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+if(WIN32 OR MACOS OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(TRAA_LIBRARY_BASE_DEVICES_FILES
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame.h"
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame.cc"
@@ -281,7 +291,38 @@ elseif(APPLE AND NOT IOS AND NOT VISIONOS)
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/desktop_configuration.mm")
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/enumerator_darwin.mm")
 elseif(LINUX)
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/capture_utils.h")
+    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/capture_utils.cc")
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/enumerator_linux.cc")
+    # Enable x11 if TRAA_OPTION_ENABLE_X11 is set and X11 is found
+    if(TRAA_OPTION_ENABLE_X11)
+        find_package(X11)
+        if(X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND)
+            message(STATUS "[TRAA] X11 found")
+            message(STATUS "[TRAA] X11_INCLUDE_DIR: ${X11_INCLUDE_DIR}")
+            message(STATUS "[TRAA] X11_X11_LIB: ${X11_X11_LIB}")
+            message(STATUS "[TRAA] X11_Xext_INCLUDE_PATH: ${X11_Xext_INCLUDE_PATH}")
+            message(STATUS "[TRAA] X11_Xext_LIB: ${X11_Xext_LIB}")
+            message(STATUS "[TRAA] X11_Xcomposite_INCLUDE_PATH: ${X11_Xcomposite_INCLUDE_PATH}")
+            message(STATUS "[TRAA] X11_Xcomposite_LIB: ${X11_Xcomposite_LIB}")
+
+            add_definitions(-DTRAA_ENABLE_X11)
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_atom_cache.h")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_atom_cache.cc")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_error_trap.h")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_error_trap.cc")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_server_pixel_buffer.h")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_server_pixel_buffer.cc")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_list_utils.h")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_list_utils.cc")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_property.cc")
+            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_property.h")
+        endif()
+    endif()
+    # Enable wayland if TRAA_OPTION_ENABLE_WAYLAND is set
+    if(TRAA_OPTION_ENABLE_WAYLAND)
+        add_definitions(-DTRAA_ENABLE_WAYLAND)
+    endif()
 endif()
 
 # traa::base::folder
@@ -316,7 +357,7 @@ if(WIN32)
     )
 elseif(ANDROID)
 elseif(APPLE)
-elseif(UNIX)
+elseif(LINUX)
 endif()
 
 # traa::base::strings
@@ -565,14 +606,19 @@ elseif(ANDROID)
         "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}.so"
         COMMENT "Strip debug symbols done on final binary."
     )
-elseif(UNIX)
+elseif(LINUX)
     set_target_properties(${TRAA_LIBRARY} PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
         LIBRARY_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
         RUNTIME_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
-        PDB_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
         LINK_FLAGS "-Wl,-rpath,./"
     )
+
+    # X11
+    if(TRAA_OPTION_ENABLE_X11 AND X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND)
+        target_include_directories(${TRAA_LIBRARY} PRIVATE ${X11_INCLUDE_DIR} ${X11_Xext_INCLUDE_PATH} ${X11_Xcomposite_INCLUDE_PATH})
+        target_link_libraries(${TRAA_LIBRARY} PRIVATE ${X11_X11_LIB} ${X11_Xext_LIB} ${X11_Xcomposite_LIB})
+    endif()
 endif()
 
 # actions after build

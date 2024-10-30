@@ -225,7 +225,7 @@ bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t
 
   libyuv::ARGBScale(cursor->image()->data(), cursor->image()->stride(),
                     cursor->image()->size().width(), cursor->image()->size().height(), *icon_data,
-                    scaled_size.width() * desktop_frame::kBytesPerPixel, scaled_size.width(),
+                    scaled_size.width() * desktop_frame::bytes_per_pixel, scaled_size.width(),
                     scaled_size.height(), libyuv::kFilterBox);
 
   size = scaled_size.to_traa_size();
