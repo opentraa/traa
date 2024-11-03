@@ -32,3 +32,83 @@ We welcome contributions from the community. Feel free to open issues or submit 
 ## Motivation
 
 If you find this project useful, a star on GitHub would be greatly appreciated. Your support motivates us to keep improving and adding new features.
+
+## How to Build
+
+### Prerequisites
+- Ensure you have CMake installed on your system.
+- For Linux, you will need `gcc` and `g++`.
+- For Windows, you will need the Visual Studio Build Tools.
+- For macOS, you will need `clang` and `clang++`.
+
+### Build Steps
+
+#### Clone the repository:
+1. Clone the repository:
+    ```sh
+    git clone --recurse-submodules https://github.com/opentraa/traa.git
+    cd traa
+    ```
+
+#### Linux
+1. Create a build directory and configure CMake:
+    ```sh
+    mkdir build && cd build
+    cmake -DCMAKE_BUILD_TYPE=Release ..
+    ```
+2. Build the project:
+    ```sh
+    cmake --build .
+    ```
+3. Run unit tests:
+    ```sh
+    cd tests/unit_test
+    ASAN_OPTIONS=detect_leaks=1 ctest --output-on-failure --timeout 300
+    ```
+4. Run smoke tests:
+    ```sh
+    cd tests/smoke_test
+    ctest --output-on-failure --timeout 300
+    ```
+
+#### Windows
+1. Create a build directory and configure CMake:
+    ```sh
+    mkdir build && cd build
+    cmake -DCMAKE_BUILD_TYPE=Release ..
+    ```
+2. Build the project:
+    ```sh
+    cmake --build . --config Release
+    ```
+3. Run unit tests:
+    ```sh
+    cd tests/unit_test
+    ctest --build-config Release --output-on-failure --timeout 300
+    ```
+4. Run smoke tests:
+    ```sh
+    cd tests/smoke_test
+    ctest --build-config Release --output-on-failure --timeout 300
+    ```
+
+#### macOS
+1. Create a build directory and configure CMake:
+    ```sh
+    mkdir build && cd build
+    cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=MAC_UNIVERSAL ..
+    ```
+2. Build the project:
+    ```sh
+    cmake --build . --config Release
+    ```
+3. Run unit tests:
+    ```sh
+    cd tests/unit_test
+    ctest --build-config Release --output-on-failure --timeout 300
+    ```
+4. Run smoke tests:
+    ```sh
+    cd tests/smoke_test
+    ctest --build-config Release --output-on-failure --timeout 300
+    ```
