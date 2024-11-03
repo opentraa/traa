@@ -70,7 +70,7 @@ void capture_utils::dump_bmp(const uint8_t *data, const traa_size &size, const c
   BITMAPFILEHEADER file_header = {};
   file_header.bfType = 0x4D42;
   file_header.bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) +
-                       size.width * size.height * desktop_frame::kBytesPerPixel;
+                       size.width * size.height * desktop_frame::bytes_per_pixel;
   file_header.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
 
   BITMAPINFOHEADER info_header = {};
@@ -80,11 +80,11 @@ void capture_utils::dump_bmp(const uint8_t *data, const traa_size &size, const c
   info_header.biPlanes = 1;
   info_header.biBitCount = 32;
   info_header.biCompression = BI_RGB;
-  info_header.biSizeImage = size.width * size.height * desktop_frame::kBytesPerPixel;
+  info_header.biSizeImage = size.width * size.height * desktop_frame::bytes_per_pixel;
 
   fwrite(&file_header, sizeof(BITMAPFILEHEADER), 1, file);
   fwrite(&info_header, sizeof(BITMAPINFOHEADER), 1, file);
-  fwrite(data, size.width * size.height * desktop_frame::kBytesPerPixel, 1, file);
+  fwrite(data, size.width * size.height * desktop_frame::bytes_per_pixel, 1, file);
 
   fclose(file);
 }
@@ -241,7 +241,7 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
   HDC compatible_dc = nullptr;
   HGDIOBJ old_obj = nullptr;
   do {
-    constexpr int bytes_per_pixel = desktop_frame::kBytesPerPixel;
+    constexpr int bytes_per_pixel = desktop_frame::bytes_per_pixel;
 
     desktop_size window_size = rect.size();
 
@@ -273,7 +273,8 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
       break;
     }
 
-    int32_t data_size = scaled_desktop_size.width() * scaled_desktop_size.height() * bytes_per_pixel;
+    int32_t data_size =
+        scaled_desktop_size.width() * scaled_desktop_size.height() * bytes_per_pixel;
     *data = new uint8_t[data_size];
     if (!*data) {
       LOG_ERROR("alloc memory for thumbnail data failed: {}", ::GetLastError());
@@ -332,7 +333,7 @@ bool capture_utils::get_window_image_by_gdi(HWND window, const traa_size &target
   ::ReleaseDC(window, window_dc);
 
   if (!result && *data) {
-    delete[] * data;
+    delete[] *data;
     *data = nullptr;
   }
 
@@ -363,7 +364,7 @@ bool capture_utils::get_screen_image_by_gdi(const traa_rect &rect, const traa_si
   HGDIOBJ old_obj = nullptr;
 
   do {
-    constexpr int bytes_per_pixel = desktop_frame::kBytesPerPixel;
+    constexpr int bytes_per_pixel = desktop_frame::bytes_per_pixel;
 
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biWidth = scaled_desktop_size.width();
@@ -421,7 +422,7 @@ bool capture_utils::get_screen_image_by_gdi(const traa_rect &rect, const traa_si
   ::ReleaseDC(nullptr, screen_dc);
 
   if (!result && *data) {
-    delete[] * data;
+    delete[] *data;
     *data = nullptr;
   }
 

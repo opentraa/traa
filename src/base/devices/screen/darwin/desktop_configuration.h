@@ -21,14 +21,14 @@ namespace traa {
 namespace base {
 
 // Describes the configuration of a specific display.
-struct MacDisplayConfiguration {
-  MacDisplayConfiguration();
-  MacDisplayConfiguration(const MacDisplayConfiguration &other);
-  MacDisplayConfiguration(MacDisplayConfiguration &&other);
-  ~MacDisplayConfiguration();
+struct display_configuration {
+  display_configuration();
+  display_configuration(const display_configuration &other);
+  display_configuration(display_configuration &&other);
+  ~display_configuration();
 
-  MacDisplayConfiguration &operator=(const MacDisplayConfiguration &other);
-  MacDisplayConfiguration &operator=(MacDisplayConfiguration &&other);
+  display_configuration &operator=(const display_configuration &other);
+  display_configuration &operator=(display_configuration &&other);
 
   // Cocoa identifier for this display.
   CGDirectDisplayID id = 0;
@@ -46,35 +46,35 @@ struct MacDisplayConfiguration {
   bool is_builtin;
 };
 
-typedef std::vector<MacDisplayConfiguration> MacDisplayConfigurations;
+typedef std::vector<display_configuration> display_configuration_array;
 
 // Describes the configuration of the whole desktop.
-struct MacDesktopConfiguration {
+struct desktop_configuration {
   // Used to request bottom-up or top-down coordinates.
-  enum Origin { BottomLeftOrigin, TopLeftOrigin };
+  enum coordinate_origin { COORDINATE_BOTTOM_LEFT, COORDINATE_TOP_LEFT };
 
-  MacDesktopConfiguration();
-  MacDesktopConfiguration(const MacDesktopConfiguration &other);
-  MacDesktopConfiguration(MacDesktopConfiguration &&other);
-  ~MacDesktopConfiguration();
+  desktop_configuration();
+  desktop_configuration(const desktop_configuration &other);
+  desktop_configuration(desktop_configuration &&other);
+  ~desktop_configuration();
 
-  MacDesktopConfiguration &operator=(const MacDesktopConfiguration &other);
-  MacDesktopConfiguration &operator=(MacDesktopConfiguration &&other);
+  desktop_configuration &operator=(const desktop_configuration &other);
+  desktop_configuration &operator=(desktop_configuration &&other);
 
   // Returns the desktop & display configurations.
-  // If BottomLeftOrigin is used, the output is in Cocoa-style "bottom-up"
+  // If COORDINATE_BOTTOM_LEFT is used, the output is in Cocoa-style "bottom-up"
   // (the origin is the bottom-left of the primary monitor, and coordinates
   // increase as you move up the screen). Otherwise, the configuration will be
   // converted to follow top-left coordinate system as Windows and X11.
-  static MacDesktopConfiguration GetCurrent(Origin origin);
+  static desktop_configuration current(coordinate_origin origin);
 
   // Returns true if the given desktop configuration equals this one.
-  bool Equals(const MacDesktopConfiguration &other);
+  bool equals(const desktop_configuration &other);
 
   // If `id` corresponds to the built-in display, return its configuration,
   // otherwise return the configuration for the display with the specified id,
   // or nullptr if no such display exists.
-  const MacDisplayConfiguration *FindDisplayConfigurationById(CGDirectDisplayID id);
+  const display_configuration *find_by_id(CGDirectDisplayID id);
 
   // Bounds of the desktop excluding monitors with DPI settings different from
   // the main monitor. In Density-Independent Pixels (DIPs).
@@ -87,7 +87,7 @@ struct MacDesktopConfiguration {
   float dip_to_pixel_scale = 1.0f;
 
   // Configurations of the displays making up the desktop area.
-  MacDisplayConfigurations displays;
+  display_configuration_array displays;
 };
 
 } // namespace base

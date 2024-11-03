@@ -13,16 +13,16 @@ namespace {
 #if defined(ARCH_LITTLE_ENDIAN)
 
 #define RGBA(r, g, b, a)                                                                           \
-  ((((a) << 24) & 0xff000000) | (((b) << 16) & 0xff0000) | (((g) << 8) & 0xff00) | ((r)&0xff))
+  ((((a) << 24) & 0xff000000) | (((b) << 16) & 0xff0000) | (((g) << 8) & 0xff00) | ((r) & 0xff))
 
 #else // !defined(ARCH_LITTLE_ENDIAN)
 
 #define RGBA(r, g, b, a)                                                                           \
-  ((((r) << 24) & 0xff000000) | (((g) << 16) & 0xff0000) | (((b) << 8) & 0xff00) | ((a)&0xff))
+  ((((r) << 24) & 0xff000000) | (((g) << 16) & 0xff0000) | (((b) << 8) & 0xff00) | ((a) & 0xff))
 
 #endif // !defined(ARCH_LITTLE_ENDIAN)
 
-constexpr int kBytesPerPixel = desktop_frame::kBytesPerPixel;
+constexpr int bytes_per_pixel = desktop_frame::bytes_per_pixel;
 
 // Pixel colors used when generating cursor outlines.
 constexpr uint32_t kPixelRgbaBlack = RGBA(0, 0, 0, 0xff);
@@ -56,7 +56,7 @@ void add_cursor_outline(int width, int height, uint32_t *data) {
 // Premultiplies RGB components of the pixel data in the given image by
 // the corresponding alpha components.
 void alpha_mul(uint32_t *data, int width, int height) {
-  static_assert(sizeof(uint32_t) == kBytesPerPixel,
+  static_assert(sizeof(uint32_t) == bytes_per_pixel,
                 "size of uint32 should be the number of bytes per pixel");
 
   for (uint32_t *data_end = data + width * height; data != data_end; ++data) {
@@ -119,7 +119,7 @@ mouse_cursor *create_mouse_cursor_from_handle(HDC dc, HCURSOR cursor) {
   bmi.bV5Width = width;
   bmi.bV5Height = -height; // request a top-down bitmap.
   bmi.bV5Planes = 1;
-  bmi.bV5BitCount = kBytesPerPixel * 8;
+  bmi.bV5BitCount = bytes_per_pixel * 8;
   bmi.bV5Compression = BI_RGB;
   bmi.bV5AlphaMask = 0xff000000;
   bmi.bV5CSType = LCS_WINDOWS_COLOR_SPACE;

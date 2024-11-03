@@ -33,8 +33,8 @@ void InvertRectYOrigin(const desktop_rect &bounds, desktop_rect *rect) {
                                   rect->height());
 }
 
-MacDisplayConfiguration GetConfigurationForScreen(NSScreen *screen) {
-  MacDisplayConfiguration display_config;
+display_configuration GetConfigurationForScreen(NSScreen *screen) {
+  display_configuration display_config;
 
   // Fetch the NSScreenNumber, which is also the CGDirectDisplayID.
   NSDictionary *device_description = [screen deviceDescription];
@@ -57,36 +57,34 @@ MacDisplayConfiguration GetConfigurationForScreen(NSScreen *screen) {
 
 } // namespace
 
-MacDisplayConfiguration::MacDisplayConfiguration() = default;
-MacDisplayConfiguration::MacDisplayConfiguration(const MacDisplayConfiguration &other) = default;
-MacDisplayConfiguration::MacDisplayConfiguration(MacDisplayConfiguration &&other) = default;
-MacDisplayConfiguration::~MacDisplayConfiguration() = default;
+display_configuration::display_configuration() = default;
+display_configuration::display_configuration(const display_configuration &other) = default;
+display_configuration::display_configuration(display_configuration &&other) = default;
+display_configuration::~display_configuration() = default;
 
-MacDisplayConfiguration &
-MacDisplayConfiguration::operator=(const MacDisplayConfiguration &other) = default;
-MacDisplayConfiguration &
-MacDisplayConfiguration::operator=(MacDisplayConfiguration &&other) = default;
+display_configuration &
+display_configuration::operator=(const display_configuration &other) = default;
+display_configuration &display_configuration::operator=(display_configuration &&other) = default;
 
-MacDesktopConfiguration::MacDesktopConfiguration() = default;
-MacDesktopConfiguration::MacDesktopConfiguration(const MacDesktopConfiguration &other) = default;
-MacDesktopConfiguration::MacDesktopConfiguration(MacDesktopConfiguration &&other) = default;
-MacDesktopConfiguration::~MacDesktopConfiguration() = default;
+desktop_configuration::desktop_configuration() = default;
+desktop_configuration::desktop_configuration(const desktop_configuration &other) = default;
+desktop_configuration::desktop_configuration(desktop_configuration &&other) = default;
+desktop_configuration::~desktop_configuration() = default;
 
-MacDesktopConfiguration &
-MacDesktopConfiguration::operator=(const MacDesktopConfiguration &other) = default;
-MacDesktopConfiguration &
-MacDesktopConfiguration::operator=(MacDesktopConfiguration &&other) = default;
+desktop_configuration &
+desktop_configuration::operator=(const desktop_configuration &other) = default;
+desktop_configuration &desktop_configuration::operator=(desktop_configuration &&other) = default;
 
 // static
-MacDesktopConfiguration MacDesktopConfiguration::GetCurrent(Origin origin) {
-  MacDesktopConfiguration desktop_config;
+desktop_configuration desktop_configuration::current(coordinate_origin origin) {
+  desktop_configuration desktop_config;
 
   NSArray *screens = [NSScreen screens];
 
   // Iterator over the monitors, adding the primary monitor and monitors whose
   // DPI match that of the primary monitor.
   for (NSUInteger i = 0; i < [screens count]; ++i) {
-    MacDisplayConfiguration display_config = GetConfigurationForScreen([screens objectAtIndex:i]);
+    display_configuration display_config = GetConfigurationForScreen([screens objectAtIndex:i]);
 
     if (i == 0)
       desktop_config.dip_to_pixel_scale = display_config.dip_to_pixel_scale;
@@ -94,7 +92,7 @@ MacDesktopConfiguration MacDesktopConfiguration::GetCurrent(Origin origin) {
     // Cocoa uses bottom-up coordinates, so if the caller wants top-down then
     // we need to invert the positions of secondary monitors relative to the
     // primary one (the primary monitor's position is (0,0) in both systems).
-    if (i > 0 && origin == TopLeftOrigin) {
+    if (i > 0 && origin == COORDINATE_TOP_LEFT) {
       InvertRectYOrigin(desktop_config.displays[0].bounds, &display_config.bounds);
       // `display_bounds` is density dependent, so we need to convert the
       // primay monitor's position into the secondary monitor's density context.
@@ -122,23 +120,23 @@ MacDesktopConfiguration MacDesktopConfiguration::GetCurrent(Origin origin) {
   return desktop_config;
 }
 
-// For convenience of comparing MacDisplayConfigurations in
-// MacDesktopConfiguration::Equals.
-bool operator==(const MacDisplayConfiguration &left, const MacDisplayConfiguration &right) {
+// For convenience of comparing display_configuration_array in
+// desktop_configuration::equals.
+bool operator==(const display_configuration &left, const display_configuration &right) {
   return left.id == right.id && left.bounds.equals(right.bounds) &&
          left.pixel_bounds.equals(right.pixel_bounds) &&
          left.dip_to_pixel_scale == right.dip_to_pixel_scale;
 }
 
-bool MacDesktopConfiguration::Equals(const MacDesktopConfiguration &other) {
+bool desktop_configuration::equals(const desktop_configuration &other) {
   return bounds.equals(other.bounds) && pixel_bounds.equals(other.pixel_bounds) &&
          dip_to_pixel_scale == other.dip_to_pixel_scale && displays == other.displays;
 }
 
-const MacDisplayConfiguration *
-MacDesktopConfiguration::FindDisplayConfigurationById(CGDirectDisplayID id) {
+const display_configuration *desktop_configuration::find_by_id(CGDirectDisplayID id) {
   bool is_builtin = CGDisplayIsBuiltin(id);
-  for (MacDisplayConfigurations::const_iterator it = displays.begin(); it != displays.end(); ++it) {
+  for (display_configuration_array::const_iterator it = displays.begin(); it != displays.end();
+       ++it) {
     // The MBP having both discrete and integrated graphic cards will do
     // automate graphics switching by default. When it switches from discrete to
     // integrated one, the current display ID of the built-in display will

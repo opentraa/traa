@@ -65,14 +65,14 @@ bool get_window_ref(CGWindowID id, std::function<void(CFDictionaryRef)> on_windo
 }
 
 // Returns true if the window is occupying a full screen.
-bool is_window_full_screen(const MacDesktopConfiguration &desktop_config, CFDictionaryRef window) {
+bool is_window_full_screen(const desktop_configuration &desktop_config, CFDictionaryRef window) {
   bool fullscreen = false;
   CFDictionaryRef bounds_ref =
       reinterpret_cast<CFDictionaryRef>(CFDictionaryGetValue(window, kCGWindowBounds));
 
   CGRect bounds;
   if (bounds_ref && CGRectMakeWithDictionaryRepresentation(bounds_ref, &bounds)) {
-    for (MacDisplayConfigurations::const_iterator it = desktop_config.displays.begin();
+    for (display_configuration_array::const_iterator it = desktop_config.displays.begin();
          it != desktop_config.displays.end(); it++) {
       if (it->bounds.equals(desktop_rect::make_xywh(bounds.origin.x, bounds.origin.y,
                                                     bounds.size.width, bounds.size.height))) {
@@ -85,7 +85,7 @@ bool is_window_full_screen(const MacDesktopConfiguration &desktop_config, CFDict
   return fullscreen;
 }
 
-bool is_window_full_screen(const MacDesktopConfiguration &desktop_config, CGWindowID id) {
+bool is_window_full_screen(const desktop_configuration &desktop_config, CGWindowID id) {
   bool fullscreen = false;
   get_window_ref(id, [&](CFDictionaryRef window) {
     fullscreen = is_window_full_screen(desktop_config, window);
@@ -222,8 +222,8 @@ int enum_windows(const traa_size icon_size, const traa_size thumbnail_size,
   if (!window_array)
     return false;
 
-  MacDesktopConfiguration desktop_config =
-      MacDesktopConfiguration::GetCurrent(MacDesktopConfiguration::TopLeftOrigin);
+  desktop_configuration desktop_config =
+      desktop_configuration::current(desktop_configuration::COORDINATE_TOP_LEFT);
 
   // Check windows to make sure they have an id, title, and use window layer
   // other than 0.
@@ -438,8 +438,8 @@ int enum_windows(const traa_size icon_size, const traa_size thumbnail_size,
   return TRAA_ERROR_NONE;
 }
 
-int enum_screens(const traa_size icon_size, const traa_size thumbnail_size,
-                 const unsigned int external_flags, std::vector<traa_screen_source_info> &infos) {
+int enum_screens(const traa_size thumbnail_size, const unsigned int external_flags,
+                 std::vector<traa_screen_source_info> &infos) {
   NSArray *screen_array = NSScreen.screens;
   if (!screen_array) {
     return TRAA_ERROR_NONE;
@@ -527,7 +527,7 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
   }
 
   if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN)) {
-    enum_screens(icon_size, thumbnail_size, external_flags, sources);
+    enum_screens(thumbnail_size, external_flags, sources);
   }
 
   if (sources.size() == 0) {

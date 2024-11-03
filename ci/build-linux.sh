@@ -1,17 +1,17 @@
 # print current path
 pwd
 
-# if build and build/mac not exist, create it
+# if build and build/linux not exist, create it
 if [ ! -d "build" ]; then
   mkdir build
 fi
-if [ ! -d "build/mac" ]; then
-  mkdir build/mac
+if [ ! -d "build/linux" ]; then
+  mkdir build/linux
 fi
 
-pushd ./build/mac
+pushd ./build/linux
 
-# usage ./build-mac.sh [Debug|Release]
+# usage ./build-linux.sh [Debug|Release]
 cmake "../../" \
     -DCMAKE_CXX_COMPILER=g++ \
     -DCMAKE_C_COMPILER=gcc \

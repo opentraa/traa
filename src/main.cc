@@ -36,7 +36,6 @@ static void
   // DO NOT USE ANY CODES THAT DEPENDS ON OTHER MODULES COZ THEY MAY BE UNLOADED ALREADY
   //
 
-
   TRAA_DEBUG_LOG("traa_fini finished\r\n");
 }
 
@@ -81,7 +80,7 @@ static
 #if defined(_MSC_VER)
 /**
  * About the section '.CRT$XCU':
- * 
+ *
  * https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-initialization?view=msvc-170
  *
  * '.CRT$XCU' is a section that is used to specify the initialization function for the traa
