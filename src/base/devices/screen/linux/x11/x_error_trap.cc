@@ -1,5 +1,7 @@
 #include "base/devices/screen/linux/x11/x_error_trap.h"
 
+#include "base/log/logger.h"
+
 #include <stddef.h>
 
 #include <atomic>
@@ -32,6 +34,9 @@ x_error_trap::x_error_trap(Display *display) : mutex_lock_(g_mutex_) {
 int x_error_trap::get_last_error_and_disable() {
   g_display_for_error_handler.store(nullptr);
   XSetErrorHandler(original_error_handler_);
+  if(g_last_xserver_error_code != 0) {
+    LOG_ERROR("X11 error code: {}", g_last_xserver_error_code);
+  }
   return g_last_xserver_error_code;
 }
 

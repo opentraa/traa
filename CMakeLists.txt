@@ -297,7 +297,9 @@ elseif(LINUX)
     # Enable x11 if TRAA_OPTION_ENABLE_X11 is set and X11 is found
     if(TRAA_OPTION_ENABLE_X11)
         find_package(X11)
-        if(X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND)
+        if(X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND AND X11_Xrandr_FOUND)
+            set(TRAA_OPTION_ENABLE_X11 ON)
+            add_definitions(-DTRAA_ENABLE_X11)
             message(STATUS "[TRAA] X11 found")
             message(STATUS "[TRAA] X11_INCLUDE_DIR: ${X11_INCLUDE_DIR}")
             message(STATUS "[TRAA] X11_X11_LIB: ${X11_X11_LIB}")
@@ -305,8 +307,20 @@ elseif(LINUX)
             message(STATUS "[TRAA] X11_Xext_LIB: ${X11_Xext_LIB}")
             message(STATUS "[TRAA] X11_Xcomposite_INCLUDE_PATH: ${X11_Xcomposite_INCLUDE_PATH}")
             message(STATUS "[TRAA] X11_Xcomposite_LIB: ${X11_Xcomposite_LIB}")
+            message(STATUS "[TRAA] X11_Xrandr_INCLUDE_PATH: ${X11_Xrandr_INCLUDE_PATH}")
+            message(STATUS "[TRAA] X11_Xrandr_LIB: ${X11_Xrandr_LIB}")
 
-            add_definitions(-DTRAA_ENABLE_X11)
+            set(TRAA_X11_INCLUDE_DIRS 
+                ${X11_INCLUDE_DIR} 
+                ${X11_Xext_INCLUDE_PATH} 
+                ${X11_Xcomposite_INCLUDE_PATH} 
+                ${X11_Xrandr_INCLUDE_PATH})
+            set(TRAA_X11_LIBS 
+                ${X11_X11_LIB} 
+                ${X11_Xext_LIB} 
+                ${X11_Xcomposite_LIB} 
+                ${X11_Xrandr_LIB})
+            
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_atom_cache.h")
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_atom_cache.cc")
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_error_trap.h")
@@ -317,6 +331,9 @@ elseif(LINUX)
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_list_utils.cc")
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_property.cc")
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_property.h")
+        else()
+            message(WARNING "[TRAA] X11 not found, disable X11 support")
+            set(TRAA_OPTION_ENABLE_X11 OFF)
         endif()
     endif()
     # Enable wayland if TRAA_OPTION_ENABLE_WAYLAND is set
@@ -615,9 +632,9 @@ elseif(LINUX)
     )
 
     # X11
-    if(TRAA_OPTION_ENABLE_X11 AND X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND)
-        target_include_directories(${TRAA_LIBRARY} PRIVATE ${X11_INCLUDE_DIR} ${X11_Xext_INCLUDE_PATH} ${X11_Xcomposite_INCLUDE_PATH})
-        target_link_libraries(${TRAA_LIBRARY} PRIVATE ${X11_X11_LIB} ${X11_Xext_LIB} ${X11_Xcomposite_LIB})
+    if(TRAA_OPTION_ENABLE_X11)
+        target_include_directories(${TRAA_LIBRARY} PRIVATE ${TRAA_X11_INCLUDE_DIRS})
+        target_link_libraries(${TRAA_LIBRARY} PRIVATE ${TRAA_X11_LIBS})
     endif()
 endif()
 

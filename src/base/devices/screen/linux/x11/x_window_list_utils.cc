@@ -13,6 +13,7 @@
 
 #include <X11/Xatom.h>
 #include <X11/extensions/Xcomposite.h>
+#include <X11/extensions/Xrandr.h>
 #include <X11/extensions/composite.h>
 
 #include <algorithm>
@@ -23,6 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define TRAA_DUMP_IMAGES 0
 
 namespace traa {
 namespace base {
@@ -153,12 +156,11 @@ bool get_window_image_data(x_atom_cache *cache, ::Window window, const desktop_r
     }
   }
 
-#if 0
-        // create a file to save the image
-        save_ximage_to_ppm(
-            (std::string("origin_image_") + std::to_string(window) + ".ppm").c_str(),
-            image);
-#endif
+#if TRAA_DUMP_IMAGES
+  // create a file to save the image
+  save_ximage_to_ppm((std::string("origin_image_") + std::to_string(window) + ".ppm").c_str(),
+                     image);
+#endif // TRAA_DUMP_IMAGES
 
   scaled_size =
       calc_scaled_size(desktop_size(image->width, image->height), target_size).to_traa_size();
@@ -223,7 +225,7 @@ pid_t get_window_pid(Display *display, ::Window window) {
   unsigned char *prop = nullptr;
 
   x_error_trap error_trap(display);
-  if (!(XGetWindowProperty(display, window, pid_atom, 0, 1, False, XA_CARDINAL, &actual_type,
+  if ((XGetWindowProperty(display, window, pid_atom, 0, 1, False, XA_CARDINAL, &actual_type,
                            &actual_format, &nitems, &bytes_after, &prop) != Success) ||
       error_trap.get_last_error_and_disable() != 0) {
     return -1;
@@ -300,7 +302,8 @@ bool get_window_icon(Display *display, ::Window window, std::vector<uint8_t> &ic
   // byte being B. The first two cardinals are width, height. Data is in rows,
   // left to right and top to bottom.
 
-  // Note that the icon data is stored as an array of 32-bit values, so the actual format should be 32 bits.
+  // Note that the icon data is stored as an array of 32-bit values, so the actual format should be
+  // 32 bits.
   if (actual_format != 32) {
     LOG_ERROR("unexpected icon format: {}", actual_format);
     XFree(prop);
@@ -308,9 +311,10 @@ bool get_window_icon(Display *display, ::Window window, std::vector<uint8_t> &ic
   }
 
   // Note that the prop data is stored as an array of longs(which in a 64-bit application will be
-  // 64-bit values that are padded in the upper 4 bytes), and the first two elements are width and height.
-  // So we just cast the prop to unsigned long and get the width and height(no matter sizeof(unsigned long) is 4 or 8).
-  unsigned long *data = reinterpret_cast<unsigned long*>(prop);
+  // 64-bit values that are padded in the upper 4 bytes), and the first two elements are width and
+  // height. So we just cast the prop to unsigned long and get the width and height(no matter
+  // sizeof(unsigned long) is 4 or 8).
+  unsigned long *data = reinterpret_cast<unsigned long *>(prop);
   width = static_cast<int>(data[0]);
   height = static_cast<int>(data[1]);
 
@@ -554,7 +558,7 @@ int x_window_list_utils::enum_windows(const traa_size icon_size, const traa_size
         continue;
       }
 
-#if 0
+#if TRAA_DUMP_IMAGES
       // create a file to save the thumbnail
       if (window_info.thumbnail_data) {
         save_pixel_to_ppm(
@@ -562,19 +566,19 @@ int x_window_list_utils::enum_windows(const traa_size icon_size, const traa_size
             window_info.thumbnail_data, window_info.thumbnail_size.width,
             window_info.thumbnail_size.height);
       }
-#endif
+#endif // TRAA_DUMP_IMAGES
 
       // only get icon for the window when icon_size is set.
       if (icon_size.width > 0 && icon_size.height > 0) {
         std::vector<uint8_t> icon_data;
         int icon_width, icon_height;
         if (get_window_icon(display, app_window, icon_data, icon_width, icon_height)) {
-#if 0
+#if TRAA_DUMP_IMAGES
           // create a file to save the origin icon
           save_pixel_to_ppm(
               (std::string("origin_icon_") + std::to_string(window_info.id) + ".ppm").c_str(),
               icon_data.data(), icon_width, icon_height);
-#endif
+#endif // TRAA_DUMP_IMAGES
 
           traa_size scaled_icon_size =
               calc_scaled_size(desktop_size(icon_width, icon_height), icon_size).to_traa_size();
@@ -593,14 +597,14 @@ int x_window_list_utils::enum_windows(const traa_size icon_size, const traa_size
           window_info.icon_size = scaled_icon_size;
         }
 
-#if 0
+#if TRAA_DUMP_IMAGES
         // create a file to save the icon
         if (window_info.icon_data) {
           save_pixel_to_ppm(
               (std::string("icon_") + std::to_string(window_info.id) + ".ppm").c_str(),
               window_info.icon_data, window_info.icon_size.width, window_info.icon_size.height);
         }
-#endif
+#endif // TRAA_DUMP_IMAGES
       }
 
       infos.push_back(window_info);
@@ -617,6 +621,127 @@ int x_window_list_utils::enum_windows(const traa_size icon_size, const traa_size
 int x_window_list_utils::enum_screens(const traa_size thumbnail_size,
                                       const unsigned int external_flags,
                                       std::vector<traa_screen_source_info> &infos) {
+  // connect to the X server
+  Display *display = XOpenDisplay(NULL);
+  if (!display) {
+    LOG_ERROR("failed to open display");
+    return traa_error::TRAA_ERROR_UNKNOWN;
+  }
+
+  // check if the Xrandr extension is available
+  int event_base, error_base;
+  if (!XRRQueryExtension(display, &event_base, &error_base)) {
+    LOG_ERROR("Xrandr extension is not available");
+    XCloseDisplay(display);
+    return traa_error::TRAA_ERROR_UNKNOWN;
+  }
+
+  x_atom_cache atom_cache(display);
+
+  // get the root window
+  ::Window root = XDefaultRootWindow(display);
+
+  x_server_pixel_buffer pixel_buffer;
+  if (thumbnail_size.width > 0 && thumbnail_size.height > 0) {
+    // must init the pixel buffer before calling XRRGetMonitors, ohterwise init will raise an
+    // BadMatch error.I don't know why, just do it.
+
+    if (!pixel_buffer.init(&atom_cache, root)) {
+      LOG_ERROR("failed to init pixel buffer for window {}", root);
+      return false;
+    }
+
+    pixel_buffer.synchronize();
+
+#if TRAA_DUMP_IMAGES
+    // capture the whole screen
+    basic_desktop_frame full_screen_frame(pixel_buffer.window_size());
+
+    if (!pixel_buffer.capture_rect(desktop_rect::make_size(full_screen_frame.size()),
+                                   &full_screen_frame)) {
+      LOG_ERROR("failed to capture rect for screen {}", root);
+      return false;
+    }
+
+    // create a file to save the full screen
+    save_pixel_to_ppm("full_screen.ppm", full_screen_frame.data(), full_screen_frame.size().width(),
+                      full_screen_frame.size().height());
+#endif // TRAA_DUMP_IMAGES
+  }
+
+  int monitor_count = 0;
+  XRRMonitorInfo *monitors = XRRGetMonitors(display, root, True, &monitor_count);
+  if (!monitors) {
+    LOG_ERROR("failed to get monitors");
+    XCloseDisplay(display);
+    return traa_error::TRAA_ERROR_UNKNOWN;
+  }
+
+  for (int i = 0; i < monitor_count; ++i) {
+    traa_screen_source_info screen_info;
+    screen_info.id = static_cast<int64_t>(i);
+    screen_info.is_window = false;
+    screen_info.is_primary = monitors[i].primary;
+
+    auto screen_rect = desktop_rect::make_xywh(monitors[i].x, monitors[i].y, monitors[i].width,
+                                               monitors[i].height);
+    screen_info.rect = screen_rect.to_traa_rect();
+
+    // get name of the screen
+    // TODO(@sylar): the name from XGetAtomName is not correct, need to find a way to get the
+    // friendly name.
+    char *monitor_name = XGetAtomName(display, monitors[i].name);
+    if (monitor_name) {
+      strncpy(const_cast<char *>(screen_info.title), monitor_name,
+              std::min(sizeof(screen_info.title) - 1, strlen(monitor_name)));
+      XFree(monitor_name);
+    }
+
+    if (thumbnail_size.width > 0 && thumbnail_size.height > 0) {
+      // copy the pixel data from the full screen frame by the screen rect, and scale it to the
+      // thumbnail size.
+
+      traa_size scaled_size = calc_scaled_size(screen_rect.size(), thumbnail_size).to_traa_size();
+      screen_info.thumbnail_data =
+          new uint8_t[scaled_size.width * scaled_size.height * desktop_frame::bytes_per_pixel];
+      if (!screen_info.thumbnail_data) {
+        LOG_ERROR("failed to allocate memory for thumbnail data");
+        continue;
+      }
+
+      basic_desktop_frame frame(screen_rect.size());
+      frame.set_top_left(screen_rect.top_left());
+
+      if (!pixel_buffer.capture_rect(screen_rect, &frame)) {
+        LOG_ERROR("failed to capture rect for screen {}", root);
+        continue;
+      }
+
+      // use libyuv to scale the image
+      libyuv::ARGBScale(frame.data(), frame.stride(), frame.size().width(), frame.size().height(),
+                        const_cast<uint8_t *>(screen_info.thumbnail_data),
+                        scaled_size.width * desktop_frame::bytes_per_pixel, scaled_size.width,
+                        scaled_size.height, libyuv::kFilterBox);
+
+      screen_info.thumbnail_size = scaled_size;
+    }
+
+#if TRAA_DUMP_IMAGES
+    // create a file to save the thumbnail
+    if (screen_info.thumbnail_data) {
+      save_pixel_to_ppm(
+          (std::string("screenshot_") + std::to_string(screen_info.id) + ".ppm").c_str(),
+          screen_info.thumbnail_data, screen_info.thumbnail_size.width,
+          screen_info.thumbnail_size.height);
+    }
+#endif // TRAA_DUMP_IMAGES
+
+    infos.push_back(screen_info);
+  }
+
+  XRRFreeMonitors(monitors);
+  XCloseDisplay(display);
+
   return traa_error::TRAA_ERROR_NONE;
 }
 
@@ -626,12 +751,12 @@ int x_window_list_utils::enum_screen_source_info(const traa_size icon_size,
                                                  traa_screen_source_info **infos, int *count) {
   std::vector<traa_screen_source_info> sources;
 
-  if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_WINDOW)) {
-    enum_windows(icon_size, thumbnail_size, external_flags, sources);
-  }
-
   if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN)) {
     enum_screens(thumbnail_size, external_flags, sources);
+  }
+
+  if (!(external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_WINDOW)) {
+    enum_windows(icon_size, thumbnail_size, external_flags, sources);
   }
 
   if (sources.size() == 0) {

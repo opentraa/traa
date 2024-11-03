@@ -103,9 +103,9 @@ elseif(LINUX)
         LINK_FLAGS "-Wl,-rpath,./"
     )
      # X11
-     if(TRAA_OPTION_ENABLE_X11 AND X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND)
-        target_include_directories(${TRAA_UNIT_TEST} PRIVATE ${X11_INCLUDE_DIR} ${X11_Xext_INCLUDE_PATH} ${X11_Xcomposite_INCLUDE_PATH})
-        target_link_libraries(${TRAA_UNIT_TEST} PRIVATE ${X11_X11_LIB} ${X11_Xext_LIB} ${X11_Xcomposite_LIB})
+     if(TRAA_OPTION_ENABLE_X11)
+        target_include_directories(${TRAA_UNIT_TEST} PRIVATE ${TRAA_X11_INCLUDE_DIRS})
+        target_link_libraries(${TRAA_UNIT_TEST} PRIVATE ${TRAA_X11_LIBS})
     endif()
 endif()
 
