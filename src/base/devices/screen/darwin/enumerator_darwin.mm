@@ -18,10 +18,15 @@
 namespace traa {
 namespace base {
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-const-variable"
+
 // WindowName of the status indicator dot shown since Monterey in the taskbar.
 // Testing on 12.2.1 shows this is independent of system language setting.
 const CFStringRef kStatusIndicator = CFSTR("StatusIndicator");
 const CFStringRef kStatusIndicatorOwnerName = CFSTR("Window Server");
+
+#pragma clang diagnostic pop
 
 bool cfstring_to_utf8(const CFStringRef str16, std::string *str8) {
   size_t maxlen =

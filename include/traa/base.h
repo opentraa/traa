@@ -8,6 +8,7 @@
 #include <TargetConditionals.h>
 #endif // __APPLE__
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #define TRAA_MAX_DEVICE_ID_LENGTH 256
@@ -41,8 +42,10 @@ typedef struct traa_size {
   int32_t width;
   int32_t height;
 
+#if defined(__cplusplus)
   traa_size() : width(0), height(0) {}
   traa_size(int32_t width, int32_t height) : width(width), height(height) {}
+#endif // defined(__cplusplus)
 } traa_size;
 
 /**
@@ -56,8 +59,10 @@ typedef struct traa_point {
   int32_t x;
   int32_t y;
 
+#if defined(__cplusplus)
   traa_point() : x(0), y(0) {}
   traa_point(int32_t x, int32_t y) : x(x), y(y) {}
+#endif // defined(__cplusplus)
 } traa_point;
 
 /**
@@ -73,9 +78,11 @@ typedef struct traa_rect {
   int32_t right;
   int32_t bottom;
 
+#if defined(__cplusplus)
   traa_rect() : left(0), top(0), right(0), bottom(0) {}
   traa_rect(int32_t left, int32_t top, int32_t right, int32_t bottom)
       : left(left), top(top), right(right), bottom(bottom) {}
+#endif // defined(__cplusplus)
 } traa_rect;
 
 /**
@@ -308,9 +315,11 @@ typedef struct traa_device_info {
    */
   traa_device_state state;
 
+#if defined(__cplusplus)
   traa_device_info()
       : id(), name(), type(TRAA_DEVICE_TYPE_UNKNOWN), slot(TRAA_DEVICE_SLOT_UNKNOWN),
         orientation(TRAA_DEVICE_ORIENTATION_UNKNOWN), state(TRAA_DEVICE_STATE_IDLE) {}
+#endif // defined(__cplusplus)
 } traa_device_info;
 
 #if defined(_WIN32) ||                                                                             \
@@ -594,11 +603,13 @@ typedef struct traa_screen_source_info {
    */
   const uint8_t *thumbnail_data;
 
+#if defined(__cplusplus)
   traa_screen_source_info()
       : id(TRAA_INVALID_SCREEN_ID), screen_id(TRAA_INVALID_SCREEN_ID), is_window(false),
         is_minimized(false), is_maximized(false), is_primary(false), rect(), icon_size(),
         thumbnail_size(), title("\0"), process_path("\0"), icon_data(nullptr),
         thumbnail_data(nullptr) {}
+#endif // defined(__cplusplus)
 } traa_screen_source_info;
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && (!defined(TARGET_OS_VISION) ||
        // !TARGET_OS_VISION)) || __linux__
@@ -696,9 +707,11 @@ typedef struct traa_log_config {
    */
   traa_log_level level;
 
+#if defined(__cplusplus)
   traa_log_config(const char *log_file = nullptr, int32_t max_size = 1024 * 1024 * 2,
                   int32_t max_files = 3, traa_log_level level = TRAA_LOG_LEVEL_INFO)
       : log_file(log_file), max_size(max_size), max_files(max_files), level(level) {}
+#endif // defined(__cplusplus)
 } traa_log_config;
 
 /**
@@ -730,7 +743,9 @@ typedef struct traa_event_handler {
   void (*on_device_event)(const traa_userdata userdata, const traa_device_info *info,
                           traa_device_event event);
 
+#if defined(__cplusplus)
   traa_event_handler() : on_error(nullptr), on_device_event(nullptr) {}
+#endif // defined(__cplusplus)
 } traa_event_handler;
 
 /**
@@ -761,7 +776,9 @@ typedef struct traa_config {
    */
   traa_event_handler event_handler;
 
+#if defined(__cplusplus)
   traa_config() : userdata(nullptr) {}
+#endif // defined(__cplusplus)
 } traa_config;
 
 #endif // TRAA_BASE_H

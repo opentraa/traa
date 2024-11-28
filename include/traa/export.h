@@ -25,6 +25,18 @@
 #define TRAA_API
 #endif
 
+#if defined(TRAA_API_UNDEF)
+#if defined(TRAA_API)
+#undef TRAA_API
+#define TRAA_API
+#endif // defined(TRAA_API)
+
+#if defined(TRAA_CALL)
+#undef TRAA_CALL
+#define TRAA_CALL
+#endif // defined(TRAA_CALL)
+#endif // defined(TRAA_API_UNDEF)
+
 #if (defined(__GNUC__) && !defined(__LCC__)) || defined(__clang__)
 #define TRAA_DEPRECATED __attribute__((deprecated))
 #elif FMT_MSC_VER
