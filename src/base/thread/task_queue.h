@@ -41,9 +41,6 @@ template <typename Exception> void throw_exception(const Exception &e) {
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wshorten-64-to-32"
-#elif defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshorten-64-to-32"
 #elif defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4267)

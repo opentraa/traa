@@ -53,6 +53,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Options
+option(TRAA_OPTION_ENABLE_UNIT_TEST "Enable unit test" OFF)
+option(TRAA_OPTION_ENABLE_SMOKE_TEST "Enable smoke test" OFF)
+
 if(LINUX)
     # To enable x11 you have install x11 and x11-xext and x11-xcomposite development packages.
     # sudo apt-get install libx11-dev libxext-dev libxcomposite-dev
@@ -176,7 +179,9 @@ else()
         -Wno-error=unused-but-set-variable \
         -Wno-error=unused-const-variable")
 
-    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=stringop-truncation")
+    else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=shorten-64-to-32")
     endif()
 
@@ -242,10 +247,25 @@ endif()
 message(STATUS "[TRAA] ${CMAKE_CXX_FLAGS}")
 
 # Define output directory.
-set(TRAA_OUTPUT_DIR "${CMAKE_BINARY_DIR}/output")
-set(TRAA_OUTPUT_DIR_REAL "${TRAA_OUTPUT_DIR}/${CMAKE_BUILD_TYPE}")
-message(STATUS "[TRAA] TRAA_OUTPUT_DIR: ${TRAA_OUTPUT_DIR}")
-message(STATUS "[TRAA] TRAA_OUTPUT_DIR_REAL: ${TRAA_OUTPUT_DIR_REAL}")
+if(NOT DEFINED TRAA_OPTION_BIN_FOLDER OR TRAA_OPTION_BIN_FOLDER STREQUAL "")
+    set(TRAA_OPTION_BIN_FOLDER "${CMAKE_HOME_DIRECTORY}/bin")
+endif()
+
+if(WIN32)
+    if(${CMAKE_GENERATOR_PLATFORM} STREQUAL "Win32")
+        set(TRAA_ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OPTION_BIN_FOLDER}/lib/x86$<0:>")
+    else()
+        set(TRAA_ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OPTION_BIN_FOLDER}/lib/x64$<0:>")
+    endif()
+elseif(APPLE)
+    set(TRAA_ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OPTION_BIN_FOLDER}$<0:>")
+elseif(ANDROID)
+    set(TRAA_ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OPTION_BIN_FOLDER}/lib/${ANDROID_ABI}$<0:>")
+elseif(LINUX)
+    set(TRAA_ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OPTION_BIN_FOLDER}/lib$<0:>")
+endif()
+
+message(STATUS "[TRAA] TRAA_ARCHIVE_OUTPUT_DIRECTORY: ${TRAA_ARCHIVE_OUTPUT_DIRECTORY}")
 
 if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     add_compile_definitions(TRAA_DEBUG)
@@ -294,9 +314,11 @@ elseif(LINUX)
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/capture_utils.h")
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/capture_utils.cc")
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/enumerator_linux.cc")
+
     # Enable x11 if TRAA_OPTION_ENABLE_X11 is set and X11 is found
     if(TRAA_OPTION_ENABLE_X11)
         find_package(X11)
+
         if(X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND AND X11_Xrandr_FOUND)
             set(TRAA_OPTION_ENABLE_X11 ON)
             add_definitions(-DTRAA_ENABLE_X11)
@@ -310,17 +332,17 @@ elseif(LINUX)
             message(STATUS "[TRAA] X11_Xrandr_INCLUDE_PATH: ${X11_Xrandr_INCLUDE_PATH}")
             message(STATUS "[TRAA] X11_Xrandr_LIB: ${X11_Xrandr_LIB}")
 
-            set(TRAA_X11_INCLUDE_DIRS 
-                ${X11_INCLUDE_DIR} 
-                ${X11_Xext_INCLUDE_PATH} 
-                ${X11_Xcomposite_INCLUDE_PATH} 
+            set(TRAA_X11_INCLUDE_DIRS
+                ${X11_INCLUDE_DIR}
+                ${X11_Xext_INCLUDE_PATH}
+                ${X11_Xcomposite_INCLUDE_PATH}
                 ${X11_Xrandr_INCLUDE_PATH})
-            set(TRAA_X11_LIBS 
-                ${X11_X11_LIB} 
-                ${X11_Xext_LIB} 
-                ${X11_Xcomposite_LIB} 
+            set(TRAA_X11_LIBS
+                ${X11_X11_LIB}
+                ${X11_Xext_LIB}
+                ${X11_Xcomposite_LIB}
                 ${X11_Xrandr_LIB})
-            
+
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_atom_cache.h")
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_atom_cache.cc")
             list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_error_trap.h")
@@ -336,6 +358,7 @@ elseif(LINUX)
             set(TRAA_OPTION_ENABLE_X11 OFF)
         endif()
     endif()
+
     # Enable wayland if TRAA_OPTION_ENABLE_WAYLAND is set
     if(TRAA_OPTION_ENABLE_WAYLAND)
         add_definitions(-DTRAA_ENABLE_WAYLAND)
@@ -534,10 +557,10 @@ set_target_properties(${TRAA_LIBRARY} PROPERTIES
     VERSION "${TRAA_VERSION_SHORT}"
     SOVERSION "${TRAA_VERSION_SHORT}"
     PUBLIC_HEADER "${TRAA_LIBRARY_PUBLIC_HEADER_FILES}"
-    ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR}"
-    LIBRARY_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR}"
-    PDB_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR}"
+    ARCHIVE_OUTPUT_DIRECTORY "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}"
+    LIBRARY_OUTPUT_DIRECTORY "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}"
+    RUNTIME_OUTPUT_DIRECTORY "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}"
+    PDB_OUTPUT_DIRECTORY "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}"
     OUTPUT_NAME "${TRAA_LIBRARY_NAME}"
 )
 
@@ -585,27 +608,19 @@ if(APPLE)
 
     set_target_properties(${TRAA_LIBRARY} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
 
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-        add_custom_command(
-            TARGET ${TRAA_LIBRARY}
-            POST_BUILD
-            COMMAND strip -r -S -x
-            "${TRAA_OUTPUT_DIR_REAL}/${TRAA_LIBRARY_NAME}.framework/${TRAA_LIBRARY_NAME}"
-            COMMENT "Strip debug and local symbols done on final binary."
-        )
-    endif()
+    add_custom_command(
+        TARGET ${TRAA_LIBRARY}
+        POST_BUILD
+        COMMAND strip -r -S -x
+        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/${TRAA_LIBRARY_NAME}.framework/${TRAA_LIBRARY_NAME}"
+        COMMENT "Strip debug and local symbols done on final binary."
+    )
 elseif(WIN32)
     target_link_libraries(${TRAA_LIBRARY} PRIVATE
         dwmapi.lib
         Shcore.lib
     )
 elseif(ANDROID)
-    set_target_properties(${TRAA_LIBRARY} PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
-        LIBRARY_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
-        RUNTIME_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
-        PDB_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
-    )
     find_library(log-lib log)
     target_link_libraries(${TRAA_LIBRARY} PRIVATE ${log-lib})
 
@@ -613,21 +628,18 @@ elseif(ANDROID)
         TARGET ${TRAA_LIBRARY}
         POST_BUILD
         COMMAND cp -RP
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}.so"
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}-symbol.so"
+        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/${TRAA_LIBRARY_NAME}.so"
+        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/lib${TRAA_LIBRARY_NAME}-symbol.so"
     )
     add_custom_command(
         TARGET ${TRAA_LIBRARY}
         POST_BUILD
         COMMAND "${ANDROID_TOOLCHAIN_ROOT}/bin/llvm-strip" --strip-all
-        "${TRAA_OUTPUT_DIR_REAL}/lib${TRAA_LIBRARY_NAME}.so"
+        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/lib${TRAA_LIBRARY_NAME}.so"
         COMMENT "Strip debug symbols done on final binary."
     )
 elseif(LINUX)
     set_target_properties(${TRAA_LIBRARY} PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
-        LIBRARY_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
-        RUNTIME_OUTPUT_DIRECTORY "${TRAA_OUTPUT_DIR_REAL}"
         LINK_FLAGS "-Wl,-rpath,./"
     )
 
@@ -640,27 +652,27 @@ endif()
 
 # actions after build
 if(NOT APPLE)
-    set(TRAA_LIBRARY_PUBLIC_HEADER_TARGET_INCLUDE_DIR "${TRAA_OUTPUT_DIR}/${CMAKE_BUILD_TYPE}/include")
+    set(TRAA_LIBRARY_PUBLIC_HEADER_TARGET_INCLUDE_DIR "${TRAA_OPTION_BIN_FOLDER}/include")
     file(MAKE_DIRECTORY "${TRAA_LIBRARY_PUBLIC_HEADER_TARGET_INCLUDE_DIR}")
     execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${TRAA_LIBRARY_PUBLIC_HEADER_FILES} "${TRAA_LIBRARY_PUBLIC_HEADER_TARGET_INCLUDE_DIR}"
         WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}
     )
 endif()
 
-# ##############################################################################
-# TRAA Unittest Section
-# ##############################################################################
-if(NOT IOS AND NOT VISIONOS AND NOT ANDROID)
-    add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/googletest)
-    set_property(TARGET gtest PROPERTY FOLDER "thirdparty/googletest")
-    set_property(TARGET gtest_main PROPERTY FOLDER "thirdparty/googletest")
-    set_property(TARGET gmock PROPERTY FOLDER "thirdparty/googletest")
-    set_property(TARGET gmock_main PROPERTY FOLDER "thirdparty/googletest")
+if(TRAA_OPTION_ENABLE_UNIT_TEST OR TRAA_OPTION_ENABLE_SMOKE_TEST)
+    if(NOT IOS AND NOT VISIONOS AND NOT ANDROID)
+        add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/googletest)
+        set_property(TARGET gtest PROPERTY FOLDER "thirdparty/googletest")
+        set_property(TARGET gtest_main PROPERTY FOLDER "thirdparty/googletest")
+        set_property(TARGET gmock PROPERTY FOLDER "thirdparty/googletest")
+        set_property(TARGET gmock_main PROPERTY FOLDER "thirdparty/googletest")
 
-    add_subdirectory(${CMAKE_HOME_DIRECTORY}/tests)
+        if(TRAA_OPTION_ENABLE_UNIT_TEST)
+            add_subdirectory(${CMAKE_HOME_DIRECTORY}/tests/unit_test)
+        endif()
+
+        if(TRAA_OPTION_ENABLE_SMOKE_TEST)
+            add_subdirectory(${CMAKE_HOME_DIRECTORY}/tests/smoke_test)
+        endif()
+    endif()
 endif()
-
-# ##############################################################################
-# TRAA Console Section
-# ##############################################################################
-add_subdirectory(app)
