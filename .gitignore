@@ -33,6 +33,7 @@
 
 # Build
 build
+bin
 
 # .vscode
 .vscode

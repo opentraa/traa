@@ -4,7 +4,7 @@ name: ci-pr-on-main
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -28,28 +28,25 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: Configure CMake for Ubuntu
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=g++
-        -DCMAKE_C_COMPILER=gcc
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -S ${{ github.workspace }}
+        echo "build-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "build-output-dir=${{ github.workspace }}/bin" >> "$GITHUB_OUTPUT"
 
     - name: Build
-      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{env.BUILD_TYPE}}
+      shell: bash
+      run: > 
+        bash scripts/build.sh -p linux 
+        -t ${{env.BUILD_TYPE}}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
+        -U ON
+        -S ON
 
     - name: Unit Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}/tests/unit_test
+      working-directory: ${{ steps.strings.outputs.build-dir }}/linux/tests/unit_test
       run: ASAN_OPTIONS=detect_leaks=1 ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
     - name: Smoke Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}/tests/smoke_test
+      working-directory: ${{ steps.strings.outputs.build-dir }}/linux/tests/smoke_test
       run: ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
   # Build on Windows for windows
@@ -67,25 +64,24 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: Configure CMake for Windows
-      run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=cl
-        -DCMAKE_C_COMPILER=cl
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -S ${{ github.workspace }}
+        echo "build-output-dir=${{ github.workspace }}\\build" >> "$GITHUB_OUTPUT"
+        echo "build-dir=${{ github.workspace }}\\build" >> "$GITHUB_OUTPUT"
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{env.BUILD_TYPE}}
+      run: >
+        .\\scripts\\build.bat -a x64
+        -t ${{env.BUILD_TYPE}}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
+        -U ON
+        -S ON
 
     - name: Unit Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}/tests/unit_test
+      working-directory: ${{ steps.strings.outputs.build-dir }}\\x64\\tests/unit_test
       run: ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
     - name: Smoke Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}/tests/smoke_test
+      working-directory: ${{ steps.strings.outputs.build-dir }}\\x64\\tests\\smoke_test
       run: ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
   # Build on macOS for MAC_UNIVERSAL
@@ -104,27 +100,23 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: Configure CMake for macOS
-      run: >
-        cmake -G Xcode
-        -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/cmake/ios.toolchain.cmake
-        -DPLATFORM=MAC_UNIVERSAL
-        -DCMAKE_CXX_COMPILER=clang++
-        -DCMAKE_C_COMPILER=clang
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -S ${{ github.workspace }}
+        echo "build-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{env.BUILD_TYPE}}
+      run: >
+        sh scripts/build.sh -p macos
+        -t ${{env.BUILD_TYPE}}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
+        -U ON
+        -S ON
 
     - name: Unit Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}/tests/unit_test
+      working-directory: ${{ steps.strings.outputs.build-dir }}/macos/tests/unit_test
       run: ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
     - name: Smoke Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}/tests/smoke_test
+      working-directory: ${{ steps.strings.outputs.build-dir }}/macos/tests/smoke_test
       run: ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
   # Build on macOS for OS64COMBINED
@@ -143,23 +135,17 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: Configure CMake for macOS
-      run: >
-        cmake -G Xcode
-        -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/cmake/ios.toolchain.cmake
-        -DPLATFORM=OS64COMBINED
-        -DCMAKE_CXX_COMPILER=clang++
-        -DCMAKE_C_COMPILER=clang
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -S ${{ github.workspace }}
+        echo "build-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{env.BUILD_TYPE}}
+      run: >
+        sh scripts/build.sh -p ios
+        -t ${{env.BUILD_TYPE}}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
 
   # Build on macOS for VISIONOSCOMBINED
-  build-visionOS:
+  build-xrOS:
     runs-on: macos-latest
 
     steps:
@@ -174,17 +160,11 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: Configure CMake for macOS
-      run: >
-        cmake -G Xcode
-        -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/cmake/ios.toolchain.cmake
-        -DPLATFORM=VISIONOSCOMBINED
-        -DCMAKE_CXX_COMPILER=clang++
-        -DCMAKE_C_COMPILER=clang
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -S ${{ github.workspace }}
+        echo "build-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{env.BUILD_TYPE}}
+      run: >
+        sh scripts/build.sh -p xros
+        -t ${{env.BUILD_TYPE}}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}

@@ -38,10 +38,26 @@ template <typename Exception> void throw_exception(const Exception &e) {
 
 #endif // defined(ASIO_NO_EXCEPTIONS)
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshorten-64-to-32"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4267)
+#endif // defined(__clang__)
+
 #include <asio/executor_work_guard.hpp>
 #include <asio/io_context.hpp>
 #include <asio/post.hpp>
 #include <asio/steady_timer.hpp>
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif // defined(__clang__)
 
 namespace traa {
 namespace base {

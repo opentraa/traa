@@ -1,0 +1,147 @@
+# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
+name: custom-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        type: string
+        description: 'Branch to build'
+        required: true
+        default: 'main'
+      build_version:
+        type: string
+        description: 'Version to build, e.g. 1.0.0'
+        required: true
+        default: '1.0.0'
+      build_type:
+        type: choice
+        description: 'Build type, e.g. Release, Debug'
+        required: true
+        default: 'Release'
+        options:
+          - 'Release'
+          - 'Debug'
+      upload_artifacts:
+        type: boolean
+        description: 'Upload artifacts to GitHub Releases, e.g. true, false'
+        required: true
+        default: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
+
+      # Set up a matrix to run the following 6 configurations:
+      # 1. Ubuntu for linux
+      # 2. Windows for windows
+      # 3. MacOS for android
+      # 4. MacOS for macos
+      # 5. MacOS for ios
+      # 6. MacOS for xros
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        target_platform: [linux, windows, android, macos, ios, xros]
+        include:
+          - os: ubuntu-latest
+            target_platform: linux
+          - os: windows-latest
+            target_platform: windows
+          - os: macos-latest
+            target_platform: android
+          - os: macos-latest
+            target_platform: macos
+          - os: macos-latest
+            target_platform: ios
+          - os: macos-latest
+            target_platform: xros
+        exclude:
+          - os: ubuntu-latest
+            target_platform: windows
+          - os: ubuntu-latest
+            target_platform: android
+          - os: ubuntu-latest
+            target_platform: macos
+          - os: ubuntu-latest
+            target_platform: ios
+          - os: ubuntu-latest
+            target_platform: xros
+          - os: windows-latest
+            target_platform: linux
+          - os: windows-latest
+            target_platform: android
+          - os: windows-latest
+            target_platform: macos
+          - os: windows-latest
+            target_platform: ios
+          - os: windows-latest
+            target_platform: xros
+          - os: macos-latest
+            target_platform: linux
+          - os: macos-latest
+            target_platform: windows
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: '1'
+        lfs: 'true'
+        submodules: 'true'
+
+    - name: Set reusable strings
+      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
+      id: strings
+      shell: bash
+      run: |
+        echo "build-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "build-output-dir=${{ github.workspace }}/bin" >> "$GITHUB_OUTPUT"
+
+    - name: Build for windows x64
+      if: ${{ matrix.os == 'windows-latest' }} && ${{ matrix.target_platform == 'windows' }}
+      run: >
+        scripts/build.bat -a x64
+        -v ${{ inputs.build_version }} 
+        -t ${{ inputs.build_type }}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
+
+    - name: Build for windows win32
+      if: ${{ matrix.os == 'windows-latest' }} && ${{ matrix.target_platform == 'windows' }}
+      run: >
+        scripts/build.bat -a win32
+        -v ${{ inputs.build_version }} 
+        -t ${{ inputs.build_type }}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
+
+    - name: Build for linux
+      shell: bash
+      if: ${{ matrix.os == 'ubuntu-latest' }} && ${{ matrix.target_platform == 'linux' }}
+      run: >
+        bash scripts/build.sh -p ${{ matrix.target_platform }} 
+        -v ${{ inputs.build_version }} 
+        -t ${{ inputs.build_type }}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
+
+    - name: Build for macOS iOS and xrOS
+      if: ${{ matrix.os == 'macos-latest' }} && (${{ matrix.target_platform == 'ios' }} || ${{ matrix.target_platform == 'xros' }} || ${{ matrix.target_platform == 'macos' }})
+      run: >
+        sh scripts/build.sh -p ${{ matrix.target_platform }} 
+        -v ${{ inputs.build_version }} 
+        -t ${{ inputs.build_type }}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
+
+    - name: Upload artifacts
+      if: ${{ inputs.upload_artifacts == 'true' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.target_platform }}-${{ inputs.build_version }}
+        path: ${{ steps.strings.outputs.build-output-dir }}
+        if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
