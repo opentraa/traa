@@ -1,8 +1,25 @@
-# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
-# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
 name: custom-build
 
 on:
+  workflow_call:
+    inputs:
+      branch:
+        type: string
+        description: 'Branch to build'
+        required: true
+      build_version:
+        type: string
+        description: 'Version to build, e.g. 1.0.0'
+        required: true
+      build_type:
+        type: string
+        description: 'Build type, e.g. Release, Debug'
+        required: true
+      upload_artifacts:
+        type: boolean
+        description: 'Upload artifacts, e.g. true, false'
+        required: true
+  
   workflow_dispatch:
     inputs:
       branch:
@@ -25,7 +42,7 @@ on:
           - 'Debug'
       upload_artifacts:
         type: boolean
-        description: 'Upload artifacts to GitHub Releases, e.g. true, false'
+        description: 'Upload artifacts, e.g. true, false'
         required: true
         default: true
 
@@ -34,26 +51,17 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
-
-      # Set up a matrix to run the following 6 configurations:
-      # 1. Ubuntu for linux
-      # 2. Windows for windows
-      # 3. MacOS for android
-      # 4. MacOS for macos
-      # 5. MacOS for ios
-      # 6. MacOS for xros
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        target_platform: [linux, windows, android, macos, ios, xros]
+        target_platform: [android, linux, windows, macos, ios, xros]
         include:
+          - os: ubuntu-latest
+            target_platform: android
           - os: ubuntu-latest
             target_platform: linux
           - os: windows-latest
             target_platform: windows
-          - os: macos-latest
-            target_platform: android
           - os: macos-latest
             target_platform: macos
           - os: macos-latest
@@ -64,84 +72,123 @@ jobs:
           - os: ubuntu-latest
             target_platform: windows
           - os: ubuntu-latest
-            target_platform: android
-          - os: ubuntu-latest
             target_platform: macos
           - os: ubuntu-latest
             target_platform: ios
           - os: ubuntu-latest
             target_platform: xros
+          - os: windows-latest
+            target_platform: android
           - os: windows-latest
             target_platform: linux
           - os: windows-latest
-            target_platform: android
-          - os: windows-latest
             target_platform: macos
           - os: windows-latest
             target_platform: ios
           - os: windows-latest
             target_platform: xros
+          - os: macos-latest
+            target_platform: android
           - os: macos-latest
             target_platform: linux
           - os: macos-latest
             target_platform: windows
 
+    outputs:
+      nightly_link_url_android: "https://nightly.link/opentraa/traa/actions/runs/${{ github.run_id }}/android-${{inputs.build_version}}-${{ github.run_id }}-${{ steps.strings.outputs.timestamp}}.zip"
+      nightly_link_url_linux: "https://nightly.link/opentraa/traa/actions/runs/${{ github.run_id }}/linux-${{inputs.build_version}}-${{ github.run_id }}-${{ steps.strings.outputs.timestamp}}.zip"
+      nightly_link_url_windows: "https://nightly.link/opentraa/traa/actions/runs/${{ github.run_id }}/windows-${{inputs.build_version}}-${{ github.run_id }}-${{ steps.strings.outputs.timestamp}}.zip"
+      nightly_link_url_macos: "https://nightly.link/opentraa/traa/actions/runs/${{ github.run_id }}/macos-${{inputs.build_version}}-${{ github.run_id }}-${{ steps.strings.outputs.timestamp}}.zip"
+      nightly_link_url_ios: "https://nightly.link/opentraa/traa/actions/runs/${{ github.run_id }}/ios-${{inputs.build_version}}-${{ github.run_id }}-${{ steps.strings.outputs.timestamp}}.zip"
+      nightly_link_url_xros: "https://nightly.link/opentraa/traa/actions/runs/${{ github.run_id }}/xros-${{inputs.build_version}}-${{ github.run_id }}-${{ steps.strings.outputs.timestamp}}.zip"
+
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: '1'
-        lfs: 'true'
-        submodules: 'true'
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '1'
+          lfs: 'true'
+          submodules: 'true'
 
-    - name: Set reusable strings
-      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
-      id: strings
-      shell: bash
-      run: |
-        echo "build-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-        echo "build-output-dir=${{ github.workspace }}/bin" >> "$GITHUB_OUTPUT"
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          echo "build-output-dir=${{ github.workspace }}/bin" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date +'%Y%m%d%H%M%S')" >> "$GITHUB_OUTPUT"
+          echo "build-id=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
 
-    - name: Build for windows x64
-      if: ${{ matrix.os == 'windows-latest' }} && ${{ matrix.target_platform == 'windows' }}
-      run: >
-        scripts/build.bat -a x64
-        -v ${{ inputs.build_version }} 
-        -t ${{ inputs.build_type }}
-        -f ${{ steps.strings.outputs.build-dir }}
-        -b ${{ steps.strings.outputs.build-output-dir }}
+      # The part of the most complex build script for android
+      # 1. Set up Java
+      # 2. Set up Android SDK
+      # 3. Build for android
+      - uses: actions/setup-java@v4
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.target_platform == 'android' }}
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+          cache-dependency-path: |
+            projects/android/.gradle
+      - uses: android-actions/setup-android@v3
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.target_platform == 'android' }}
+      - uses: nttld/setup-ndk@v1.5.0
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.target_platform == 'android' }}
+        with: 
+          ndk-version: r21e
+          local-cache: true
+      - name: Build for android
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.target_platform == 'android' }}
+        shell: bash
+        run: >
+          bash scripts/build.sh -p ${{ matrix.target_platform }} 
+          -v ${{ inputs.build_version }} 
+          -t ${{ inputs.build_type }}
+          -f ${{ steps.strings.outputs.build-dir }}
+          -b ${{ steps.strings.outputs.build-output-dir }}
+          -A "arm64-v8a,x86,x86_64,armeabi-v7a"
 
-    - name: Build for windows win32
-      if: ${{ matrix.os == 'windows-latest' }} && ${{ matrix.target_platform == 'windows' }}
-      run: >
-        scripts/build.bat -a win32
-        -v ${{ inputs.build_version }} 
-        -t ${{ inputs.build_type }}
-        -f ${{ steps.strings.outputs.build-dir }}
-        -b ${{ steps.strings.outputs.build-output-dir }}
+      - name: Build for linux
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.target_platform == 'linux' }}
+        shell: bash
+        run: >
+          bash scripts/build.sh -p ${{ matrix.target_platform }} 
+          -v ${{ inputs.build_version }} 
+          -t ${{ inputs.build_type }}
+          -f ${{ steps.strings.outputs.build-dir }}
+          -b ${{ steps.strings.outputs.build-output-dir }}
 
-    - name: Build for linux
-      shell: bash
-      if: ${{ matrix.os == 'ubuntu-latest' }} && ${{ matrix.target_platform == 'linux' }}
-      run: >
-        bash scripts/build.sh -p ${{ matrix.target_platform }} 
-        -v ${{ inputs.build_version }} 
-        -t ${{ inputs.build_type }}
-        -f ${{ steps.strings.outputs.build-dir }}
-        -b ${{ steps.strings.outputs.build-output-dir }}
+      - name: Build for windows x64
+        if: ${{ matrix.os == 'windows-latest' && matrix.target_platform == 'windows' }}
+        run: >
+          scripts/build.bat -a x64
+          -v ${{ inputs.build_version }} 
+          -t ${{ inputs.build_type }}
+          -f ${{ steps.strings.outputs.build-dir }}
+          -b ${{ steps.strings.outputs.build-output-dir }}
+  
+      - name: Build for windows Win32
+        if: ${{ matrix.os == 'windows-latest' && matrix.target_platform == 'windows' }}
+        run: >
+          scripts/build.bat -a Win32
+          -v ${{ inputs.build_version }} 
+          -t ${{ inputs.build_type }}
+          -f ${{ steps.strings.outputs.build-dir }}
+          -b ${{ steps.strings.outputs.build-output-dir }}
 
-    - name: Build for macOS iOS and xrOS
-      if: ${{ matrix.os == 'macos-latest' }} && (${{ matrix.target_platform == 'ios' }} || ${{ matrix.target_platform == 'xros' }} || ${{ matrix.target_platform == 'macos' }})
-      run: >
-        sh scripts/build.sh -p ${{ matrix.target_platform }} 
-        -v ${{ inputs.build_version }} 
-        -t ${{ inputs.build_type }}
-        -f ${{ steps.strings.outputs.build-dir }}
-        -b ${{ steps.strings.outputs.build-output-dir }}
+      - name: Build for macOS iOS and xrOS
+        if: ${{ matrix.os == 'macos-latest' && (matrix.target_platform == 'macos' || matrix.target_platform == 'ios' || matrix.target_platform == 'xros') }}
+        run: >
+          sh scripts/build.sh -p ${{ matrix.target_platform }} 
+          -v ${{ inputs.build_version }} 
+          -t ${{ inputs.build_type }}
+          -f ${{ steps.strings.outputs.build-dir }}
+          -b ${{ steps.strings.outputs.build-output-dir }}
 
-    - name: Upload artifacts
-      if: ${{ inputs.upload_artifacts == 'true' }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: ${{ matrix.target_platform }}-${{ inputs.build_version }}
-        path: ${{ steps.strings.outputs.build-output-dir }}
-        if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+      - name: Upload artifacts
+        if: ${{ inputs.upload_artifacts == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target_platform }}-${{ inputs.build_version }}-${{ steps.strings.outputs.build-id }}-${{ steps.strings.outputs.timestamp }}
+          path: ${{ steps.strings.outputs.build-output-dir }}
+          if-no-files-found: error

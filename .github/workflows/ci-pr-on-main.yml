@@ -168,3 +168,46 @@ jobs:
         -t ${{env.BUILD_TYPE}}
         -f ${{ steps.strings.outputs.build-dir }}
         -b ${{ steps.strings.outputs.build-output-dir }}
+
+  # Build on Ubuntu for android
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: '1'
+        lfs: 'true'
+        submodules: 'true'
+
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "build-output-dir=${{ github.workspace }}/bin" >> "$GITHUB_OUTPUT"
+
+   # The part of the most complex build script for android
+      # 1. Set up Java
+      # 2. Set up Android SDK
+      # 3. Build for android
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        cache: 'gradle'
+        cache-dependency-path: |
+          projects/android/.gradle
+    - uses: android-actions/setup-android@v3
+    - uses: nttld/setup-ndk@v1.5.0
+      with: 
+        ndk-version: r21e
+        local-cache: true
+    - name: Build for android
+      shell: bash
+      run: >
+        bash scripts/build.sh -p android
+        -t ${{ env.BUILD_TYPE }}
+        -f ${{ steps.strings.outputs.build-dir }}
+        -b ${{ steps.strings.outputs.build-output-dir }}
+        -A "arm64-v8a,x86_64"

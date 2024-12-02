@@ -628,7 +628,7 @@ elseif(ANDROID)
         TARGET ${TRAA_LIBRARY}
         POST_BUILD
         COMMAND cp -RP
-        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/${TRAA_LIBRARY_NAME}.so"
+        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/lib${TRAA_LIBRARY_NAME}.so"
         "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/lib${TRAA_LIBRARY_NAME}-symbol.so"
     )
     add_custom_command(
