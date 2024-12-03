@@ -191,6 +191,7 @@ int traa_free_device_info(traa_device_info infos[]) {
       .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }
 
+#if !defined(__ANDROID__)
 #if defined(_WIN32) ||                                                                             \
     (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
      (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
@@ -222,3 +223,4 @@ int traa_free_screen_source_info(traa_screen_source_info infos[], int count) {
 }
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
        // || !TARGET_OS_VISION)) || __linux__
+#endif

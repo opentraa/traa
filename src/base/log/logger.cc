@@ -4,6 +4,9 @@
 
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
+#if defined(TRAA_OS_LINUX_ANDROID)
+#include <spdlog/sinks/android_sink.h>
+#endif // defined(TRAA_OS_LINUX_ANDROID)
 
 #include <string>
 #include <vector>

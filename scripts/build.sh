@@ -16,6 +16,7 @@ VERSION="1.0.0"
 VERBOSE=0
 BUILD_UNITTEST=OFF
 BUILD_SMOKETEST=OFF
+ANDROID_ABI="arm64-v8a,armeabi-v7a,x86,x86_64"
 
 # function for logging
 log() {
@@ -40,6 +41,7 @@ show_usage() {
     echo "  -v, --version           Version of the build [default: 1.0.0]"
     echo "  -U, --unittest          Build unit tests (ON/OFF) [default: OFF]"
     echo "  -S, --smoketest         Build smoke tests (ON/OFF) [default: OFF]"
+    echo "  -A, --android-abi       Android ABI [default: arm64-v8a,armeabi-v7a,x86,x86_64]"
     echo "  -V, --verbose           Verbose output"
     echo "  -h, --help              Show this help message"
 }
@@ -77,6 +79,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -S|--smoketest)
             BUILD_SMOKETEST="$2"
+            shift 2
+            ;;
+        -A|--android-abi)
+            ANDROID_ABI="$2"
             shift 2
             ;;
         -V|--verbose)
@@ -122,6 +128,7 @@ build() {
     log "INFO" "Binary folder: $BIN_FOLDER"
     log "INFO" "Source directory: $SOURCE_DIR"
     log "INFO" "Version: $VERSION"
+    log "INFO" "Android ABI: $ANDROID_ABI"
 
     BUILD_FOLDER="$BUILD_FOLDER/$TARGET_PLATFORM"
     log "INFO" "Redirect build folder: $BUILD_FOLDER"
@@ -135,7 +142,69 @@ build() {
     mkdir -p "$BUILD_FOLDER"
     mkdir -p "$BIN_FOLDER"
 
-    case $TARGET_PLATFORM in
+    # if target platform is android, we should run cmake for each ABI separately
+    if [ "$TARGET_PLATFORM" == "android" ]; then
+        for abi in $(echo $ANDROID_ABI | tr "," "\n");do
+            log "INFO" "Building for ABI: $abi"
+            local build_folder_abi="$BUILD_FOLDER/$abi"
+            local bin_folder_abi="$BIN_FOLDER" # no need to create separate bin folder for each ABI
+            mkdir -p "$build_folder_abi"
+            mkdir -p "$bin_folder_abi"
+
+            cmake -B "$build_folder_abi" \
+                -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+                -DANDROID_ABI="$abi" \
+                -DANDROID_NDK="$ANDROID_NDK_HOME" \
+                -DCMAKE_SYSTEM_NAME=Android \
+                -DANDROID_STL=c++_static \
+                -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+                -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+                -DTRAA_OPTION_BIN_FOLDER="$bin_folder_abi" \
+                -DTRAA_OPTION_ENABLE_UNIT_TEST="$BUILD_UNITTEST" \
+                -DTRAA_OPTION_ENABLE_SMOKE_TEST="$BUILD_SMOKETEST" \
+                -DTRAA_OPTION_VERSION="$VERSION" \
+                -S "$SOURCE_DIR"
+
+            if [ $? -ne 0 ]; then
+                log "ERROR" "CMake failed for ABI: $abi"
+                exit 1
+            fi
+
+            log "INFO" "Building..."
+            if [ $VERBOSE -eq 1 ]; then
+                cmake --build "$build_folder_abi" --config "$BUILD_TYPE" -v
+            else
+                cmake --build "$build_folder_abi" --config "$BUILD_TYPE"
+            fi
+
+            if [ $? -ne 0 ]; then
+                log "ERROR" "Build failed for ABI: $abi"
+                exit 1
+            fi
+        done
+
+        # build gradle project
+        log "INFO" "Building Gradle project..."
+        pushd "projects/android"
+        sh ./gradlew clean assemble$BUILD_TYPE
+        sh ./gradlew assemble$BUILD_TYPE
+        popd
+
+        # copy aar file to bin folder
+        lower_build_type=$(echo $BUILD_TYPE | tr '[:upper:]' '[:lower:]')
+        cp "./projects/android/traa/build/outputs/aar/traa-$lower_build_type.aar" "$BIN_FOLDER/traa.aar"
+
+        # copy jar file to bin folder from sync folder like projects/android/build/intermediates/aar_main_jar/debug/syncDebugLibJars
+        cp "./projects/android/traa/build/intermediates/aar_main_jar/$lower_build_type/sync${BUILD_TYPE}LibJars/classes.jar" "$BIN_FOLDER/traa.jar"
+
+        if [ $? -eq 0 ]; then
+            log "INFO" "Build completed successfully"
+        else
+            log "ERROR" "Build failed"
+            exit 1
+        fi
+    else
+        case $TARGET_PLATFORM in
         "macos"|"ios"|"xros")
             local cmake_platform
             case $TARGET_PLATFORM in
@@ -166,29 +235,26 @@ build() {
                 -DTRAA_OPTION_VERSION="$VERSION" \
                 -S "$SOURCE_DIR"
             ;;
-        "android")
-            log "WARN" "Android build not implemented yet"
-            exit 1
-            ;;
         *)
-            log "ERROR" "Unsupported platform: $platform"
+            log "ERROR" "Unsupported platform: $TARGET_PLATFORM"
             exit 1
             ;;
-    esac
+        esac
 
-    # build
-    log "INFO" "Building..."
-    if [ $VERBOSE -eq 1 ]; then
-        cmake --build "$BUILD_FOLDER" --config "$BUILD_TYPE" -v
-    else
-        cmake --build "$BUILD_FOLDER" --config "$BUILD_TYPE"
-    fi
+        # build
+        log "INFO" "Building..."
+        if [ $VERBOSE -eq 1 ]; then
+            cmake --build "$BUILD_FOLDER" --config "$BUILD_TYPE" -v
+        else
+            cmake --build "$BUILD_FOLDER" --config "$BUILD_TYPE"
+        fi
 
-    if [ $? -eq 0 ]; then
-        log "INFO" "Build completed successfully"
-    else
-        log "ERROR" "Build failed"
-        exit 1
+        if [ $? -eq 0 ]; then
+            log "INFO" "Build completed successfully"
+        else
+            log "ERROR" "Build failed"
+            exit 1
+        fi
     fi
 }
 
