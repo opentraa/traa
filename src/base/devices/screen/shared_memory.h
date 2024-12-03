@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #ifndef TRAA_BASE_DEVICES_SCREEN_SHARED_MEMORY_H_
 #define TRAA_BASE_DEVICES_SCREEN_SHARED_MEMORY_H_
 
@@ -61,7 +71,7 @@ public:
   shared_memory_factory(const shared_memory_factory &) = delete;
   shared_memory_factory &operator=(const shared_memory_factory &) = delete;
 
-  virtual std::unique_ptr<shared_memory> CreateSharedMemory(size_t size) = 0;
+  virtual std::unique_ptr<shared_memory> create_shared_memory(size_t size) = 0;
 };
 
 } // namespace base
