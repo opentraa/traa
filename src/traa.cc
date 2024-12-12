@@ -10,10 +10,10 @@
 
 namespace {
 // The main queue id.
-static const traa::base::task_queue::task_queue_id g_main_queue_id = 0;
+static const traa::base::task_queue::task_queue_id_t g_main_queue_id = 0;
 
 // The main queue name.
-static const char *g_main_queue_name = "traa_main";
+static const char *k_main_queue_name = "traa_main";
 
 // TODO @sylar: how to remove this rw lock?
 // To avoid to use the global lock, we should figure out a way to resolve this situation:
@@ -21,7 +21,7 @@ static const char *g_main_queue_name = "traa_main";
 // 2. destroy the main queue before the task is executed, which will happen in multi-threading.
 // 3. task.wait() will block forever, coz the main queue is destroyed, and the task is not executed.
 //
-// TODO @sylar: remove this later, coz we use ffuture and task_queue::at_exit to resolve the issue
+// TODO @sylar: remove this later, coz we use ffuture and task_queue::at_exit_t to resolve the issue
 // above. The main queue rw lock.
 static traa::base::rw_lock g_main_queue_rw_lock;
 #define USE_MAIN_QUEUE_LOCK 0
@@ -67,7 +67,7 @@ int traa_init(const traa_config *config) {
 
   // no need to lock here coz we have rw lock in task_queue_manager
   if (!traa::base::task_queue_manager::is_task_queue_exist(g_main_queue_id) &&
-      !traa::base::task_queue_manager::create_queue(g_main_queue_id, g_main_queue_name, []() {
+      !traa::base::task_queue_manager::create_queue(g_main_queue_id, k_main_queue_name, []() {
         if (g_engine_instance) {
           delete g_engine_instance;
           g_engine_instance = nullptr;

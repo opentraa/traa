@@ -21,10 +21,8 @@
 
 namespace {
 
-typedef BOOL(WINAPI *GetProductInfoPtr)(DWORD, DWORD, DWORD, DWORD, PDWORD);
-
 // Mask to pull WOW64 access flags out of REGSAM access.
-const REGSAM kWow64AccessMask = KEY_WOW64_32KEY | KEY_WOW64_64KEY;
+const REGSAM k_wow64_access_mask = KEY_WOW64_32KEY | KEY_WOW64_64KEY;
 
 // Utility class to read, write and manipulate the Windows Registry.
 // Registry vocabulary primer: a "key" is like a folder, in which there
@@ -40,7 +38,7 @@ public:
       else
         open(rootkey, subkey, access);
     } else {
-      wow64access_ = access & kWow64AccessMask;
+      wow64access_ = access & k_wow64_access_mask;
     }
   }
 
@@ -59,7 +57,7 @@ public:
     if (result == ERROR_SUCCESS) {
       close();
       key_ = subhkey;
-      wow64access_ = access & kWow64AccessMask;
+      wow64access_ = access & k_wow64_access_mask;
     }
 
     return result;
@@ -73,7 +71,7 @@ public:
     if (result == ERROR_SUCCESS) {
       close();
       key_ = subhkey;
-      wow64access_ = access & kWow64AccessMask;
+      wow64access_ = access & k_wow64_access_mask;
     }
 
     return result;
@@ -107,21 +105,21 @@ public:
   // Reads a string into `out_value`. If `name` is null or empty, reads
   // the key's default value, if any.
   LONG read(const wchar_t *name, std::wstring &out_value) const {
-    const size_t kMaxStringLength = 1024; // This is after expansion.
+    const size_t k_max_string_length = 1024; // This is after expansion.
     // Use the one of the other forms of read if 1024 is too small for you.
-    wchar_t raw_value[kMaxStringLength];
+    wchar_t raw_value[k_max_string_length];
     DWORD type = REG_SZ, size = sizeof(raw_value);
     LONG result = read(name, raw_value, &size, &type);
     if (result == ERROR_SUCCESS) {
       if (type == REG_SZ) {
         out_value = raw_value;
       } else if (type == REG_EXPAND_SZ) {
-        wchar_t expanded[kMaxStringLength];
-        size = ::ExpandEnvironmentStringsW(raw_value, expanded, kMaxStringLength);
+        wchar_t expanded[k_max_string_length];
+        size = ::ExpandEnvironmentStringsW(raw_value, expanded, k_max_string_length);
         // Success: returns the number of wchar_t's copied
         // Fail: buffer too small, returns the size required
         // Fail: other, returns 0
-        if (size == 0 || size > kMaxStringLength) {
+        if (size == 0 || size > k_max_string_length) {
           result = ERROR_MORE_DATA;
         } else {
           out_value = expanded;
@@ -215,11 +213,11 @@ int get_ubr() {
 #else
   // The values under the CurrentVersion registry hive are mirrored under
   // the corresponding Wow6432 hive.
-  static constexpr wchar_t kRegKeyWindowsNTCurrentVersion[] =
+  static constexpr wchar_t k_reg_key_windows_nt_current_version[] =
       L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion";
 
   registry key;
-  if (key.open(HKEY_LOCAL_MACHINE, kRegKeyWindowsNTCurrentVersion, KEY_QUERY_VALUE) !=
+  if (key.open(HKEY_LOCAL_MACHINE, k_reg_key_windows_nt_current_version, KEY_QUERY_VALUE) !=
       ERROR_SUCCESS) {
     return 0;
   }
@@ -326,12 +324,11 @@ os_info::os_info()
   allocation_granularity_ = system_info.dwAllocationGranularity;
 
 #if !defined(WINUWP)
-  GetProductInfoPtr get_product_info;
   DWORD os_type;
 
   if (version_info.dwMajorVersion == 6 || version_info.dwMajorVersion == 10) {
     // Only present on Vista+.
-    get_product_info = reinterpret_cast<GetProductInfoPtr>(
+    auto get_product_info = reinterpret_cast<BOOL(WINAPI *)(DWORD, DWORD, DWORD, DWORD, PDWORD)>(
         ::GetProcAddress(::GetModuleHandleW(L"kernel32.dll"), "GetProductInfo"));
 
     get_product_info(version_info.dwMajorVersion, version_info.dwMinorVersion, 0, 0, &os_type);
@@ -411,8 +408,8 @@ std::string os_info::processor_model_name() {
   return "Unknown Processor (UWP)";
 #else
   if (processor_model_name_.empty()) {
-    const wchar_t kProcessorNameString[] = L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
-    registry key(HKEY_LOCAL_MACHINE, kProcessorNameString, KEY_READ);
+    const wchar_t k_processor_name_string[] = L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
+    registry key(HKEY_LOCAL_MACHINE, k_processor_name_string, KEY_READ);
     std::wstring value;
     key.read(L"ProcessorNameString", value);
     processor_model_name_ = traa::base::string_trans::unicode_to_utf8(value);
@@ -428,8 +425,7 @@ os_info::wow64_status os_info::get_wow64_status(HANDLE process_handle) {
   if (!IsWow64Process(process_handle, &is_wow64))
     return WOW64_UNKNOWN;
 #else
-  typedef BOOL(WINAPI * IsWow64ProcessFunc)(HANDLE, PBOOL);
-  IsWow64ProcessFunc is_wow64_process = reinterpret_cast<IsWow64ProcessFunc>(
+  auto is_wow64_process = reinterpret_cast<BOOL(WINAPI *)(HANDLE, PBOOL)>(
       GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "IsWow64Process"));
   if (!is_wow64_process)
     return WOW64_DISABLED;

@@ -1,20 +1,30 @@
-#ifndef TRAA_BASE_DEVICES_SCREEN_WIN_SCOPED_OBJECT_GDI_H_
-#define TRAA_BASE_DEVICES_SCREEN_WIN_SCOPED_OBJECT_GDI_H_
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
+#ifndef TRAA_BASE_DEVICES_SCREEN_WIN_SCOPED_GDI_OBJECT_H_
+#define TRAA_BASE_DEVICES_SCREEN_WIN_SCOPED_GDI_OBJECT_H_
 
 #include <windows.h>
 
 namespace traa {
 namespace base {
 
-template <class T, class Traits> class scoped_object_gdi {
+template <class T, class Traits> class scoped_gdi_object {
 public:
-  scoped_object_gdi() : handle_(NULL) {}
-  explicit scoped_object_gdi(T object) : handle_(object) {}
+  scoped_gdi_object() : handle_(NULL) {}
+  explicit scoped_gdi_object(T object) : handle_(object) {}
 
-  ~scoped_object_gdi() { Traits::close(handle_); }
+  ~scoped_gdi_object() { Traits::close(handle_); }
 
-  scoped_object_gdi(const scoped_object_gdi &) = delete;
-  scoped_object_gdi &operator=(const scoped_object_gdi &) = delete;
+  scoped_gdi_object(const scoped_gdi_object &) = delete;
+  scoped_gdi_object &operator=(const scoped_gdi_object &) = delete;
 
   T get() { return handle_; }
 
@@ -24,7 +34,7 @@ public:
     handle_ = object;
   }
 
-  scoped_object_gdi &operator=(T object) {
+  scoped_gdi_object &operator=(T object) {
     set(object);
     return *this;
   }
@@ -85,8 +95,7 @@ public:
 class recovery_thread_dpi_awareness_traits {
 public:
   recovery_thread_dpi_awareness_traits() = delete;
-  recovery_thread_dpi_awareness_traits(
-      const recovery_thread_dpi_awareness_traits &) = delete;
+  recovery_thread_dpi_awareness_traits(const recovery_thread_dpi_awareness_traits &) = delete;
   recovery_thread_dpi_awareness_traits &
   operator=(const recovery_thread_dpi_awareness_traits &) = delete;
 
@@ -97,14 +106,13 @@ public:
   }
 };
 
-typedef scoped_object_gdi<HBITMAP, delete_object_traits<HBITMAP>> scoped_bitmap;
-typedef scoped_object_gdi<HCURSOR, destroy_cursor_traits> scoped_cursor;
-typedef scoped_object_gdi<HICON, destroy_icon_traits> scoped_icon;
-typedef scoped_object_gdi<DPI_AWARENESS_CONTEXT,
-                          recovery_thread_dpi_awareness_traits>
-    scoped_dpi_awareness_context;
+using scoped_bitmap_t = scoped_gdi_object<HBITMAP, delete_object_traits<HBITMAP>>;
+using scoped_cursor_t = scoped_gdi_object<HCURSOR, destroy_cursor_traits>;
+using scoped_icon_t = scoped_gdi_object<HICON, destroy_icon_traits>;
+using scoped_dpi_awareness_context_t =
+    scoped_gdi_object<DPI_AWARENESS_CONTEXT, recovery_thread_dpi_awareness_traits>;
 
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_DEVICES_SCREEN_WIN_SCOPED_OBJECT_GDI_H_
+#endif // TRAA_BASE_DEVICES_SCREEN_WIN_SCOPED_GDI_OBJECT_H_

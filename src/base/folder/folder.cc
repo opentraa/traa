@@ -7,26 +7,26 @@ namespace base {
 namespace {
 
 #if defined(TRAA_OS_WINDOWS)
-const char kEndChar = '\0';
-const char kFilePathSeparators[] = "\\/";
-const char kFilePathCurrentDirectory[] = ".";
-const char kFilePathParentDirectory[] = "..";
-const char kFilePathExtensionSeparator = '.';
+const char k_end_cahr = '\0';
+const char k_file_path_separators[] = "\\/";
+const char k_file_path_cur_directory[] = ".";
+const char k_file_path_parent_directory[] = "..";
+const char k_file_path_ext_separator = '.';
 #else
-const char kEndChar = '\0';
-const char kFilePathSeparators[] = "/";
-const char kFilePathCurrentDirectory[] = ".";
-const char kFilePathParentDirectory[] = "..";
-const char kFilePathExtensionSeparator = '.';
+const char k_end_cahr = '\0';
+const char k_file_path_separators[] = "/";
+const char k_file_path_cur_directory[] = ".";
+const char k_file_path_parent_directory[] = "..";
+const char k_file_path_ext_separator = '.';
 #endif // TRAA_OS_WINDOWS
 
 static bool is_separator(const char separator) {
-  if (separator == kEndChar) {
+  if (separator == k_end_cahr) {
     return false;
   }
 
-  for (size_t i = 0; i < sizeof(kFilePathSeparators); ++i) {
-    if (separator == kFilePathSeparators[i]) {
+  for (size_t i = 0; i < sizeof(k_file_path_separators); ++i) {
+    if (separator == k_file_path_separators[i]) {
       return true;
     }
   }
@@ -50,9 +50,9 @@ std::string folder::get_filename(const std::string &path) {
   std::string filename;
   do {
     size_t separator_pos = std::string::npos;
-    size_t separators_count = sizeof(kFilePathSeparators) / sizeof(char);
+    size_t separators_count = sizeof(k_file_path_separators) / sizeof(char);
     for (size_t index = 0; index < separators_count; index++) {
-      separator_pos = path.rfind(kFilePathSeparators[index]);
+      separator_pos = path.rfind(k_file_path_separators[index]);
       if (separator_pos != std::string::npos) {
         break;
       }
@@ -98,7 +98,7 @@ std::string folder::get_file_extension(const std::string &path) {
   std::string extension;
   std::string file_name = get_filename(path);
   if (file_name.size() > 0) {
-    size_t pos = file_name.rfind(kFilePathExtensionSeparator);
+    size_t pos = file_name.rfind(k_file_path_ext_separator);
     if (pos != std::string::npos) {
       extension = file_name.substr(pos, std::string::npos);
     }
@@ -111,9 +111,9 @@ bool folder::is_directory(const std::string &path) {
   if (path.empty())
     return false;
 #if defined(TRAA_OS_WINDOWS)
-  return *path.rbegin() == kFilePathSeparators[0] || *path.rbegin() == kFilePathSeparators[1];
+  return *path.rbegin() == k_file_path_separators[0] || *path.rbegin() == k_file_path_separators[1];
 #else
-  return *path.rbegin() == kFilePathSeparators[0];
+  return *path.rbegin() == k_file_path_separators[0];
 #endif // OS_WIN
 }
 
@@ -123,14 +123,14 @@ void folder::append_filename(std::string &path, const char *filename) {
     return;
   }
 
-  if (filename == nullptr || filename[0] == kEndChar) {
+  if (filename == nullptr || filename[0] == k_end_cahr) {
     return;
   }
 
   if (is_separator(path[path.size() - 1])) {
     path += filename;
   } else {
-    path += kFilePathSeparators[0];
+    path += k_file_path_separators[0];
     path += filename;
   }
 }

@@ -18,6 +18,7 @@
 #define TRAA_OS_WINDOWS_PHONE 1
 #elif WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
 #define TRAA_OS_WINDOWS_RT 1
+#define TRAA_OS_WINDOWS_UWP 1
 #elif WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_TV_TITLE)
 #define TRAA_OS_WINDOWS_PHONE 1
 #define TRAA_OS_WINDOWS_TV_TITLE 1
@@ -89,8 +90,18 @@
 #define TRAA_OS_NRF52 1
 #endif // __CYGWIN__
 
+// Define TRAA_OS_POSIX for POSIX-compliant systems
+#if defined(TRAA_OS_LINUX) || defined(TRAA_OS_MAC) || defined(TRAA_OS_IOS) || \
+    defined(TRAA_OS_FREEBSD) || defined(TRAA_OS_OPENBSD) || defined(TRAA_OS_NETBSD) || \
+    defined(TRAA_OS_DRAGONFLY) || defined(TRAA_OS_SOLARIS) || defined(TRAA_OS_AIX) || \
+    defined(TRAA_OS_HPUX) || defined(TRAA_OS_QNX) || defined(TRAA_OS_GNU_HURD) || \
+    defined(TRAA_OS_GNU_KFREEBSD) || defined(TRAA_OS_HAIKU)
+#define TRAA_OS_POSIX 1
+#endif
+
+
 #if !defined(TRAA_OS_WINDOWS) && !defined(TRAA_OS_LINUX) && !defined(TRAA_OS_MAC) &&               \
-    !defined(TRAA_OS_IOS) && !defined(TRAA_OS_ANDROID)
+    !defined(TRAA_OS_IOS) && !defined(TRAA_OS_LINUX_ANDROID)
 #error "Do not support current target system!"
 #endif
 

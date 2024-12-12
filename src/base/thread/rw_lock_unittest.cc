@@ -58,12 +58,12 @@ TEST(rw_lock_test, multi_thread) {
   traa::base::rw_lock lock;
 
   int i = 0;
-  const int max_count = 50;
+  const int k_max_count = 50;
 
   std::thread t1([&]() {
     while (true) {
       if (lock.read_lock()) {
-        if (i >= max_count) {
+        if (i >= k_max_count) {
           lock.read_unlock();
           break;
         }
@@ -78,7 +78,7 @@ TEST(rw_lock_test, multi_thread) {
   std::thread t2([&]() {
     while (true) {
       if (lock.try_read_lock()) {
-        if (i >= max_count) {
+        if (i >= k_max_count) {
           lock.read_unlock();
           break;
         }
@@ -93,7 +93,7 @@ TEST(rw_lock_test, multi_thread) {
   std::thread t3([&]() {
     while (true) {
       if (lock.write_lock()) {
-        if (i >= max_count) {
+        if (i >= k_max_count) {
           lock.write_unlock();
           break;
         }
@@ -110,7 +110,7 @@ TEST(rw_lock_test, multi_thread) {
   std::thread t4([&]() {
     while (true) {
       if (lock.write_lock()) {
-        if (i >= max_count) {
+        if (i >= k_max_count) {
           lock.write_unlock();
           break;
         }
@@ -127,7 +127,7 @@ TEST(rw_lock_test, multi_thread) {
   std::thread t5([&]() {
     while (true) {
       if (lock.try_read_lock()) {
-        if (i >= max_count) {
+        if (i >= k_max_count) {
           lock.read_unlock();
           break;
         }
@@ -142,7 +142,7 @@ TEST(rw_lock_test, multi_thread) {
   std::thread t6([&]() {
     while (true) {
       if (lock.try_write_lock()) {
-        if (i >= max_count) {
+        if (i >= k_max_count) {
           lock.write_unlock();
           break;
         }
@@ -163,5 +163,5 @@ TEST(rw_lock_test, multi_thread) {
   t5.join();
   t6.join();
 
-  EXPECT_EQ(i, max_count);
+  EXPECT_EQ(i, k_max_count);
 }

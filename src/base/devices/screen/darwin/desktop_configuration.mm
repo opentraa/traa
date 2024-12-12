@@ -11,6 +11,7 @@
 #include "base/devices/screen/darwin/desktop_configuration.h"
 
 #include <Cocoa/Cocoa.h>
+
 #include <algorithm>
 #include <math.h>
 
@@ -19,7 +20,7 @@ namespace base {
 
 namespace {
 
-desktop_rect NSRectToDesktopRect(const NSRect &ns_rect) {
+desktop_rect to_desktop_rect(const NSRect &ns_rect) {
   return desktop_rect::make_ltrb(static_cast<int>(floor(ns_rect.origin.x)),
                                  static_cast<int>(floor(ns_rect.origin.y)),
                                  static_cast<int>(ceil(ns_rect.origin.x + ns_rect.size.width)),
@@ -28,12 +29,12 @@ desktop_rect NSRectToDesktopRect(const NSRect &ns_rect) {
 
 // Inverts the position of `rect` from bottom-up coordinates to top-down,
 // relative to `bounds`.
-void InvertRectYOrigin(const desktop_rect &bounds, desktop_rect *rect) {
+void invert_rect_y_origin(const desktop_rect &bounds, desktop_rect *rect) {
   *rect = desktop_rect::make_xywh(rect->left(), bounds.bottom() - rect->bottom(), rect->width(),
                                   rect->height());
 }
 
-display_configuration GetConfigurationForScreen(NSScreen *screen) {
+display_configuration get_configuration_for_screen(NSScreen *screen) {
   display_configuration display_config;
 
   // Fetch the NSScreenNumber, which is also the CGDirectDisplayID.
@@ -43,11 +44,11 @@ display_configuration GetConfigurationForScreen(NSScreen *screen) {
 
   // Determine the display's logical & physical dimensions.
   NSRect ns_bounds = [screen frame];
-  display_config.bounds = NSRectToDesktopRect(ns_bounds);
+  display_config.bounds = to_desktop_rect(ns_bounds);
 
   display_config.dip_to_pixel_scale = [screen backingScaleFactor];
   NSRect ns_pixel_bounds = [screen convertRectToBacking:ns_bounds];
-  display_config.pixel_bounds = NSRectToDesktopRect(ns_pixel_bounds);
+  display_config.pixel_bounds = to_desktop_rect(ns_pixel_bounds);
 
   // Determine if the display is built-in or external.
   display_config.is_builtin = CGDisplayIsBuiltin(display_config.id);
@@ -84,7 +85,7 @@ desktop_configuration desktop_configuration::current(coordinate_origin origin) {
   // Iterator over the monitors, adding the primary monitor and monitors whose
   // DPI match that of the primary monitor.
   for (NSUInteger i = 0; i < [screens count]; ++i) {
-    display_configuration display_config = GetConfigurationForScreen([screens objectAtIndex:i]);
+    display_configuration display_config = get_configuration_for_screen([screens objectAtIndex:i]);
 
     if (i == 0)
       desktop_config.dip_to_pixel_scale = display_config.dip_to_pixel_scale;
@@ -93,7 +94,7 @@ desktop_configuration desktop_configuration::current(coordinate_origin origin) {
     // we need to invert the positions of secondary monitors relative to the
     // primary one (the primary monitor's position is (0,0) in both systems).
     if (i > 0 && origin == COORDINATE_TOP_LEFT) {
-      InvertRectYOrigin(desktop_config.displays[0].bounds, &display_config.bounds);
+      invert_rect_y_origin(desktop_config.displays[0].bounds, &display_config.bounds);
       // `display_bounds` is density dependent, so we need to convert the
       // primay monitor's position into the secondary monitor's density context.
       float scaling_factor =
@@ -103,7 +104,7 @@ desktop_configuration desktop_configuration::current(coordinate_origin origin) {
           desktop_config.displays[0].pixel_bounds.top() * scaling_factor,
           desktop_config.displays[0].pixel_bounds.right() * scaling_factor,
           desktop_config.displays[0].pixel_bounds.bottom() * scaling_factor);
-      InvertRectYOrigin(primary_bounds, &display_config.pixel_bounds);
+      invert_rect_y_origin(primary_bounds, &display_config.pixel_bounds);
     }
 
     // Add the display to the configuration.
@@ -135,7 +136,7 @@ bool desktop_configuration::equals(const desktop_configuration &other) {
 
 const display_configuration *desktop_configuration::find_by_id(CGDirectDisplayID id) {
   bool is_builtin = CGDisplayIsBuiltin(id);
-  for (display_configuration_array::const_iterator it = displays.begin(); it != displays.end();
+  for (display_configuration_array_t::const_iterator it = displays.begin(); it != displays.end();
        ++it) {
     // The MBP having both discrete and integrated graphic cards will do
     // automate graphics switching by default. When it switches from discrete to

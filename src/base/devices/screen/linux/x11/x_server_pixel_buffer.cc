@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #include "base/devices/screen/linux/x11/x_server_pixel_buffer.h"
 
 #include <X11/Xutil.h>
@@ -79,7 +89,7 @@ void SlowBlit(XImage *x_image, uint8_t *src_pos, const desktop_rect &rect, deskt
   int bits_per_pixel = x_image->bits_per_pixel;
 
   uint8_t *dst_pos = frame->data() + frame->stride() * dst_y;
-  dst_pos += dst_x * desktop_frame::bytes_per_pixel;
+  dst_pos += dst_x * desktop_frame::k_bytes_per_pixel;
   // TODO(hclam): Optimize, perhaps using MMX code or by converting to
   // YUV directly.
   // TODO(sergeyu): This code doesn't handle XImage byte order properly and
