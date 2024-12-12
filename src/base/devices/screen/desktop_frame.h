@@ -1,7 +1,15 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #ifndef TRAA_BASE_DEVICES_SCREEN_DESKTOP_FRAME_H_
 #define TRAA_BASE_DEVICES_SCREEN_DESKTOP_FRAME_H_
-
-#include <traa/base.h>
 
 #include "base/devices/screen/desktop_geometry.h"
 #include "base/devices/screen/desktop_region.h"
@@ -17,7 +25,7 @@ namespace base {
 class desktop_frame {
 public:
   // desktop_frame objects always hold BGRA data.
-  static constexpr int bytes_per_pixel = 4;
+  static constexpr int k_bytes_per_pixel = 4;
 
   virtual ~desktop_frame();
 
@@ -91,11 +99,11 @@ public:
   // A helper to return the data pointer of a frame at the specified position.
   uint8_t *get_frame_data_at_pos(const desktop_vector &pos) const;
 
-  // The DesktopCapturer implementation which generates current desktop_frame.
-  // Not all DesktopCapturer implementations set this field; it's set to
+  // The desktop_capturer implementation which generates current desktop_frame.
+  // Not all desktop_capturer implementations set this field; it's set to
   // kUnknown by default.
-  traa_screen_capturer_id capturer_id() const { return capturer_id_; }
-  void set_capturer_id(traa_screen_capturer_id capturer_id) { capturer_id_ = capturer_id; }
+  uint32_t get_capturer_id() const { return capturer_id_; }
+  void set_capturer_id(uint32_t capturer_id) { capturer_id_ = capturer_id; }
 
   // Copies various information from `other`. Anything initialized in
   // constructor are not copied.
@@ -147,7 +155,7 @@ private:
   desktop_vector dpi_;
   bool may_contain_cursor_ = false;
   int64_t capture_time_ms_;
-  traa_screen_capturer_id capturer_id_;
+  uint32_t capturer_id_;
   std::vector<uint8_t> icc_profile_;
 };
 
@@ -171,18 +179,17 @@ public:
 class shared_memory_desktop_frame : public desktop_frame {
 public:
   // May return nullptr if `shared_memory_factory` failed to create a
-  // shared_memory instance.
+  // memory instance.
   // `shared_memory_factory` should not be nullptr.
-  static std::unique_ptr<desktop_frame> Create(desktop_size size,
-                                               shared_memory_factory *shared_memory_factory);
+  static std::unique_ptr<desktop_frame> create(desktop_size size,
+                                               shared_memory_factory *memory_factory);
 
-  // Takes ownership of `shared_memory`.
+  // Takes ownership of `memory`.
   // Deprecated, use the next constructor.
-  shared_memory_desktop_frame(desktop_size size, int stride, shared_memory *shared_memory);
+  shared_memory_desktop_frame(desktop_size size, int stride, shared_memory *memory);
 
   // Preferred.
-  shared_memory_desktop_frame(desktop_size size, int stride,
-                              std::unique_ptr<shared_memory> shared_memory);
+  shared_memory_desktop_frame(desktop_size size, int stride, std::unique_ptr<shared_memory> memory);
 
   ~shared_memory_desktop_frame() override;
 
@@ -197,7 +204,7 @@ private:
   // std::unique_ptr<T>::operator->() may trigger assertion failure if it has
   // been evaluated after std::unique_ptr<T>::release(). By using this
   // constructor, std::unique_ptr<T>::operator->() won't be involved anymore.
-  shared_memory_desktop_frame(desktop_rect rect, int stride, shared_memory *shared_memory);
+  shared_memory_desktop_frame(desktop_rect rect, int stride, shared_memory *memory);
 };
 
 } // namespace base

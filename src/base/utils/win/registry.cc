@@ -11,12 +11,12 @@
 namespace traa {
 namespace base {
 
-namespace {
+inline namespace {
 
 // RegEnumValue() reports the number of characters from the name that were
 // written to the buffer, not how many there are. This constant is the maximum
 // name size, such that a buffer with this size should read any name.
-constexpr DWORD MAX_REGISTRY_NAME_SIZE = 16384;
+constexpr DWORD k_max_registry_name_size = 16384;
 
 // Registry values are read as BYTE* but can have wchar_t* data whose last
 // wchar_t is truncated. This function converts the reported |byte_size| to
@@ -26,9 +26,9 @@ inline DWORD to_wchar_size(DWORD byte_size) {
 }
 
 // Mask to pull WOW64 access flags out of REGSAM access.
-constexpr REGSAM kWow64AccessMask = KEY_WOW64_32KEY | KEY_WOW64_64KEY;
+constexpr REGSAM k_wow64_access_mask = KEY_WOW64_32KEY | KEY_WOW64_64KEY;
 
-constexpr DWORD kInvalidIterValue = static_cast<DWORD>(-1);
+constexpr DWORD k_invalid_iter_value = static_cast<DWORD>(-1);
 
 // Reserves enough memory in |str| to accommodate |length_with_null| characters,
 // sets the size of |str| to |length_with_null - 1| characters, and returns a
@@ -73,7 +73,7 @@ reg_key::reg_key(HKEY rootkey, const wchar_t *subkey, REGSAM access) {
       (void)open(rootkey, subkey, access);
     }
   } else {
-    wow64access_ = access & kWow64AccessMask;
+    wow64access_ = access & k_wow64_access_mask;
   }
 }
 
@@ -104,7 +104,7 @@ LONG reg_key::create_with_disposition(HKEY rootkey, const wchar_t *subkey, DWORD
   if (result == ERROR_SUCCESS) {
     close();
     key_ = subhkey;
-    wow64access_ = access & kWow64AccessMask;
+    wow64access_ = access & k_wow64_access_mask;
   }
 
   return result;
@@ -122,7 +122,7 @@ LONG reg_key::create_key(const wchar_t *name, REGSAM access) {
   // explicitly use the same flag. Otherwise, there can be unexpected
   // behavior.
   // http://msdn.microsoft.com/en-us/library/windows/desktop/aa384129.aspx.
-  if ((access & kWow64AccessMask) != wow64access_) {
+  if ((access & k_wow64_access_mask) != wow64access_) {
     return ERROR_INVALID_PARAMETER;
   }
   HKEY subkey = nullptr;
@@ -131,7 +131,7 @@ LONG reg_key::create_key(const wchar_t *name, REGSAM access) {
   if (result == ERROR_SUCCESS) {
     close();
     key_ = subkey;
-    wow64access_ = access & kWow64AccessMask;
+    wow64access_ = access & k_wow64_access_mask;
   }
 
   return result;
@@ -153,7 +153,7 @@ LONG reg_key::open_key(const wchar_t *relative_key_name, REGSAM access) {
   // explicitly use the same flag. Otherwise, there can be unexpected
   // behavior.
   // http://msdn.microsoft.com/en-us/library/windows/desktop/aa384129.aspx.
-  if ((access & kWow64AccessMask) != wow64access_) {
+  if ((access & k_wow64_access_mask) != wow64access_) {
     return ERROR_INVALID_PARAMETER;
   }
   HKEY subkey = nullptr;
@@ -164,7 +164,7 @@ LONG reg_key::open_key(const wchar_t *relative_key_name, REGSAM access) {
   if (result == ERROR_SUCCESS) {
     close();
     key_ = subkey;
-    wow64access_ = access & kWow64AccessMask;
+    wow64access_ = access & k_wow64_access_mask;
   }
   return result;
 }
@@ -280,21 +280,21 @@ LONG reg_key::read_value_int64(const wchar_t *name, int64_t *out_value) const {
 }
 
 LONG reg_key::read_value(const wchar_t *name, std::wstring *out_value) const {
-  const size_t kMaxStringLength = 1024; // This is after expansion.
+  const size_t k_max_string_length = 1024; // This is after expansion.
   // Use the one of the other forms of read_value if 1024 is too small for you.
-  wchar_t raw_value[kMaxStringLength];
+  wchar_t raw_value[k_max_string_length];
   DWORD type = REG_SZ, size = sizeof(raw_value);
   LONG result = read_value(name, raw_value, &size, &type);
   if (result == ERROR_SUCCESS) {
     if (type == REG_SZ) {
       *out_value = raw_value;
     } else if (type == REG_EXPAND_SZ) {
-      wchar_t expanded[kMaxStringLength];
-      size = ExpandEnvironmentStringsW(raw_value, expanded, kMaxStringLength);
+      wchar_t expanded[k_max_string_length];
+      size = ExpandEnvironmentStringsW(raw_value, expanded, k_max_string_length);
       // Success: returns the number of wchar_t's copied
       // Fail: buffer too small, returns the size required
       // Fail: other, returns 0
-      if (size == 0 || size > kMaxStringLength) {
+      if (size == 0 || size > k_max_string_length) {
         result = ERROR_MORE_DATA;
       } else {
         *out_value = expanded;
@@ -371,7 +371,7 @@ LONG reg_key::open(HKEY rootkey, const wchar_t *subkey, DWORD options, REGSAM ac
   if (result == ERROR_SUCCESS) {
     close();
     key_ = subhkey;
-    wow64access_ = access & kWow64AccessMask;
+    wow64access_ = access & k_wow64_access_mask;
   }
 
   return result;
@@ -509,10 +509,10 @@ DWORD reg_value_iterator::value_count() const {
   return count;
 }
 
-bool reg_value_iterator::valid() const { return key_ != nullptr && index_ != kInvalidIterValue; }
+bool reg_value_iterator::valid() const { return key_ != nullptr && index_ != k_invalid_iter_value; }
 
 void reg_value_iterator::operator++() {
-  if (index_ != kInvalidIterValue)
+  if (index_ != k_invalid_iter_value)
     --index_;
   read();
 }
@@ -537,7 +537,7 @@ bool reg_value_iterator::read() {
       if (value_size_in_wchars + 1 > value_.size())
         value_.resize(value_size_in_wchars + 1, '\0');
       value_size_ = static_cast<DWORD>((value_.size() - 1) * sizeof(wchar_t));
-      name_size = name_size == capacity ? MAX_REGISTRY_NAME_SIZE : capacity;
+      name_size = name_size == capacity ? k_max_registry_name_size : capacity;
       result = ::RegEnumValueW(key_, index_, write_info(&name_, name_size), &name_size, nullptr,
                                &type_, reinterpret_cast<BYTE *>(value_.data()), &value_size_);
     }
@@ -579,10 +579,10 @@ DWORD reg_key_iterator::sub_key_count() const {
   return count;
 }
 
-bool reg_key_iterator::valid() const { return key_ != nullptr && index_ != kInvalidIterValue; }
+bool reg_key_iterator::valid() const { return key_ != nullptr && index_ != k_invalid_iter_value; }
 
 void reg_key_iterator::operator++() {
-  if (index_ != kInvalidIterValue)
+  if (index_ != k_invalid_iter_value)
     --index_;
   read();
 }

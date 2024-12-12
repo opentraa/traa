@@ -18,7 +18,7 @@ void thread_util::set_thread_name(const char *name) {
   // See
   // https://learn.microsoft.com/en-us/visualstudio/debugger/tips-for-debugging-threads?view=vs-2022&tabs=csharp
   // for more information on setting thread names in Windows.
-  const DWORD MS_VC_EXCEPTION = 0x406D1388;
+  constexpr DWORD MS_VC_EXCEPTION = 0x406D1388;
 #pragma pack(push, 8)
   typedef struct tagTHREADNAME_INFO {
     DWORD dwType;     // Must be 0x1000.

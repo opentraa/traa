@@ -46,7 +46,7 @@ struct display_configuration {
   bool is_builtin;
 };
 
-typedef std::vector<display_configuration> display_configuration_array;
+using display_configuration_array_t = std::vector<display_configuration> ;
 
 // Describes the configuration of the whole desktop.
 struct desktop_configuration {
@@ -87,7 +87,7 @@ struct desktop_configuration {
   float dip_to_pixel_scale = 1.0f;
 
   // Configurations of the displays making up the desktop area.
-  display_configuration_array displays;
+  display_configuration_array_t displays;
 };
 
 } // namespace base

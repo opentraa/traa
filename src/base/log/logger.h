@@ -40,6 +40,12 @@
 #define LOG_API_ARGS_6(ARG1, ARG2, ARG3, ARG4, ARG5, ARG6)                                         \
   LOG_INFO("call {}({}, {}, {}, {}, {}, {})", FUNCTION_MACRO, ARG1, ARG2, ARG3, ARG4, ARG5, ARG6)
 
+#define LOG_EVENT(TAG, ...) LOG_INFO("[{}] {}", TAG, __VA_ARGS__)
+#define LOG_EVENT_COND(TAG, CONDITION, ...)                                                        \
+  if (CONDITION) {                                                                                 \
+    LOG_EVENT(TAG, __VA_ARGS__);                                                                   \
+  }
+
 namespace traa {
 namespace base {
 /**

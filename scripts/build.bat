@@ -25,7 +25,7 @@ if "%ENABLE_ANSI%"=="1" (
 :: Default values
 set "BUILD_ARCH=x64"
 set "BUILD_TYPE=Release"
-set "BUILD_FOLDER=%cd%\build"
+set "BUILD_FOLDER=%cd%\build\win"
 set "BIN_FOLDER=%cd%\bin"
 set "SOURCE_DIR=%cd%"
 set "VERSION=0.0.1"
@@ -62,7 +62,7 @@ goto:eof
 :show_usage
     echo Usage: build.bat [options]
     echo Options:
-    echo   -a, --arch              Architecture (Win32/x64) [default: x64]
+    echo   -a, --arch              Architecture (Win32/x64/ARM64) [default: x64]
     echo   -t, --build-type        Build type (Debug/Release) [default: Release]
     echo   -f, --build-folder      Build folder path [default: build]
     echo   -b, --bin-folder        Binary output folder [default: bin]
