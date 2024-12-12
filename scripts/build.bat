@@ -25,7 +25,7 @@ if "%ENABLE_ANSI%"=="1" (
 :: Default values
 set "BUILD_ARCH=x64"
 set "BUILD_TYPE=Release"
-set "BUILD_FOLDER=%cd%\build"
+set "BUILD_FOLDER=%cd%\build\win"
 set "BIN_FOLDER=%cd%\bin"
 set "SOURCE_DIR=%cd%"
 set "VERSION=0.0.1"

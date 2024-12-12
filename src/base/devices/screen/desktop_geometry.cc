@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #include "base/devices/screen/desktop_geometry.h"
 
 #include <algorithm>
@@ -15,7 +25,7 @@ bool desktop_rect::contains(const desktop_rect &rect) const {
          rect.bottom() <= bottom();
 }
 
-void desktop_rect::intersect_width(const desktop_rect &rect) {
+void desktop_rect::intersect_with(const desktop_rect &rect) {
   left_ = std::max(left(), rect.left());
   top_ = std::max(top(), rect.top());
   right_ = std::min(right(), rect.right());

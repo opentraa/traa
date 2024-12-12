@@ -90,7 +90,7 @@
 #endif // __CYGWIN__
 
 #if !defined(TRAA_OS_WINDOWS) && !defined(TRAA_OS_LINUX) && !defined(TRAA_OS_MAC) &&               \
-    !defined(TRAA_OS_IOS) && !defined(TRAA_OS_ANDROID)
+    !defined(TRAA_OS_IOS) && !defined(TRAA_OS_LINUX_ANDROID)
 #error "Do not support current target system!"
 #endif
 

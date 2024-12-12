@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #ifndef TRAA_BASE_DEVICES_SCREEN_DESKTOP_REGION_H_
 #define TRAA_BASE_DEVICES_SCREEN_DESKTOP_REGION_H_
 
@@ -31,7 +41,7 @@ private:
     int32_t right;
   };
 
-  using row_span_set = std::vector<row_span>;
+  using row_span_set_t = std::vector<row_span>;
 
   // row represents a single row of a region. A row is set of rectangles that
   // have the same vertical position.
@@ -44,13 +54,13 @@ private:
     int32_t top;
     int32_t bottom;
 
-    row_span_set spans;
+    row_span_set_t spans;
   };
 
   // Type used to store list of rows in the region. The bottom position of row
   // is used as the key so that rows are always ordered by their position. The
   // map stores pointers to make Translate() more efficient.
-  typedef std::map<int, row *> rows;
+  using rows_t = std::map<int, row *>;
 
 public:
   // iterator that can be used to iterate over rectangles of a desktop_region.
@@ -73,9 +83,9 @@ public:
     // into `rect_`, to generate more efficient output.
     void update_current_rect();
 
-    rows::const_iterator row_;
-    rows::const_iterator previous_row_;
-    row_span_set::const_iterator row_span_;
+    rows_t::const_iterator row_;
+    rows_t::const_iterator previous_row_;
+    row_span_set_t::const_iterator row_span_;
     desktop_rect rect_;
   };
 
@@ -135,19 +145,19 @@ private:
   static bool is_span_in_row(const row &r, const row_span &rect);
 
   // Calculates the intersection of two sets of spans.
-  static void intersect_rows(const row_span_set &set1, const row_span_set &set2,
-                             row_span_set *output);
+  static void intersect_rows(const row_span_set_t &set1, const row_span_set_t &set2,
+                             row_span_set_t *output);
 
-  static void subtract_rows(const row_span_set &set_a, const row_span_set &set_b,
-                            row_span_set *output);
+  static void subtract_rows(const row_span_set_t &set_a, const row_span_set_t &set_b,
+                            row_span_set_t *output);
 
   // Merges `row` with the row above it if they contain the same spans. Doesn't
   // do anything if called with `row` set to rows_.begin() (i.e. first row of
   // the region). If the rows were merged `row` remains a valid iterator to the
   // merged row.
-  void merge_with_preceding_row(rows::iterator r);
+  void merge_with_preceding_row(rows_t::iterator r);
 
-  rows rows_;
+  rows_t rows_;
 };
 
 } // namespace base

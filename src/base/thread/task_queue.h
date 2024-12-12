@@ -185,8 +185,8 @@ class task_queue : public std::enable_shared_from_this<task_queue> {
   DISALLOW_COPY_AND_ASSIGN(task_queue);
 
 public:
-  using task_queue_id = uint32_t;
-  using at_exit = std::function<void()>;
+  using task_queue_id_t = uint32_t;
+  using at_exit_t = std::function<void()>;
 
 private:
   friend class task_queue_manager;
@@ -204,8 +204,8 @@ public:
    * @param id The ID of the task queue.
    * @param name The name of the task queue.
    */
-  explicit task_queue(std::uintptr_t tls_key, task_queue_id id, const char *name,
-                      at_exit exit = nullptr)
+  explicit task_queue(std::uintptr_t tls_key, task_queue_id_t id, const char *name,
+                      at_exit_t exit = nullptr)
       : t_id_(0), tls_key_(tls_key), id_(id), name_(name), exit_(exit),
         work_(asio::make_work_guard(aio_)) {
     t_ = std::thread([this] {
@@ -238,8 +238,8 @@ public:
    * @param name The name of the task queue.
    * @return A shared pointer to the newly created task queue.
    */
-  static std::shared_ptr<task_queue> make_queue(std::uintptr_t tls_key, task_queue_id id,
-                                                const char *name, at_exit exit = nullptr) {
+  static std::shared_ptr<task_queue> make_queue(std::uintptr_t tls_key, task_queue_id_t id,
+                                                const char *name, at_exit_t exit = nullptr) {
     return std::shared_ptr<task_queue>(new task_queue(tls_key, id, name, exit));
   }
 
@@ -274,7 +274,7 @@ public:
    *
    * @return The ID of the task queue.
    */
-  task_queue_id id() const { return id_.load(); }
+  task_queue_id_t id() const { return id_.load(); }
 
   /**
    * @brief Gets the name of the task queue.
@@ -429,9 +429,9 @@ private:
   std::thread t_;                       // The thread object that runs the io_context.
   std::mutex t_mutex_;                  // The mutex to protect the thread.
   std::atomic<std::uintptr_t> tls_key_; // The TLS key for the task queue.
-  std::atomic<task_queue_id> id_;       // The ID of the task queue.
+  std::atomic<task_queue_id_t> id_;       // The ID of the task queue.
   std::atomic<std::uintptr_t> t_id_;    // The ID of the thread running the task queue.
-  at_exit exit_;                        // The function to be executed at exit.
+  at_exit_t exit_;                        // The function to be executed at exit.
 
   asio::io_context aio_; // The io_context for asynchronous task execution.
   asio::executor_work_guard<asio::io_context::executor_type>
@@ -561,8 +561,8 @@ public:
    * already exists, an error code is returned. Otherwise, the task queue is registered and an error
    * code indicating success is returned.
    */
-  static std::shared_ptr<task_queue> create_queue(task_queue::task_queue_id id, const char *name,
-                                                  task_queue::at_exit exit = nullptr) {
+  static std::shared_ptr<task_queue> create_queue(task_queue::task_queue_id_t id, const char *name,
+                                                  task_queue::at_exit_t exit = nullptr) {
     LOG_API_ARGS_2(id, name);
 
     auto &self = instance();
@@ -587,7 +587,7 @@ public:
    * specified ID does not exist, an error code is returned. Otherwise, the task queue is
    * unregistered and an error code indicating success is returned.
    */
-  static int release_queue(task_queue::task_queue_id id) {
+  static int release_queue(task_queue::task_queue_id_t id) {
     LOG_API_ARGS_1(id);
 
     auto &self = instance();
@@ -617,7 +617,7 @@ public:
    * ID does not exist, nullptr is returned. Otherwise, a shared pointer to the task queue is
    * returned.
    */
-  static std::shared_ptr<task_queue> get_task_queue(task_queue::task_queue_id id) {
+  static std::shared_ptr<task_queue> get_task_queue(task_queue::task_queue_id_t id) {
     // LOG_API_ARGS_1(id);
 
     auto &self = instance();
@@ -637,7 +637,7 @@ public:
    * @param id The ID of the task queue to check.
    * @return `true` if the task queue exists, `false` otherwise.
    */
-  static bool is_task_queue_exist(task_queue::task_queue_id id) {
+  static bool is_task_queue_exist(task_queue::task_queue_id_t id) {
     auto &self = instance();
 
     rw_lock_guard guard(self.lock_, false);
@@ -656,7 +656,7 @@ public:
     return queue != nullptr;
   }
 
-  static bool is_on_task_queue(task_queue::task_queue_id id) {
+  static bool is_on_task_queue(task_queue::task_queue_id_t id) {
     auto &self = instance();
 
     auto queue = static_cast<task_queue *>(thread_util::tls_get(self.tls_key_.load()));
@@ -695,7 +695,7 @@ public:
    * specified ID does not exist, nullptr is returned. Otherwise, the task is posted to the task
    * queue and a waitable_future object representing the result of the task is returned.
    */
-  template <typename F> static auto post_task(task_queue::task_queue_id id, F &&f) {
+  template <typename F> static auto post_task(task_queue::task_queue_id_t id, F &&f) {
     // LOG_API_ARGS_2(id, reinterpret_cast<std::uintptr_t>(&f));
 
     auto queue = get_task_queue(id);
@@ -736,7 +736,7 @@ private:
   rw_lock lock_;
 
   // The task queues.
-  std::unordered_map<task_queue::task_queue_id, std::shared_ptr<task_queue>> task_queues_;
+  std::unordered_map<task_queue::task_queue_id_t, std::shared_ptr<task_queue>> task_queues_;
 };
 
 } // namespace base

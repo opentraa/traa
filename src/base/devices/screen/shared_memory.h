@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #ifndef TRAA_BASE_DEVICES_SCREEN_SHARED_MEMORY_H_
 #define TRAA_BASE_DEVICES_SCREEN_SHARED_MEMORY_H_
 
@@ -21,18 +31,18 @@ public:
 #if defined(TRAA_OS_WINDOWS)
   // Forward declare HANDLE in a windows.h compatible way so that we can avoid
   // including windows.h.
-  typedef void *NATIVE_HANDLE;
-  static const NATIVE_HANDLE kInvalidHandle;
+  using native_handle_t = void *;
+  static const native_handle_t k_invalid_native_handle;
 #else
-  typedef int NATIVE_HANDLE;
-  static const NATIVE_HANDLE kInvalidHandle;
+  using native_handle_t = int;
+  static const native_handle_t k_invalid_native_handle;
 #endif
 
   void *data() const { return data_; }
   size_t size() const { return size_; }
 
   // Platform-specific handle of the buffer.
-  NATIVE_HANDLE handle() const { return handle_; }
+  native_handle_t handle() const { return handle_; }
 
   // Integer identifier that can be used used by consumers of DesktopCapturer
   // interface to identify shared memory buffers it created.
@@ -44,11 +54,11 @@ public:
   shared_memory &operator=(const shared_memory &) = delete;
 
 protected:
-  shared_memory(void *data, size_t size, NATIVE_HANDLE handle, int id);
+  shared_memory(void *data, size_t size, native_handle_t handle, int id);
 
   void *const data_;
   const size_t size_;
-  const NATIVE_HANDLE handle_;
+  const native_handle_t handle_;
   const int id_;
 };
 
@@ -61,7 +71,7 @@ public:
   shared_memory_factory(const shared_memory_factory &) = delete;
   shared_memory_factory &operator=(const shared_memory_factory &) = delete;
 
-  virtual std::unique_ptr<shared_memory> CreateSharedMemory(size_t size) = 0;
+  virtual std::unique_ptr<shared_memory> create_shared_memory(size_t size) = 0;
 };
 
 } // namespace base
