@@ -4,7 +4,7 @@
 #include "base/devices/screen/utils.h"
 #include "base/devices/screen/win/capture_utils.h"
 #include "base/devices/screen/win/cursor.h"
-#include "base/devices/screen/win/scoped_object_gdi.h"
+#include "base/devices/screen/win/scoped_gdi_object.h"
 #include "base/log/logger.h"
 #include "base/strings/string_trans.h"
 #include "base/utils/win/version.h"
@@ -30,26 +30,6 @@ struct enumerator_param {
   std::vector<traa_screen_source_info> infos;
   thumbnail *thumbnail_instance;
 };
-
-// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-internalgetwindowtext
-// [This function is not intended for general use. It may be altered or unavailable in subsequent
-// versions of Windows.]
-//
-// Copies the text of the specified window's title bar (if it has one) into a buffer.
-//
-// This function is similar to the GetWindowText function. However, it obtains the window text
-// directly from the window structure associated with the specified window's handle and then always
-// provides the text as a Unicode string. This is unlike GetWindowText which obtains the text by
-// sending the window a WM_GETTEXT message. If the specified window is a control, the text of the
-// control is obtained.
-//
-// This function was not included in the SDK headers and libraries until Windows XP with Service
-// Pack 1 (SP1) and Windows Server 2003.
-int get_window_text_safe(HWND window, LPWSTR p_string, int cch_max_count) {
-  // If the window has no title bar or text, if the title bar is empty, or if
-  // the window or control handle is invalid, the return value is zero.
-  return ::InternalGetWindowText(window, p_string, cch_max_count);
-}
 
 int get_window_process_path(HWND window, wchar_t *path, int max_count) {
   DWORD process_id;
@@ -179,7 +159,7 @@ bool get_window_maximized_rect(HWND window, desktop_rect *intersects_rect) {
   if (!get_window_owned_screen_work_rect(window, &work_rect))
     return false;
 
-  intersects_rect->intersect_width(work_rect);
+  intersects_rect->intersect_with(work_rect);
   return true;
 }
 
@@ -201,7 +181,7 @@ bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t
     return false;
   }
 
-  scoped_icon icon(hicon);
+  scoped_icon_t icon(hicon);
 
   std::unique_ptr<mouse_cursor> cursor(create_mouse_cursor_from_handle(::GetDC(NULL), icon));
   if (!cursor) {
@@ -225,7 +205,7 @@ bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t
 
   libyuv::ARGBScale(cursor->image()->data(), cursor->image()->stride(),
                     cursor->image()->size().width(), cursor->image()->size().height(), *icon_data,
-                    scaled_size.width() * desktop_frame::bytes_per_pixel, scaled_size.width(),
+                    scaled_size.width() * desktop_frame::k_bytes_per_pixel, scaled_size.width(),
                     scaled_size.height(), libyuv::kFilterBox);
 
   size = scaled_size.to_traa_size();
@@ -273,8 +253,11 @@ BOOL WINAPI enum_windows_cb(HWND window, LPARAM lParam) {
 
   // skip windows which are not responding unless the
   // TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE flag is set.
-  if (!capture_utils::is_window_response(window) &&
-      !(param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE)) {
+  //
+  // optimization: adjust the order of the checks to avoid calling is_window_response when it is not
+  // needed.
+  if (!(param->external_flags & TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE) &&
+      !capture_utils::is_window_response(window)) {
     return TRUE;
   }
 
@@ -289,17 +272,18 @@ BOOL WINAPI enum_windows_cb(HWND window, LPARAM lParam) {
   // the thread running their message loop never waits on this operation, or use
   // the option to exclude these windows from the source list.
   //
-  // skip windows owned by the current process if the TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS
-  // flag is set.
+  // skip windows owned by the current process if the
+  // TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS_WINDOWS flag is set.
   bool owned_by_current_process = capture_utils::is_window_owned_by_current_process(window);
-  if ((param->external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS) &&
+  if ((param->external_flags & TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS_WINDOWS) &&
       owned_by_current_process) {
     return TRUE;
   }
 
   bool has_title = false;
-  WCHAR window_title[TRAA_MAX_DEVICE_NAME_LENGTH] = L"";
-  if (get_window_text_safe(window, window_title, TRAA_MAX_DEVICE_NAME_LENGTH - 1) > 0) {
+  wchar_t window_title[TRAA_MAX_DEVICE_NAME_LENGTH] = L"";
+  if (capture_utils::get_window_text_safe(window, window_title, TRAA_MAX_DEVICE_NAME_LENGTH - 1) >
+      0) {
     has_title = true;
   } else {
     LOG_ERROR("get window title failed: {}", ::GetLastError());
@@ -438,7 +422,7 @@ int enum_screens(enumerator_param &param) {
   for (int device_index = 0;; ++device_index) {
     DISPLAY_DEVICEW device;
     device.cb = sizeof(device);
-    enum_result = EnumDisplayDevicesW(NULL, device_index, &device, 0);
+    enum_result = ::EnumDisplayDevicesW(NULL, device_index, &device, 0);
 
     // `enum_result` is 0 if we have enumerated all devices.
     if (!enum_result) {
@@ -453,7 +437,7 @@ int enum_screens(enumerator_param &param) {
     DEVMODEW device_mode;
     device_mode.dmSize = sizeof(device_mode);
     device_mode.dmDriverExtra = 0;
-    BOOL result = EnumDisplaySettingsExW(device.DeviceName, ENUM_CURRENT_SETTINGS, &device_mode, 0);
+    BOOL result = ::EnumDisplaySettingsExW(device.DeviceName, ENUM_CURRENT_SETTINGS, &device_mode, 0);
     if (!result) {
       break;
     }
