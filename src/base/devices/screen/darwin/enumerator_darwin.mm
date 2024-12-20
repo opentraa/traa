@@ -1,6 +1,17 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #include "base/devices/screen/enumerator.h"
 
 #include "base/devices/screen/darwin/desktop_configuration.h"
+#include "base/devices/screen/darwin/window_list_utils.h"
 #include "base/devices/screen/desktop_geometry.h"
 #include "base/devices/screen/utils.h"
 #include "base/folder/folder.h"
@@ -17,139 +28,6 @@
 
 namespace traa {
 namespace base {
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-const-variable"
-
-// WindowName of the status indicator dot shown since Monterey in the taskbar.
-// Testing on 12.2.1 shows this is independent of system language setting.
-const CFStringRef kStatusIndicator = CFSTR("StatusIndicator");
-const CFStringRef kStatusIndicatorOwnerName = CFSTR("Window Server");
-
-#pragma clang diagnostic pop
-
-bool cfstring_to_utf8(const CFStringRef str16, std::string *str8) {
-  size_t maxlen =
-      CFStringGetMaximumSizeForEncoding(CFStringGetLength(str16), kCFStringEncodingUTF8) + 1;
-  std::unique_ptr<char[]> buffer(new char[maxlen]);
-  if (!buffer || !CFStringGetCString(str16, buffer.get(), maxlen, kCFStringEncodingUTF8)) {
-    return false;
-  }
-  str8->assign(buffer.get());
-  return true;
-}
-
-// Get CFDictionaryRef from `id` and call `on_window` against it. This function
-// returns false if native APIs fail, typically it indicates that the `id` does
-// not represent a window. `on_window` will not be called if false is returned
-// from this function.
-bool get_window_ref(CGWindowID id, std::function<void(CFDictionaryRef)> on_window) {
-  //  RTC_DCHECK(on_window);
-
-  // TODO(zijiehe): `id` is a 32-bit integer, casting it to an array seems not
-  // safe enough. Maybe we should create a new
-  // const void* arr[] = {
-  //   reinterpret_cast<void*>(id) }
-  // };
-  CFArrayRef window_id_array = CFArrayCreate(NULL, reinterpret_cast<const void **>(&id), 1, NULL);
-  CFArrayRef window_array = CGWindowListCreateDescriptionFromArray(window_id_array);
-
-  bool result = false;
-  // TODO(zijiehe): CFArrayGetCount(window_array) should always return 1.
-  // Otherwise, we should treat it as failure.
-  if (window_array && CFArrayGetCount(window_array)) {
-    on_window(reinterpret_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(window_array, 0)));
-    result = true;
-  }
-
-  if (window_array) {
-    CFRelease(window_array);
-  }
-  CFRelease(window_id_array);
-  return result;
-}
-
-// Returns true if the window is occupying a full screen.
-bool is_window_full_screen(const desktop_configuration &desktop_config, CFDictionaryRef window) {
-  bool fullscreen = false;
-  CFDictionaryRef bounds_ref =
-      reinterpret_cast<CFDictionaryRef>(CFDictionaryGetValue(window, kCGWindowBounds));
-
-  CGRect bounds;
-  if (bounds_ref && CGRectMakeWithDictionaryRepresentation(bounds_ref, &bounds)) {
-    for (display_configuration_array::const_iterator it = desktop_config.displays.begin();
-         it != desktop_config.displays.end(); it++) {
-      if (it->bounds.equals(desktop_rect::make_xywh(bounds.origin.x, bounds.origin.y,
-                                                    bounds.size.width, bounds.size.height))) {
-        fullscreen = true;
-        break;
-      }
-    }
-  }
-
-  return fullscreen;
-}
-
-bool is_window_full_screen(const desktop_configuration &desktop_config, CGWindowID id) {
-  bool fullscreen = false;
-  get_window_ref(id, [&](CFDictionaryRef window) {
-    fullscreen = is_window_full_screen(desktop_config, window);
-  });
-  return fullscreen;
-}
-
-bool is_window_on_screen(CFDictionaryRef window) {
-  CFBooleanRef on_screen =
-      reinterpret_cast<CFBooleanRef>(CFDictionaryGetValue(window, kCGWindowIsOnscreen));
-  return on_screen != NULL && CFBooleanGetValue(on_screen);
-}
-
-bool is_window_on_screen(CGWindowID id) {
-  bool on_screen;
-  if (get_window_ref(
-          id, [&on_screen](CFDictionaryRef window) { on_screen = is_window_on_screen(window); })) {
-    return on_screen;
-  }
-  return false;
-}
-
-std::string get_window_title(CFDictionaryRef window) {
-  CFStringRef title = reinterpret_cast<CFStringRef>(CFDictionaryGetValue(window, kCGWindowName));
-  std::string result;
-  if (title && cfstring_to_utf8(title, &result)) {
-    return result;
-  }
-
-  return std::string();
-}
-
-std::string get_window_title(CGWindowID id) {
-  std::string title;
-  if (get_window_ref(id, [&title](CFDictionaryRef window) { title = get_window_title(window); })) {
-    return title;
-  }
-  return std::string();
-}
-
-std::string get_window_owner_name(CFDictionaryRef window) {
-  CFStringRef owner_name =
-      reinterpret_cast<CFStringRef>(CFDictionaryGetValue(window, kCGWindowOwnerName));
-  std::string result;
-  if (owner_name && cfstring_to_utf8(owner_name, &result)) {
-    return result;
-  }
-  return std::string();
-}
-
-std::string get_window_owner_name(CGWindowID id) {
-  std::string owner_name;
-  if (get_window_ref(id, [&owner_name](CFDictionaryRef window) {
-        owner_name = get_window_owner_name(window);
-      })) {
-    return owner_name;
-  }
-  return std::string();
-}
 
 NSBitmapImageRep *get_image_rep(bool is_window, CGWindowID window_id) {
   CGImageRef image_ref = nil;

@@ -8,6 +8,8 @@
 namespace traa {
 namespace base {
 
+// TODO @sylar: optimize this to use string_view
+
 /**
  * @class string_trans
  * @brief Utility class for string transformations.

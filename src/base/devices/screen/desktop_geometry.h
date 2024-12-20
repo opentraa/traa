@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #ifndef TRAA_BASE_DEVICES_SCREEN_DESKTOP_GEOMETRY_H_
 #define TRAA_BASE_DEVICES_SCREEN_DESKTOP_GEOMETRY_H_
 
@@ -114,7 +124,7 @@ public:
   bool contains(const desktop_rect &rect) const;
 
   // Finds intersection with `rect`.
-  void intersect_width(const desktop_rect &rect);
+  void intersect_with(const desktop_rect &rect);
 
   // Extends the rectangle to cover `rect`. If `this` is empty, replaces `this`
   // with `rect`; if `rect` is empty, this function takes no effect.
