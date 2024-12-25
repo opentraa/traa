@@ -84,6 +84,10 @@ if(WIN32)
 else()
     string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" arch_lowercase)
 
+    if(NOT LIBYUV_ENABLE_NEON)
+        add_definitions(-DLIBYUV_DISABLE_NEON)
+    endif()
+
     if(LIBYUV_ENABLE_NEON)
         if(arch_lowercase MATCHES "^arm" AND NOT arch_lowercase STREQUAL "arm64")
             # Enable Arm Neon kernels.

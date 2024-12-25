@@ -9,10 +9,26 @@ set(TRAA_UNIT_TEST traa-unit-test)
 
 set(TRAA_UNIT_TEST_OUTPUT_NAME ${TRAA_UNIT_TEST})
 
-file(GLOB_RECURSE TRAA_UNIT_TEST_FILES "${CMAKE_HOME_DIRECTORY}/src/*_test.*")
+file(GLOB_RECURSE TRAA_UNIT_TEST_FILES "${CMAKE_HOME_DIRECTORY}/src/*_unittest.*")
 
-# source_group(TREE ${CMAKE_HOME_DIRECTORY} PREFIX "test" FILES ${TRAA_UNIT_TEST_FILES})
-source_group("test" FILES ${TRAA_UNIT_TEST_FILES})
+if(NOT WIN32)
+    # exclude files in base/devices/screen/win
+    list(FILTER TRAA_UNIT_TEST_FILES EXCLUDE REGEX "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win")
+endif()
+
+# add base/devices/screen/test
+file(GLOB TRAA_UNIT_TEST_SCREEN_TEST_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/*.*")
+
+# add base/devices/screen/test/win
+if(WIN32)
+    file(GLOB TRAA_UNIT_TEST_SCREEN_TEST_FILES_WIN "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/win/*.*")
+    list(APPEND TRAA_UNIT_TEST_SCREEN_TEST_FILES ${TRAA_UNIT_TEST_SCREEN_TEST_FILES_WIN})
+endif()
+
+list(APPEND TRAA_UNIT_TEST_FILES ${TRAA_UNIT_TEST_SCREEN_TEST_FILES})
+
+# source_group(TREE ${CMAKE_HOME_DIRECTORY} PREFIX "unittest" FILES ${TRAA_UNIT_TEST_FILES})
+source_group("unittest" FILES ${TRAA_UNIT_TEST_FILES})
 source_group(TREE ${CMAKE_HOME_DIRECTORY} PREFIX "traa" FILES ${TRAA_LIBRARY_FILES})
 
 file(GLOB_RECURSE TRAA_UNIT_TEST_UTILS_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/**)
@@ -27,6 +43,7 @@ add_executable(${TRAA_UNIT_TEST}
     ${TRAA_UNIT_TEST_FILES}
     ${TRAA_UNIT_TEST_UTILS_FILES}
 )
+
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
 target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
     yuv
@@ -74,6 +91,7 @@ if(APPLE)
         MACOSX_FRAMEWORK_IDENTIFIER "${TRAA_UNIT_TEST_IDENTIFIER}"
         MACOSX_FRAMEWORK_SHORT_VERSION_STRING "${TRAA_VERSION_SHORT}"
         MACOSX_FRAMEWORK_BUNDLE_VERSION "${TRAA_VERSION_SHORT}"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${TRAA_UNIT_TEST_IDENTIFIER}"
         CXX_VISIBILITY_PRESET hidden
         LINK_FLAGS "-Wl ${TRAA_UNIT_TEST_FRAMEWORKS_FOLDERS} -rpath @loader_path"
     )
@@ -83,6 +101,9 @@ elseif(WIN32)
     target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
         dwmapi.lib
         Shcore.lib
+        dxgi.lib
+        d3d11.lib
+        Winmm.lib
     )
 elseif(ANDROID)
     set_target_properties(${TRAA_UNIT_TEST} PROPERTIES

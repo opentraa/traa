@@ -167,8 +167,8 @@ bool get_window_image_data(x_atom_cache *cache, ::Window window, const desktop_r
 
   // to get more information about XImage, see
   // https://tronche.com/gui/x/xlib/graphics/images.html#XImage
-  const size_t bytes_per_pixel = image->bits_per_pixel / 8;
-  *data = new uint8_t[scaled_size.width * scaled_size.height * bytes_per_pixel];
+  const size_t k_bytes_per_pixel = image->bits_per_pixel / 8;
+  *data = new uint8_t[scaled_size.width * scaled_size.height * k_bytes_per_pixel];
   if (!*data) {
     LOG_ERROR("failed to allocate memory for thumbnail data");
     XDestroyImage(image);
@@ -177,7 +177,7 @@ bool get_window_image_data(x_atom_cache *cache, ::Window window, const desktop_r
 
   // use libyuv to scale the image
   libyuv::ARGBScale(reinterpret_cast<uint8_t *>(image->data), image->bytes_per_line, image->width,
-                    image->height, *data, scaled_size.width * bytes_per_pixel, scaled_size.width,
+                    image->height, *data, scaled_size.width * k_bytes_per_pixel, scaled_size.width,
                     scaled_size.height, libyuv::kFilterBox);
 
   XDestroyImage(image);
@@ -198,7 +198,7 @@ bool get_window_image_data(x_atom_cache *cache, ::Window window, const desktop_r
   }
 
   scaled_size = calc_scaled_size(frame.size(), target_size).to_traa_size();
-  *data = new uint8_t[scaled_size.width * scaled_size.height * desktop_frame::bytes_per_pixel];
+  *data = new uint8_t[scaled_size.width * scaled_size.height * desktop_frame::k_bytes_per_pixel];
   if (!*data) {
     LOG_ERROR("failed to allocate memory for thumbnail data");
     return false;
@@ -206,14 +206,14 @@ bool get_window_image_data(x_atom_cache *cache, ::Window window, const desktop_r
 
   // use libyuv to scale the image
   libyuv::ARGBScale(frame.data(), frame.stride(), frame.size().width(), frame.size().height(),
-                    *data, scaled_size.width * desktop_frame::bytes_per_pixel, scaled_size.width,
+                    *data, scaled_size.width * desktop_frame::k_bytes_per_pixel, scaled_size.width,
                     scaled_size.height, libyuv::kFilterBox);
 #endif // USE_XIMAGE_DIRECTLY
 
   return true;
 }
 
-pid_t get_window_pid(Display *display, ::Window window) {
+pid_t get_pid_by_window(Display *display, ::Window window) {
   Atom pid_atom = XInternAtom(display, "_NET_WM_PID", True);
   if (pid_atom == None) {
     return -1;
@@ -226,7 +226,7 @@ pid_t get_window_pid(Display *display, ::Window window) {
 
   x_error_trap error_trap(display);
   if ((XGetWindowProperty(display, window, pid_atom, 0, 1, False, XA_CARDINAL, &actual_type,
-                           &actual_format, &nitems, &bytes_after, &prop) != Success) ||
+                          &actual_format, &nitems, &bytes_after, &prop) != Success) ||
       error_trap.get_last_error_and_disable() != 0) {
     return -1;
   }
@@ -328,14 +328,17 @@ bool get_window_icon(Display *display, ::Window window, std::vector<uint8_t> &ic
   icon_data.assign(prop + 2 * sizeof(unsigned long), prop + nitems * sizeof(unsigned long));
 #elif defined(TRAA_ARCH_64_BITS)
   // TODO(@sylar): this can be optimized by using some SIMD instructions.
-  icon_data.resize(width * height * desktop_frame::bytes_per_pixel);
+  icon_data.resize(width * height * desktop_frame::k_bytes_per_pixel);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       unsigned long pixel = data[2 + y * width + x];
-      icon_data[(y * width + x) * desktop_frame::bytes_per_pixel + 3] = (pixel >> (24)) & 0xff; // B
-      icon_data[(y * width + x) * desktop_frame::bytes_per_pixel + 2] = (pixel >> (16)) & 0xff; // G
-      icon_data[(y * width + x) * desktop_frame::bytes_per_pixel + 1] = (pixel >> (8)) & 0xff;  // R
-      icon_data[(y * width + x) * desktop_frame::bytes_per_pixel + 0] = pixel & 0xff;           // A
+      icon_data[(y * width + x) * desktop_frame::k_bytes_per_pixel + 3] =
+          (pixel >> (24)) & 0xff; // B
+      icon_data[(y * width + x) * desktop_frame::k_bytes_per_pixel + 2] =
+          (pixel >> (16)) & 0xff; // G
+      icon_data[(y * width + x) * desktop_frame::k_bytes_per_pixel + 1] =
+          (pixel >> (8)) & 0xff;                                                        // R
+      icon_data[(y * width + x) * desktop_frame::k_bytes_per_pixel + 0] = pixel & 0xff; // A
     }
   }
 #endif
@@ -535,7 +538,7 @@ int x_window_list_utils::enum_windows(const traa_size icon_size, const traa_size
 
       // get process path
       bool has_process_path = false;
-      pid_t pid = get_window_pid(display, app_window);
+      pid_t pid = get_pid_by_window(display, app_window);
       if (pid != -1) {
         std::string process_path = get_process_path(pid);
         if (!process_path.empty()) {
@@ -583,15 +586,15 @@ int x_window_list_utils::enum_windows(const traa_size icon_size, const traa_size
           traa_size scaled_icon_size =
               calc_scaled_size(desktop_size(icon_width, icon_height), icon_size).to_traa_size();
           window_info.icon_data = new uint8_t[scaled_icon_size.width * scaled_icon_size.height *
-                                              desktop_frame::bytes_per_pixel];
+                                              desktop_frame::k_bytes_per_pixel];
           if (!window_info.icon_data) {
             LOG_ERROR("failed to allocate memory for icon data");
             continue;
           }
 
-          libyuv::ARGBScale(icon_data.data(), icon_width * desktop_frame::bytes_per_pixel,
+          libyuv::ARGBScale(icon_data.data(), icon_width * desktop_frame::k_bytes_per_pixel,
                             icon_width, icon_height, const_cast<uint8_t *>(window_info.icon_data),
-                            scaled_icon_size.width * desktop_frame::bytes_per_pixel,
+                            scaled_icon_size.width * desktop_frame::k_bytes_per_pixel,
                             scaled_icon_size.width, scaled_icon_size.height, libyuv::kFilterBox);
 
           window_info.icon_size = scaled_icon_size;
@@ -703,7 +706,7 @@ int x_window_list_utils::enum_screens(const traa_size thumbnail_size,
 
       traa_size scaled_size = calc_scaled_size(screen_rect.size(), thumbnail_size).to_traa_size();
       screen_info.thumbnail_data =
-          new uint8_t[scaled_size.width * scaled_size.height * desktop_frame::bytes_per_pixel];
+          new uint8_t[scaled_size.width * scaled_size.height * desktop_frame::k_bytes_per_pixel];
       if (!screen_info.thumbnail_data) {
         LOG_ERROR("failed to allocate memory for thumbnail data");
         continue;
@@ -720,7 +723,7 @@ int x_window_list_utils::enum_screens(const traa_size thumbnail_size,
       // use libyuv to scale the image
       libyuv::ARGBScale(frame.data(), frame.stride(), frame.size().width(), frame.size().height(),
                         const_cast<uint8_t *>(screen_info.thumbnail_data),
-                        scaled_size.width * desktop_frame::bytes_per_pixel, scaled_size.width,
+                        scaled_size.width * desktop_frame::k_bytes_per_pixel, scaled_size.width,
                         scaled_size.height, libyuv::kFilterBox);
 
       screen_info.thumbnail_size = scaled_size;

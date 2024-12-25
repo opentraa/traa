@@ -34,7 +34,7 @@ jobs:
     - name: Build
       shell: bash
       run: > 
-        bash scripts/build.sh -p linux 
+        bash scripts/build.sh -p linux -a x86_64
         -t ${{env.BUILD_TYPE}}
         -f ${{ steps.strings.outputs.build-dir }}
         -b ${{ steps.strings.outputs.build-output-dir }}
@@ -42,11 +42,11 @@ jobs:
         -S ON
 
     - name: Unit Test
-      working-directory: ${{ steps.strings.outputs.build-dir }}/linux/tests/unit_test
+      working-directory: ${{ steps.strings.outputs.build-dir }}/linux/x86_64/tests/unit_test
       run: ASAN_OPTIONS=detect_leaks=1 ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
     - name: Smoke Test
-      working-directory: ${{ steps.strings.outputs.build-dir }}/linux/tests/smoke_test
+      working-directory: ${{ steps.strings.outputs.build-dir }}/linux/x86_64/tests/smoke_test
       run: ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure --timeout ${{env.TEST_TIMEOUT}}
 
   # Build on Windows for windows
@@ -210,4 +210,3 @@ jobs:
         -t ${{ env.BUILD_TYPE }}
         -f ${{ steps.strings.outputs.build-dir }}
         -b ${{ steps.strings.outputs.build-output-dir }}
-        -A "arm64-v8a,x86_64"

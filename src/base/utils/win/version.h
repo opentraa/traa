@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_OS_WIN_VERSION_H_
-#define TRAA_BASE_OS_WIN_VERSION_H_
+#ifndef TRAA_BASE_UTILS_WIN_VERSION_H_
+#define TRAA_BASE_UTILS_WIN_VERSION_H_
 
 #include <Windows.h>
 
@@ -140,4 +140,4 @@ version_alias os_get_version();
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_OS_WIN_VERSION_H_
+#endif // TRAA_BASE_UTILS_WIN_VERSION_H_

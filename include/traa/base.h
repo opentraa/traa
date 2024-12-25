@@ -378,7 +378,7 @@ typedef enum traa_screen_source_flags {
    *
    * This flag indicates that the current process source should be ignored.
    */
-  TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS = 1 << 5,
+  TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS_WINDOWS = 1 << 5,
 
   /**
    * @brief Do not ignore the tool window source.

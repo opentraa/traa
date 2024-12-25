@@ -1,8 +1,18 @@
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
+
 #include "base/devices/screen/win/cursor.h"
 #include "base/devices/screen/desktop_frame.h"
 #include "base/devices/screen/desktop_geometry.h"
 #include "base/devices/screen/mouse_cursor.h"
-#include "base/devices/screen/win/scoped_object_gdi.h"
+#include "base/devices/screen/win/scoped_gdi_object.h"
 #include "base/log/logger.h"
 
 namespace traa {
@@ -22,14 +32,12 @@ namespace {
 
 #endif // !defined(ARCH_LITTLE_ENDIAN)
 
-constexpr int bytes_per_pixel = desktop_frame::bytes_per_pixel;
-
 // Pixel colors used when generating cursor outlines.
-constexpr uint32_t kPixelRgbaBlack = RGBA(0, 0, 0, 0xff);
-constexpr uint32_t kPixelRgbaWhite = RGBA(0xff, 0xff, 0xff, 0xff);
-constexpr uint32_t kPixelRgbaTransparent = RGBA(0, 0, 0, 0);
+constexpr uint32_t k_pixel_rgba_black = RGBA(0, 0, 0, 0xff);
+constexpr uint32_t k_pixel_rgba_white = RGBA(0xff, 0xff, 0xff, 0xff);
+constexpr uint32_t k_pixel_rgba_transparent = RGBA(0, 0, 0, 0);
 
-constexpr uint32_t kPixelRgbWhite = RGB(0xff, 0xff, 0xff);
+constexpr uint32_t k_pixel_rgb_white = RGB(0xff, 0xff, 0xff);
 
 // Expands the cursor shape to add a white outline for visibility against
 // dark backgrounds.
@@ -38,14 +46,14 @@ void add_cursor_outline(int width, int height, uint32_t *data) {
     for (int x = 0; x < width; x++) {
       // If this is a transparent pixel (bgr == 0 and alpha = 0), check the
       // neighbor pixels to see if this should be changed to an outline pixel.
-      if (*data == kPixelRgbaTransparent) {
+      if (*data == k_pixel_rgba_transparent) {
         // Change to white pixel if any neighbors (top, bottom, left, right)
         // are black.
-        if ((y > 0 && data[-width] == kPixelRgbaBlack) ||
-            (y < height - 1 && data[width] == kPixelRgbaBlack) ||
-            (x > 0 && data[-1] == kPixelRgbaBlack) ||
-            (x < width - 1 && data[1] == kPixelRgbaBlack)) {
-          *data = kPixelRgbaWhite;
+        if ((y > 0 && data[-width] == k_pixel_rgba_black) ||
+            (y < height - 1 && data[width] == k_pixel_rgba_black) ||
+            (x > 0 && data[-1] == k_pixel_rgba_black) ||
+            (x < width - 1 && data[1] == k_pixel_rgba_black)) {
+          *data = k_pixel_rgba_white;
         }
       }
       data++;
@@ -56,7 +64,7 @@ void add_cursor_outline(int width, int height, uint32_t *data) {
 // Premultiplies RGB components of the pixel data in the given image by
 // the corresponding alpha components.
 void alpha_mul(uint32_t *data, int width, int height) {
-  static_assert(sizeof(uint32_t) == bytes_per_pixel,
+  static_assert(sizeof(uint32_t) == desktop_frame::k_bytes_per_pixel,
                 "size of uint32 should be the number of bytes per pixel");
 
   for (uint32_t *data_end = data + width * height; data != data_end; ++data) {
@@ -97,8 +105,8 @@ mouse_cursor *create_mouse_cursor_from_handle(HDC dc, HCURSOR cursor) {
   int hotspot_y = iinfo.yHotspot;
 
   // Make sure the bitmaps will be freed.
-  scoped_bitmap scoped_mask(iinfo.hbmMask);
-  scoped_bitmap scoped_color(iinfo.hbmColor);
+  scoped_bitmap_t scoped_mask(iinfo.hbmMask);
+  scoped_bitmap_t scoped_color(iinfo.hbmColor);
   bool is_color = iinfo.hbmColor != NULL;
 
   // Get `scoped_mask` dimensions.
@@ -119,7 +127,7 @@ mouse_cursor *create_mouse_cursor_from_handle(HDC dc, HCURSOR cursor) {
   bmi.bV5Width = width;
   bmi.bV5Height = -height; // request a top-down bitmap.
   bmi.bV5Planes = 1;
-  bmi.bV5BitCount = bytes_per_pixel * 8;
+  bmi.bV5BitCount = desktop_frame::k_bytes_per_pixel * 8;
   bmi.bV5Compression = BI_RGB;
   bmi.bV5AlphaMask = 0xff000000;
   bmi.bV5CSType = LCS_WINDOWS_COLOR_SPACE;
@@ -177,15 +185,15 @@ mouse_cursor *create_mouse_cursor_from_handle(HDC dc, HCURSOR cursor) {
         // Since we don't support XOR cursors, we replace the "Reverse Screen"
         // with black. In this case, we also add an outline around the cursor
         // so that it is visible against a dark background.
-        if (*mask == kPixelRgbWhite) {
+        if (*mask == k_pixel_rgb_white) {
           if (*dst != 0) {
             add_outline = true;
-            *dst = kPixelRgbaBlack;
+            *dst = k_pixel_rgba_black;
           } else {
-            *dst = kPixelRgbaTransparent;
+            *dst = k_pixel_rgba_transparent;
           }
         } else {
-          *dst = kPixelRgbaBlack ^ *dst;
+          *dst = k_pixel_rgba_black ^ *dst;
         }
 
         ++dst;

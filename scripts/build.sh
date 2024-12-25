@@ -17,6 +17,12 @@ VERBOSE=0
 BUILD_UNITTEST=OFF
 BUILD_SMOKETEST=OFF
 ANDROID_ABI="arm64-v8a,armeabi-v7a,x86,x86_64"
+TARGET_ARCH="x86_64"
+
+# cpu_features library on Android implements getauxval() for API level < 18, see cpu_features/src/hwcaps_linux_or_android.c
+# The implementation call dlopen() to load libc.so and then call dlsym() to get the address of getauxval().
+# Which is not allowed in most Android apps, so we need to set the minimum API level to 18.
+ANDROID_API_LEVEL="18"
 
 # function for logging
 log() {
@@ -44,6 +50,8 @@ show_usage() {
     echo "  -A, --android-abi       Android ABI [default: arm64-v8a,armeabi-v7a,x86,x86_64]"
     echo "  -V, --verbose           Verbose output"
     echo "  -h, --help              Show this help message"
+    echo "  -L, --api-level         Android API level [default: 18]"
+    echo "  -a, --arch              Target architecture for Linux (x86_64/aarch64_clang/aarch64_gnu) [default: x86_64]"
 }
 
 # parse command line arguments
@@ -93,6 +101,14 @@ while [[ $# -gt 0 ]]; do
             show_usage
             exit 0
             ;;
+        -L|--api-level)
+            ANDROID_API_LEVEL="$2"
+            shift 2
+            ;;
+        -a|--arch)
+            TARGET_ARCH="$2"
+            shift 2
+            ;;
         *)
             log "ERROR" "Unknown option: $1"
             show_usage
@@ -120,6 +136,14 @@ if [[ ! "$TARGET_PLATFORM" =~ ^(macos|ios|xros|linux|android)$ ]]; then
     exit 1
 fi
 
+# Add architecture validation for Linux platform
+if [ "$TARGET_PLATFORM" == "linux" ]; then
+    if [[ ! "$TARGET_ARCH" =~ ^(x86_64|aarch64_clang|aarch64_gnu)$ ]]; then
+        log "ERROR" "Invalid Linux architecture: $TARGET_ARCH"
+        exit 1
+    fi
+fi
+
 # main build function
 build() {
     log "INFO" "Starting build for platform: $TARGET_PLATFORM"
@@ -128,7 +152,6 @@ build() {
     log "INFO" "Binary folder: $BIN_FOLDER"
     log "INFO" "Source directory: $SOURCE_DIR"
     log "INFO" "Version: $VERSION"
-    log "INFO" "Android ABI: $ANDROID_ABI"
 
     BUILD_FOLDER="$BUILD_FOLDER/$TARGET_PLATFORM"
     log "INFO" "Redirect build folder: $BUILD_FOLDER"
@@ -144,6 +167,7 @@ build() {
 
     # if target platform is android, we should run cmake for each ABI separately
     if [ "$TARGET_PLATFORM" == "android" ]; then
+        log "INFO" "Android ABI: $ANDROID_ABI"
         for abi in $(echo $ANDROID_ABI | tr "," "\n");do
             log "INFO" "Building for ABI: $abi"
             local build_folder_abi="$BUILD_FOLDER/$abi"
@@ -156,6 +180,7 @@ build() {
                 -DANDROID_ABI="$abi" \
                 -DANDROID_NDK="$ANDROID_NDK_HOME" \
                 -DCMAKE_SYSTEM_NAME=Android \
+                -DANDROID_PLATFORM=android-$ANDROID_API_LEVEL \
                 -DANDROID_STL=c++_static \
                 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
                 -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
@@ -207,6 +232,8 @@ build() {
         case $TARGET_PLATFORM in
         "macos"|"ios"|"xros")
             local cmake_platform
+
+            # TODO @sylar: need to build OS64COMBINED and SIMULATOR64 for ios and then create xcframework
             case $TARGET_PLATFORM in
                 "macos") cmake_platform="MAC_UNIVERSAL" ;;
                 "ios") cmake_platform="OS64COMBINED" ;;
@@ -214,7 +241,7 @@ build() {
             esac
             
             cmake -G Xcode \
-                -DCMAKE_TOOLCHAIN_FILE=cmake/ios.toolchain.cmake \
+                -DCMAKE_TOOLCHAIN_FILE=cmake/macos/ios.toolchain.cmake \
                 -B "$BUILD_FOLDER" \
                 -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
                 -DPLATFORM="$cmake_platform" \
@@ -225,9 +252,27 @@ build() {
                 -S "$SOURCE_DIR"
             ;;
         "linux")
+            local toolchain_file
+            case $TARGET_ARCH in
+                "x86_64")
+                    toolchain_file="cmake/linux/toolchain-x86_64-gcc.cmake"
+                    ;;
+                "aarch64_clang")
+                    toolchain_file="cmake/linux/toolchain-aarch64-clang.cmake"
+                    ;;
+                "aarch64_gnu")
+                    toolchain_file="cmake/linux/toolchain-aarch64-gcc.cmake"
+                    ;;
+            esac
+
+            log "INFO" "Using toolchain file: $toolchain_file"
+            log "INFO" "Building for architecture: $TARGET_ARCH"
+
+            # set sub folder for BUILD_FOLDER
+            BUILD_FOLDER="$BUILD_FOLDER/$TARGET_ARCH"
+
             cmake -B "$BUILD_FOLDER" \
-                -DCMAKE_CXX_COMPILER=g++ \
-                -DCMAKE_C_COMPILER=gcc \
+                -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" \
                 -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
                 -DTRAA_OPTION_BIN_FOLDER="$BIN_FOLDER" \
                 -DTRAA_OPTION_ENABLE_UNIT_TEST="$BUILD_UNITTEST" \

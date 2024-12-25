@@ -1,5 +1,5 @@
-#ifndef TRAA_BASE_OS_WIN_REGISTRY_H_
-#define TRAA_BASE_OS_WIN_REGISTRY_H_
+#ifndef TRAA_BASE_UTILS_WIN_REGISTRY_H_
+#define TRAA_BASE_UTILS_WIN_REGISTRY_H_
 
 #include <functional>
 #include <memory>
@@ -246,4 +246,4 @@ private:
 } // namespace base
 } // namespace traa
 
-#endif // TRAA_BASE_OS_WIN_REGISTRY_H_
+#endif // TRAA_BASE_UTILS_WIN_REGISTRY_H_
