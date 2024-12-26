@@ -14,17 +14,6 @@
 
 Our ultimate goal is to create a very small but feature-rich dynamic library for audio and video capture, processing, and display. This will allow audio and video developers to easily integrate it into their projects. In the future, we aim to incorporate AI capabilities to enhance audio and video processing.
 
-## Implemented Features
-
-- **ASIO-based Asynchronous Threading Model**: The project includes a task timer that executes tasks repeatedly at specified intervals using `asio::io_context`. This model ensures efficient task scheduling and execution.
-- **Screen Source Enumeration**: The project provides functionality for enumerating screen sources on Windows and macOS, retrieving screen source information such as icon size and thumbnail size.
-
-## Unimplemented Features
-
-- **Audio Device Management (ADM)**: This module will handle the enumeration, capture, and routing of audio devices such as speakers and microphones.
-- **Video Device Management (VDM)**: This module will manage the enumeration and capture of video devices such as cameras.
-- **Audio and Video Stream Processing**: Includes tasks such as resampling, compression, encoding, merging, multimedia file storage, voice changing, beautification, and streaming.
-
 ## Contribution
 
 We welcome contributions from the community. Feel free to open issues or submit pull requests to help improve `traa`.
@@ -33,82 +22,98 @@ We welcome contributions from the community. Feel free to open issues or submit 
 
 If you find this project useful, a star on GitHub would be greatly appreciated. Your support motivates us to keep improving and adding new features.
 
+## Implemented Features
+
+- **ASIO-based Asynchronous Threading Model**: The project includes a task timer that executes tasks repeatedly at specified intervals using `asio::io_context`. This model ensures efficient task scheduling and execution.
+- **Screen Source Enumeration**: The project provides functionality for enumerating screen sources on Windows and macOS, retrieving screen source information such as icon size and thumbnail size.
+- **Screen Capture On Windows**: The project provides functionality for capturing screen on Windows.
+
+## Unimplemented Features
+
+- **Audio Device Management (ADM)**: This module will handle the enumeration, capture, and routing of audio devices such as speakers and microphones.
+- **Video Device Management (VDM)**: This module will manage the enumeration and capture of video devices such as cameras.
+- **Audio and Video Stream Processing**: Includes tasks such as resampling, compression, encoding, merging, multimedia file storage, voice changing, beautification, and streaming.
+- **Screen Capture On macOS**: The project provides functionality for capturing screen on macOS.
+- **Screen Capture On Linux**: The project provides functionality for capturing screen on Linux.
+- **Screen Capture On Android**: The project provides functionality for capturing screen on Android.
+- **Screen Capture On iOS**: The project provides functionality for capturing screen on iOS.
+- **Screen Capture On Linux**: The project provides functionality for capturing screen on Linux.
+
 ## How to Build
 
 ### Prerequisites
-- Ensure you have CMake installed on your system.
-- For Linux, you will need `gcc` and `g++`.
-- For Windows, you will need the Visual Studio Build Tools.
-- For macOS, you will need `clang` and `clang++`.
+- CMake 3.x or higher
+- For Linux: gcc/g++ or clang/clang++
+- For Windows: Visual Studio Build Tools
+- For macOS: Xcode and Command Line Tools
+- For Android: Android NDK and Android Studio
+- For iOS/xrOS: Xcode
 
 ### Build Steps
 
 #### Clone the repository:
-1. Clone the repository:
-    ```sh
-    git clone --recurse-submodules https://github.com/opentraa/traa.git
-    cd traa
-    ```
+```sh
+git clone --recurse-submodules https://github.com/opentraa/traa.git
+cd traa
+```
 
-#### Linux
-1. Create a build directory and configure CMake:
-    ```sh
-    mkdir build && cd build
-    cmake -DCMAKE_BUILD_TYPE=Release ..
-    ```
-2. Build the project:
-    ```sh
-    cmake --build .
-    ```
-3. Run unit tests:
-    ```sh
-    cd tests/unit_test
-    ASAN_OPTIONS=detect_leaks=1 ctest --output-on-failure --timeout 300
-    ```
-4. Run smoke tests:
-    ```sh
-    cd tests/smoke_test
-    ctest --output-on-failure --timeout 300
-    ```
+#### Using Build Scripts
 
-#### Windows
-1. Create a build directory and configure CMake:
-    ```sh
-    mkdir build && cd build
-    cmake -DCMAKE_BUILD_TYPE=Release ..
-    ```
-2. Build the project:
-    ```sh
-    cmake --build . --config Release
-    ```
-3. Run unit tests:
-    ```sh
-    cd tests/unit_test
-    ctest --build-config Release --output-on-failure --timeout 300
-    ```
-4. Run smoke tests:
-    ```sh
-    cd tests/smoke_test
-    ctest --build-config Release --output-on-failure --timeout 300
-    ```
+The project provides build scripts for easy compilation:
 
-#### macOS
-1. Create a build directory and configure CMake:
-    ```sh
-    mkdir build && cd build
-    cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=MAC_UNIVERSAL ..
-    ```
-2. Build the project:
-    ```sh
-    cmake --build . --config Release
-    ```
-3. Run unit tests:
-    ```sh
-    cd tests/unit_test
-    ctest --build-config Release --output-on-failure --timeout 300
-    ```
-4. Run smoke tests:
-    ```sh
-    cd tests/smoke_test
-    ctest --build-config Release --output-on-failure --timeout 300
-    ```
+##### On Unix-like Systems (Linux, macOS, iOS, xrOS, Android):
+```sh
+./scripts/build.sh -p <platform> [options]
+```
+
+Available platforms:
+- `macos`: Build for macOS
+- `ios`: Build for iOS
+- `xros`: Build for Apple Vision Pro
+- `linux`: Build for Linux
+- `android`: Build for Android
+
+Common options:
+- `-t, --build-type`: Build type (Debug/Release) [default: Release]
+- `-U, --unittest`: Build unit tests (ON/OFF) [default: OFF]
+- `-S, --smoketest`: Build smoke tests (ON/OFF) [default: OFF]
+- `-V, --verbose`: Enable verbose output
+- `-v, --version`: Specify version number
+
+Platform-specific options:
+- For Android: `-A, --android-abi`: Specify ABIs (default: arm64-v8a,armeabi-v7a,x86,x86_64)
+- For Linux: `-a, --arch`: Target architecture (x86_64/aarch64_clang/aarch64_gnu)
+
+##### On Windows:
+```batch
+scripts\build.bat [options]
+```
+
+Available options:
+- `-a, --arch`: Architecture (Win32/x64/ARM64) [default: x64]
+- `-t, --build-type`: Build type (Debug/Release) [default: Release]
+- `-U, --unittest`: Build unit tests (ON/OFF) [default: OFF]
+- `-S, --smoketest`: Build smoke tests (ON/OFF) [default: OFF]
+- `-V, --verbose`: Enable verbose output
+
+#### Example Commands
+
+Build for macOS:
+```sh
+./scripts/build.sh -p macos -t Release
+```
+
+Build for Windows (x64):
+```batch
+scripts\build.bat -a x64 -t Release
+```
+
+Build for Android with specific ABIs:
+```sh
+./scripts/build.sh -p android -A "arm64-v8a,x86_64"
+```
+
+Build for Linux with unit tests:
+```sh
+./scripts/build.sh -p linux -U ON
+```
