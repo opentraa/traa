@@ -540,6 +540,11 @@ set(TRAA_LIBRARY_BASE_LOG_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/log/logger.cc"
 )
 
+# traa::base::numerics
+set(TRAA_LIBRARY_BASE_NUMERICS_FILES
+    "${CMAKE_HOME_DIRECTORY}/src/base/numerics/safe_compare.h"
+)
+
 # traa::base::strings
 set(TRAA_LIBRARY_BASE_STRINGS_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/strings/ascii.cc"
@@ -620,6 +625,8 @@ list(APPEND TRAA_LIBRARY_BASE_UTILS_FILES "${CMAKE_HOME_DIRECTORY}/src/base/util
 set(TRAA_LIBRARY_BASE_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/arch.h"
     "${CMAKE_HOME_DIRECTORY}/src/base/arraysize.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/checks.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/checks.cc"
     "${CMAKE_HOME_DIRECTORY}/src/base/disallow.h"
     "${CMAKE_HOME_DIRECTORY}/src/base/function_view.h"
     "${CMAKE_HOME_DIRECTORY}/src/base/hedley.h"
