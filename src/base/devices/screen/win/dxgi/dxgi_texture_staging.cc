@@ -10,6 +10,7 @@
 
 #include "base/devices/screen/win/dxgi/dxgi_texture_staging.h"
 
+#include "base/checks.h"
 #include "base/devices/screen/win/desktop_capture_utils.h"
 #include "base/log/logger.h"
 
@@ -28,6 +29,7 @@ dxgi_texture_staging::dxgi_texture_staging(const d3d_device &device) : device_(d
 dxgi_texture_staging::~dxgi_texture_staging() = default;
 
 bool dxgi_texture_staging::initialize_stage(ID3D11Texture2D *texture) {
+  TRAA_DCHECK(texture);
   D3D11_TEXTURE2D_DESC desc = {0};
   texture->GetDesc(&desc);
 
@@ -54,6 +56,8 @@ bool dxgi_texture_staging::initialize_stage(ID3D11Texture2D *texture) {
     // ID3D11Texture2D instance.
     stage_.Reset();
     surface_.Reset();
+  } else {
+    TRAA_DCHECK(!surface_);
   }
 
   _com_error error =
@@ -79,13 +83,16 @@ void dxgi_texture_staging::assert_stage_and_surface_are_same_object() {
   ComPtr<IUnknown> right;
   bool left_result = SUCCEEDED(stage_.As(&left));
   bool right_result = SUCCEEDED(surface_.As(&right));
-  assert(left_result);
-  assert(right_result);
-  assert(left.Get() == right.Get());
+  TRAA_DCHECK(left_result);
+  TRAA_DCHECK(right_result);
+  TRAA_DCHECK(left.Get() == right.Get());
 }
 
 bool dxgi_texture_staging::copy_from_texture(const DXGI_OUTDUPL_FRAME_INFO &frame_info,
                                              ID3D11Texture2D *texture) {
+  TRAA_DCHECK_GT(frame_info.AccumulatedFrames, 0);
+  TRAA_DCHECK(texture);
+
   // AcquireNextFrame returns a CPU inaccessible IDXGIResource, so we need to
   // copy it to a CPU accessible staging ID3D11Texture2D.
   if (!initialize_stage(texture)) {
