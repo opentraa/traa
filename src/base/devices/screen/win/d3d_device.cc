@@ -11,7 +11,7 @@
 #include "base/devices/screen/win/d3d_device.h"
 
 #include "base/devices/screen/win/desktop_capture_utils.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <utility>
 

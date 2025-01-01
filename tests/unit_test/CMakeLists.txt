@@ -1,11 +1,10 @@
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+cmake_minimum_required(VERSION 3.10)
 
 include(${CMAKE_HOME_DIRECTORY}/cmake/utils.cmake)
 
 enable_testing()
 
-set(TRAA_UNIT_TEST traa-unit-test)
+set(TRAA_UNIT_TEST unittest)
 
 set(TRAA_UNIT_TEST_OUTPUT_NAME ${TRAA_UNIT_TEST})
 
@@ -27,11 +26,10 @@ endif()
 
 list(APPEND TRAA_UNIT_TEST_FILES ${TRAA_UNIT_TEST_SCREEN_TEST_FILES})
 
-# source_group(TREE ${CMAKE_HOME_DIRECTORY} PREFIX "unittest" FILES ${TRAA_UNIT_TEST_FILES})
-source_group("unittest" FILES ${TRAA_UNIT_TEST_FILES})
-source_group(TREE ${CMAKE_HOME_DIRECTORY} PREFIX "traa" FILES ${TRAA_LIBRARY_FILES})
+source_group(TREE ${CMAKE_HOME_DIRECTORY}/src FILES ${TRAA_UNIT_TEST_FILES})
 
 file(GLOB_RECURSE TRAA_UNIT_TEST_UTILS_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/**)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${TRAA_UNIT_TEST_UTILS_FILES})
 
 set(TRAA_UNIT_TEST_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -39,36 +37,18 @@ set(TRAA_UNIT_TEST_INCLUDE_DIRS
 )
 
 add_executable(${TRAA_UNIT_TEST}
-    ${TRAA_LIBRARY_FILES}
     ${TRAA_UNIT_TEST_FILES}
     ${TRAA_UNIT_TEST_UTILS_FILES}
 )
 
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
 target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
+    traa::base
     yuv
     gtest
     gtest_main
     gmock
     gmock_main)
-
-if(TRAA_ENABLE_ABSL)
-    target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
-        absl::algorithm
-        absl::base
-        absl::debugging
-        absl::flat_hash_map
-        absl::flags
-        absl::memory
-        absl::meta
-        absl::numeric
-        absl::random_random
-        absl::strings
-        absl::synchronization
-        absl::time
-        absl::utility
-    )
-endif()
 
 target_include_directories(${TRAA_UNIT_TEST} PRIVATE "$<BUILD_INTERFACE:${TRAA_UNIT_TEST_INCLUDE_DIRS}>")
 set_target_properties(${TRAA_UNIT_TEST} PROPERTIES

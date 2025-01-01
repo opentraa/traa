@@ -10,7 +10,7 @@
 
 #include "base/system/cpu_info.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/platform.h"
 
 #if defined(TRAA_OS_WINDOWS)

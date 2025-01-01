@@ -1,6 +1,6 @@
 #include "base/thread/thread_util.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/strings/string_trans.h"
 
 #include <Windows.h>

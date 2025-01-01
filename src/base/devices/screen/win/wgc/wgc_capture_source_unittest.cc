@@ -15,7 +15,7 @@
 #include "base/devices/screen/test/win/test_window.h"
 #include "base/devices/screen/win/capture_utils.h"
 #include "base/devices/screen/win/wgc/wgc_capturer_win.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/utils/win/scoped_com_initializer.h"
 
 #include <windows.graphics.capture.h>

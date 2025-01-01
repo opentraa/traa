@@ -19,7 +19,7 @@
 #include "base/devices/screen/win/cursor.h"
 #include "base/devices/screen/win/desktop_frame_win.h"
 #include "base/devices/screen/win/thread_desktop.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/utils/time_utils.h"
 
 #include <dwmapi.h>

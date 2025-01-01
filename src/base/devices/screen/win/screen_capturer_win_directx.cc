@@ -13,7 +13,7 @@
 #include "base/devices/screen/desktop_capture_types.h"
 #include "base/devices/screen/desktop_frame.h"
 #include "base/devices/screen/win/capture_utils.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/utils/time_utils.h"
 
 #include <algorithm>

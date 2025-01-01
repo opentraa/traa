@@ -11,7 +11,7 @@
 #include "base/devices/screen/win/wgc/wgc_capture_session.h"
 
 #include "base/devices/screen/win/wgc/wgc_desktop_frame.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/system/sleep.h"
 #include "base/utils/time_utils.h"
 #include "base/utils/win/create_direct3d_device.h"

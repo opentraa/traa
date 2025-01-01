@@ -10,7 +10,7 @@
 
 #include "base/devices/screen/linux/x11/shared_x_display.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>

@@ -16,7 +16,7 @@
 #include "base/devices/screen/desktop_capturer.h"
 #include "base/devices/screen/win/desktop_frame_win.h"
 #include "base/devices/screen/win/selected_window_context.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/utils/time_utils.h"
 #include "base/utils/win/version.h"
 

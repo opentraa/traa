@@ -12,7 +12,7 @@
 
 #include "base/devices/screen/desktop_region.h"
 #include "base/devices/screen/win/desktop_capture_utils.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <comdef.h>
 #include <d3d11.h>

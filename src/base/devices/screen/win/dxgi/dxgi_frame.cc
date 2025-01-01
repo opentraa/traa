@@ -12,7 +12,7 @@
 
 #include "base/devices/screen/desktop_frame.h"
 #include "base/devices/screen/win/dxgi/dxgi_duplicator_controller.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <string.h>
 #include <utility>
