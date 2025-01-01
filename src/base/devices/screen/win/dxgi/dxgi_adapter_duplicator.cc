@@ -11,7 +11,7 @@
 #include "base/devices/screen/win/dxgi/dxgi_adapter_duplicator.h"
 
 #include "base/devices/screen/win/desktop_capture_utils.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <comdef.h>
 #include <dxgi.h>

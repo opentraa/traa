@@ -157,7 +157,8 @@ if(WIN32)
         /wd4100 \
         /wd4505 \
         /wd4127 \
-        /wd4702")
+        /wd4702\
+        /wd4995")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -g \
@@ -280,374 +281,6 @@ endif()
 set(TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/include)
 file(GLOB_RECURSE TRAA_LIBRARY_PUBLIC_HEADER_FILES ${TRAA_LIBRARY_PUBLIC_HEADER_INCLUDE_DIR}/*.h)
 
-# traa::base::devices
-if(WIN32 OR MACOS OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(TRAA_LIBRARY_BASE_DEVICES_FILES
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/blank_detector_desktop_capturer_wrapper.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/blank_detector_desktop_capturer_wrapper.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/cropped_desktop_frame.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/cropped_desktop_frame.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/delegated_source_list_controller.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_capture_options.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_capture_options.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_capture_types.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_capturer_differ_wrapper.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_capturer_differ_wrapper.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_capturer.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_capturer.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame_rotation.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame_rotation.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_geometry.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_geometry.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_region.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_region.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/differ_block.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/differ_block.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/enumerator.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/fallback_desktop_capturer_wrapper.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/fallback_desktop_capturer_wrapper.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/full_screen_application_handler.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/full_screen_application_handler.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/full_screen_window_detector.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/full_screen_window_detector.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/mouse_cursor.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/mouse_cursor.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/resolution_tracker.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/resolution_tracker.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/rgba_color.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/rgba_color.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/shared_desktop_frame.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/shared_desktop_frame.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/shared_memory.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/shared_memory.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/utils.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/utils.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/window_finder.h"
-    )
-
-    set(TRAA_ENABLE_SSE2 OFF)
-    message(STATUS "[TRAA] CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
-    message(STATUS "[TRAA] CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}")
-    if(WIN32 AND CMAKE_GENERATOR_PLATFORM STREQUAL "x64" OR CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
-        set(TRAA_ENABLE_SSE2 ON)
-    elseif(APPLE)
-        message(STATUS "[TRAA] ARCHS: ${ARCHS}")
-        # for APPLE, from cmake/ios.toolchain.cmake, ARCHS is set to:
-        # 'x86_64 arm64' (MAC_UNIVERSAL)
-        # 'x86_64' (MAC)
-        # 'arm64' (MAC_ARM64)
-        # we do not support i386 any more
-        # so we just check if the ${ARCHS} contains 'x86_64
-        if("x86_64" IN_LIST ARCHS)
-            set(TRAA_ENABLE_SSE2 ON)
-            # When ARCHS contains multiple architectures, we cannot enable SSE2 separately for each arch during cmake build
-            # So we enable SSE2 whenever x86_64 is detected, even though we may also be building for arm64
-            # We'll need to use #if defined(TRAA_ARCH_X86_FAMILY) in the source files to conditionally enable SSE2
-        endif()
-    elseif(UNIX)
-        if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(i386)|(^i686)")
-            include(CheckCXXSourceCompiles)
-            set(SSE2_TEST_SOURCE "
-                #include <emmintrin.h>
-                int main() {
-                    __m128i zero = _mm_setzero_si128();
-                    return 0;
-                }
-            ")
-            
-            set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -msse2")
-            check_cxx_source_compiles("${SSE2_TEST_SOURCE}" SSE2_COMPILE_TEST)
-            
-            if(SSE2_COMPILE_TEST)
-                set(TRAA_ENABLE_SSE2 ON)
-            endif()
-        endif()
-    endif()
-    
-    if(TRAA_ENABLE_SSE2)
-        message(STATUS "[TRAA] SSE2 support enabled")
-        add_definitions(-DTRAA_ENABLE_SSE2)
-        
-        if(NOT MSVC)
-            #TODO @sylar: we may should make a new cmake target to compile sse2 code
-            # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse2")
-        endif()
-        
-        list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/differ_vector_sse2.cc")
-        list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/differ_vector_sse2.h")
-    else()
-        message(STATUS "[TRAA] SSE2 support disabled")
-    endif()
-endif()
-
-if(WIN32)
-    # dxgi
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_adapter_duplicator.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_adapter_duplicator.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_context.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_context.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_duplicator_controller.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_duplicator_controller.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_frame.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_frame.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_output_duplicator.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_output_duplicator.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_texture_mapping.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_texture_mapping.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_texture_staging.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_texture_staging.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_texture.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/dxgi/dxgi_texture.cc")
-    # wgc
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_capture_session.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_capture_session.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_capture_source.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_capture_source.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_capturer_win.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_capturer_win.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_desktop_frame.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_desktop_frame.cc")
-    # commons
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/capture_utils.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/capture_utils.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cropping_window_capturer_win.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cropping_window_capturer.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cropping_window_capturer.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cursor.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cursor.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/d3d_device.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/d3d_device.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/desktop_capture_utils.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/desktop_capture_utils.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/desktop_frame_win.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/desktop_frame_win.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/display_configuration_monitor.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/display_configuration_monitor.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/enumerator_win.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/full_screen_win_application_handler.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/full_screen_win_application_handler.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/scoped_gdi_object.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/scoped_thread_desktop.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/scoped_thread_desktop.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/screen_capturer_win_directx.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/screen_capturer_win_directx.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/screen_capturer_win_gdi.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/screen_capturer_win_gdi.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/screen_capturer_win.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/selected_window_context.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/selected_window_context.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/thread_desktop.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/thread_desktop.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/window_capturer_win_gdi.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/window_capturer_win_gdi.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/window_capturer_win.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/window_finder_win.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/window_finder_win.cc")
-elseif(APPLE AND NOT IOS AND NOT VISIONOS)
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/desktop_configuration_monitor.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/desktop_configuration_monitor.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/desktop_configuration.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/desktop_configuration.mm")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/enumerator_darwin.mm")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/full_screen_mac_application_handler.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/full_screen_mac_application_handler.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/window_list_utils.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/window_list_utils.h")
-elseif(LINUX)
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/capture_utils.h")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/capture_utils.cc")
-    list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/enumerator_linux.cc")
-
-    # Enable x11 if TRAA_OPTION_ENABLE_X11 is set and X11 is found
-    if(TRAA_OPTION_ENABLE_X11)
-        find_package(X11)
-
-        if(X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND AND X11_Xrandr_FOUND)
-            set(TRAA_OPTION_ENABLE_X11 ON)
-            add_definitions(-DTRAA_ENABLE_X11)
-            message(STATUS "[TRAA] X11 found")
-            message(STATUS "[TRAA] X11_INCLUDE_DIR: ${X11_INCLUDE_DIR}")
-            message(STATUS "[TRAA] X11_X11_LIB: ${X11_X11_LIB}")
-            message(STATUS "[TRAA] X11_Xext_INCLUDE_PATH: ${X11_Xext_INCLUDE_PATH}")
-            message(STATUS "[TRAA] X11_Xext_LIB: ${X11_Xext_LIB}")
-            message(STATUS "[TRAA] X11_Xcomposite_INCLUDE_PATH: ${X11_Xcomposite_INCLUDE_PATH}")
-            message(STATUS "[TRAA] X11_Xcomposite_LIB: ${X11_Xcomposite_LIB}")
-            message(STATUS "[TRAA] X11_Xrandr_INCLUDE_PATH: ${X11_Xrandr_INCLUDE_PATH}")
-            message(STATUS "[TRAA] X11_Xrandr_LIB: ${X11_Xrandr_LIB}")
-
-            set(TRAA_X11_INCLUDE_DIRS
-                ${X11_INCLUDE_DIR}
-                ${X11_Xext_INCLUDE_PATH}
-                ${X11_Xcomposite_INCLUDE_PATH}
-                ${X11_Xrandr_INCLUDE_PATH})
-            set(TRAA_X11_LIBS
-                ${X11_X11_LIB}
-                ${X11_Xext_LIB}
-                ${X11_Xcomposite_LIB}
-                ${X11_Xrandr_LIB})
-
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/shared_x_display.cc")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/shared_x_display.h")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_atom_cache.h")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_atom_cache.cc")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_error_trap.h")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_error_trap.cc")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_server_pixel_buffer.h")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_server_pixel_buffer.cc")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_list_utils.h")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_list_utils.cc")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_property.cc")
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/linux/x11/x_window_property.h")
-        else()
-            message(WARNING "[TRAA] X11 not found, disable X11 support")
-            set(TRAA_OPTION_ENABLE_X11 OFF)
-        endif()
-    endif()
-
-    # Enable wayland if TRAA_OPTION_ENABLE_WAYLAND is set
-    if(TRAA_OPTION_ENABLE_WAYLAND)
-        add_definitions(-DTRAA_ENABLE_WAYLAND)
-    endif()
-
-    if(NOT TRAA_OPTION_ENABLE_WAYLAND AND NOT TRAA_OPTION_ENABLE_X11)
-        list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/screen_capturer_null.cc")
-        list(APPEND TRAA_LIBRARY_BASE_DEVICES_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/window_capturer_null.cc")
-    endif()
-endif()
-
-# traa::base::folder
-set(TRAA_LIBRARY_BASE_FOLDER_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder.cc"
-)
-
-if(WIN32)
-    list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_win.cc")
-elseif(ANDROID)
-    list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_android.cc")
-elseif(APPLE)
-    list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_darwin.mm")
-elseif(LINUX)
-    list(APPEND TRAA_LIBRARY_BASE_FOLDER_FILES "${CMAKE_HOME_DIRECTORY}/src/base/folder/folder_linux.cc")
-endif()
-
-# traa::base::log
-set(TRAA_LIBRARY_BASE_LOG_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/base/log/logger.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/log/logger.cc"
-)
-
-# traa::base::numerics
-set(TRAA_LIBRARY_BASE_NUMERICS_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/base/numerics/safe_compare.h"
-)
-
-# traa::base::strings
-set(TRAA_LIBRARY_BASE_STRINGS_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/base/strings/ascii.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/strings/ascii.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/strings/string_trans.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/strings/string_trans.cc"
-)
-
-# traa::base::system
-set(TRAA_LIBRARY_BASE_SYSTEM_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/base/system/cpu_features_wrapper.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/system/cpu_features.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/system/cpu_info.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/system/cpu_info.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/system/sleep.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/system/sleep.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/system/system_time.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/system/system_time.h"
-)
-if(WIN32)
-elseif(ANDROID)
-    list(APPEND TRAA_LIBRARY_BASE_SYSTEM_FILES "${CMAKE_HOME_DIRECTORY}/src/base/system/cpu_features_android.cc")
-elseif(APPLE)
-elseif(LINUX)
-    list(APPEND TRAA_LIBRARY_BASE_SYSTEM_FILES "${CMAKE_HOME_DIRECTORY}/src/base/system/cpu_features_linux.cc")
-endif()
-
-# traa::base::thread
-set(TRAA_LIBRARY_BASE_THREAD_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread/callback.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread/ffuture.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread/ffuture.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread/task_queue.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread/waitable_future.h"
-)
-
-if(WIN32)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_win.cc")
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_win.cc")
-elseif(ANDROID)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_linux.cc")
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_linux.cc")
-elseif(APPLE)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_darwin.cc")
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_darwin.cc")
-elseif(LINUX)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_linux.cc")
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_linux.cc")
-endif()
-
-# traa::base::utils
-if(WIN32)
-    set(TRAA_LIBRARY_BASE_UTILS_FILES
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/create_direct3d_device.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/create_direct3d_device.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/get_activation_factory.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/get_activation_factory.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/hstring.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/hstring.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/registry.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/registry.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/scoped_com_initializer.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/scoped_com_initializer.cc"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/version.h"
-        "${CMAKE_HOME_DIRECTORY}/src/base/utils/win/version.cc"
-    )
-elseif(ANDROID)
-elseif(APPLE)
-elseif(LINUX)
-endif()
-
-list(APPEND TRAA_LIBRARY_BASE_UTILS_FILES "${CMAKE_HOME_DIRECTORY}/src/base/utils/time_utils.h")
-list(APPEND TRAA_LIBRARY_BASE_UTILS_FILES "${CMAKE_HOME_DIRECTORY}/src/base/utils/time_utils.cc")
-
-# traa::base
-set(TRAA_LIBRARY_BASE_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/base/arch.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/arraysize.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/checks.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/checks.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/disallow.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/function_view.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/hedley.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/platform.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/random.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/random.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/singleton.h"
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread_annotations.h"
-)
-
-# traa::main::utils
-set(TRAA_LIBRARY_MAIN_UTILS_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/main/utils/obj_string.h"
-)
-
-# traa::main
-set(TRAA_LIBRARY_MAIN_FILES
-    "${CMAKE_HOME_DIRECTORY}/src/main/engine.h"
-    "${CMAKE_HOME_DIRECTORY}/src/main/engine.cc"
-)
-
 # thirdparty spdlog
 add_definitions(-DSPDLOG_NO_EXCEPTIONS=ON)
 add_definitions(-DFMT_EXCEPTIONS=OFF)
@@ -661,7 +294,10 @@ set(TRAA_THIRDPARTY_JSON_FILE
     "${TRAA_THIRDPARTY_JSON_INCLUDE_DIR}/nlohmann/json.hpp"
     "${TRAA_THIRDPARTY_JSON_INCLUDE_DIR}/nlohmann/json_fwd.hpp"
 )
-source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_THIRDPARTY_JSON_FILE})
+source_group(TREE ${TRAA_THIRDPARTY_JSON_INCLUDE_DIR}/nlohmann FILES ${TRAA_THIRDPARTY_JSON_FILE})
+add_library(nlohmann_json OBJECT ${TRAA_THIRDPARTY_JSON_FILE})
+add_library(traa::base::json ALIAS nlohmann_json)
+set_target_properties(nlohmann_json PROPERTIES FOLDER thirdparty)
 
 # thirdparty libyuv-static
 add_definitions(-DLIBYUV_DISABLE_NEON=1) # TODO @sylar: how to enable neon?
@@ -669,7 +305,7 @@ add_definitions(-DLIBYUV_DISABLE_SVE=1) # TODO @sylar: how to enable sve?
 add_definitions(-DLIBYUV_DISABLE_SME=1) # TODO @sylar: how to enable sme?
 add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/libyuv-static)
 set(TRAA_THIRDPARTY_LIBYUV_INCLUDE_DIR "${LIBYUV_INCLUDE_DIR}")
-set_property(TARGET yuv PROPERTY FOLDER "thirdparty/libyuv")
+set_property(TARGET yuv PROPERTY FOLDER "thirdparty")
 
 # TODO @sylar: do we really need absl?
 # thirdparty absil-cpp
@@ -685,7 +321,10 @@ set(TRAA_THIRDPARTY_ASIO_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/asio/as
 file(GLOB_RECURSE TRAA_THIRDPARTY_ASIO_FILES
     ${CMAKE_HOME_DIRECTORY}/thirdparty/asio/asio/include/asio/*.hpp
 )
-source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_THIRDPARTY_ASIO_FILES})
+source_group(TREE ${TRAA_THIRDPARTY_ASIO_INCLUDE_DIR}/asio FILES ${TRAA_THIRDPARTY_ASIO_FILES})
+add_library(asio OBJECT ${TRAA_THIRDPARTY_ASIO_FILES})
+add_library(traa::base::asio ALIAS asio)
+set_target_properties(asio PROPERTIES FOLDER thirdparty)
 
 # thirdparty cpu_features
 if(ANDROID)
@@ -716,7 +355,12 @@ endif(ANDROID)
 add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/cpu_features)
 set(TRAA_THIRDPARTY_CPU_FEATURES_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/cpu_features")
 set(TRAA_THIRDPARTY_CPU_FEATURES_INCLUDE_DIR_NDK_COMPAT "${CMAKE_HOME_DIRECTORY}/thirdparty/cpu_features/ndk_compat")
-set_property(TARGET cpu_features PROPERTY FOLDER "thirdparty/cpu_features")
+set_property(TARGET cpu_features PROPERTY FOLDER "thirdparty")
+set_property(TARGET cpu_features_utils PROPERTY FOLDER "thirdparty/cpu_features")
+if(UNIX)
+    set_property(TARGET cpu_features_hardware_detection PROPERTY FOLDER "thirdparty/cpu_features")
+endif()
+
 
 # library include directories
 set(TRAA_LIBRARY_INCLUDE_DIRS
@@ -725,183 +369,17 @@ set(TRAA_LIBRARY_INCLUDE_DIRS
     ${TRAA_THIRDPARTY_JSON_INCLUDE_DIR}
     ${TRAA_THIRDPARTY_LIBYUV_INCLUDE_DIR}
     ${TRAA_THIRDPARTY_ASIO_INCLUDE_DIR}
+    ${TRAA_THIRDPARTY_CPU_FEATURES_INCLUDE_DIR} 
+    ${TRAA_THIRDPARTY_CPU_FEATURES_INCLUDE_DIR_NDK_COMPAT}
     ${TRAA_THIRDPARTY_ABSEIL_CPP_INCLUDE_DIR}
     "${CMAKE_HOME_DIRECTORY}/src"
 )
 
-list(APPEND TRAA_LIBRARY_INCLUDE_DIRS 
-    ${TRAA_THIRDPARTY_CPU_FEATURES_INCLUDE_DIR} 
-    ${TRAA_THIRDPARTY_CPU_FEATURES_INCLUDE_DIR_NDK_COMPAT}
-)
+include_directories(${TRAA_LIBRARY_INCLUDE_DIRS})
 
-# library files
-set(TRAA_LIBRARY_FILES
 
-    # traa public header files
-    ${TRAA_LIBRARY_PUBLIC_HEADER_FILES}
-
-    # traa base files
-    ${TRAA_LIBRARY_BASE_DEVICES_FILES}
-    ${TRAA_LIBRARY_BASE_FOLDER_FILES}
-    ${TRAA_LIBRARY_BASE_LOG_FILES}
-    ${TRAA_LIBRARY_BASE_UTILS_FILES}
-    ${TRAA_LIBRARY_BASE_SYSTEM_FILES}
-    ${TRAA_LIBRARY_BASE_THREAD_FILES}
-    ${TRAA_LIBRARY_BASE_FILES}
-
-    # traa main files
-    ${TRAA_LIBRARY_MAIN_UTILS_FILES}
-    ${TRAA_LIBRARY_MAIN_FILES}
-
-    # thirdparty files
-    ${TRAA_THIRDPARTY_JSON_FILE}
-    ${TRAA_THIRDPARTY_ASIO_FILES}
-
-    # traa
-    "${CMAKE_HOME_DIRECTORY}/src/traa.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/main.cc"
-)
-
-if(WIN32)
-    list(APPEND TRAA_LIBRARY_FILES ${TRAA_LIBRARY_BASE_STRINGS_FILES})
-
-    # source files
-    configure_file(${CMAKE_HOME_DIRECTORY}/resources/version.rc.in
-        ${CMAKE_CURRENT_BINARY_DIR}/version.rc
-        @ONLY)
-    list(APPEND TRAA_LIBRARY_FILES ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
-endif()
-
-source_group(TREE ${CMAKE_HOME_DIRECTORY} FILES ${TRAA_LIBRARY_FILES})
-
-# add shared library
-set(TRAA_LIBRARY traa)
-set(TRAA_LIBRARY_NAME "${TRAA_LIBRARY}")
-add_library(${TRAA_LIBRARY} SHARED ${TRAA_LIBRARY_FILES})
-
-# add include directories
-target_include_directories(${TRAA_LIBRARY} PUBLIC "$<BUILD_INTERFACE:${TRAA_LIBRARY_INCLUDE_DIRS}>")
-
-# add extra libraries libyuv
-target_link_libraries(${TRAA_LIBRARY} PRIVATE yuv)
-
-# add extra libraries cpu_features
-target_link_libraries(${TRAA_LIBRARY} PRIVATE cpu_features)
-if(ANDROID)
-    target_link_libraries(${TRAA_LIBRARY} PRIVATE ndk_compat)
-endif()
-
-# add compile definitions
-target_compile_definitions(${TRAA_LIBRARY} PUBLIC TRAA_EXPORT)
-set_target_properties(${TRAA_LIBRARY} PROPERTIES
-    VERSION "${TRAA_VERSION_SHORT}"
-    SOVERSION "${TRAA_VERSION_SHORT}"
-    PUBLIC_HEADER "${TRAA_LIBRARY_PUBLIC_HEADER_FILES}"
-    ARCHIVE_OUTPUT_DIRECTORY "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}"
-    LIBRARY_OUTPUT_DIRECTORY "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}"
-    RUNTIME_OUTPUT_DIRECTORY "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}"
-    PDB_OUTPUT_DIRECTORY "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}"
-    OUTPUT_NAME "${TRAA_LIBRARY_NAME}"
-)
-
-# thirdparty link
-if(TRAA_ENABLE_ABSL)
-    target_link_libraries(${TRAA_LIBRARY} PRIVATE
-        absl::algorithm
-        absl::base
-        absl::debugging
-        absl::flat_hash_map
-        absl::flags
-        absl::memory
-        absl::meta
-        absl::numeric
-        absl::random_random
-        absl::strings
-        absl::synchronization
-        absl::time
-        absl::utility)
-endif()
-
-# platform flags
-if(APPLE)
-    set(TRAA_LIBRARY_IDENTIFIER "io.traa.core")
-    set(TRAA_LIBRARY_FRAMEWORKS)
-
-    list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework Foundation")
-
-    if(IOS)
-        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework UIKit")
-    elseif(MACOS)
-        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework AppKit")
-    endif()
-
-    target_link_libraries(${TRAA_LIBRARY} PRIVATE "${TRAA_LIBRARY_FRAMEWORKS}")
-
-    set_target_properties(${TRAA_LIBRARY} PROPERTIES
-        FRAMEWORK TRUE
-        FRAMEWORK_VERSION A
-        MACOSX_FRAMEWORK_IDENTIFIER "${TRAA_LIBRARY_IDENTIFIER}"
-        MACOSX_FRAMEWORK_SHORT_VERSION_STRING "${TRAA_VERSION_SHORT}"
-        MACOSX_FRAMEWORK_BUNDLE_VERSION "${TRAA_VERSION_SHORT}"
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${TRAA_LIBRARY_IDENTIFIER}"
-        LINK_FLAGS "-Wl ${TRAA_LIBRARY_FRAMEWORKS_FOLDERS} -rpath @loader_path"
-    )
-
-    set_target_properties(${TRAA_LIBRARY} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
-
-    add_custom_command(
-        TARGET ${TRAA_LIBRARY}
-        POST_BUILD
-        COMMAND strip -r -S -x
-        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/${TRAA_LIBRARY_NAME}.framework/${TRAA_LIBRARY_NAME}"
-        COMMENT "Strip debug and local symbols done on final binary."
-    )
-elseif(WIN32)
-    target_link_libraries(${TRAA_LIBRARY} PRIVATE
-        dwmapi.lib
-        Shcore.lib
-        dxgi.lib
-        d3d11.lib
-        Winmm.lib
-    )
-elseif(ANDROID)
-    find_library(log-lib log)
-    target_link_libraries(${TRAA_LIBRARY} PRIVATE ${log-lib})
-
-    add_custom_command(
-        TARGET ${TRAA_LIBRARY}
-        POST_BUILD
-        COMMAND cp -RP
-        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/lib${TRAA_LIBRARY_NAME}.so"
-        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/lib${TRAA_LIBRARY_NAME}-symbol.so"
-    )
-    add_custom_command(
-        TARGET ${TRAA_LIBRARY}
-        POST_BUILD
-        COMMAND "${ANDROID_TOOLCHAIN_ROOT}/bin/llvm-strip" --strip-all
-        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/lib${TRAA_LIBRARY_NAME}.so"
-        COMMENT "Strip debug symbols done on final binary."
-    )
-elseif(LINUX)
-    set_target_properties(${TRAA_LIBRARY} PROPERTIES
-        LINK_FLAGS "-Wl,-rpath,./"
-    )
-
-    # X11
-    if(TRAA_OPTION_ENABLE_X11)
-        target_include_directories(${TRAA_LIBRARY} PRIVATE ${TRAA_X11_INCLUDE_DIRS})
-        target_link_libraries(${TRAA_LIBRARY} PRIVATE ${TRAA_X11_LIBS})
-    endif()
-endif()
-
-# actions after build
-if(NOT APPLE)
-    set(TRAA_LIBRARY_PUBLIC_HEADER_TARGET_INCLUDE_DIR "${TRAA_OPTION_BIN_FOLDER}/include")
-    file(MAKE_DIRECTORY "${TRAA_LIBRARY_PUBLIC_HEADER_TARGET_INCLUDE_DIR}")
-    execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${TRAA_LIBRARY_PUBLIC_HEADER_FILES} "${TRAA_LIBRARY_PUBLIC_HEADER_TARGET_INCLUDE_DIR}"
-        WORKING_DIRECTORY ${CMAKE_HOME_DIRECTORY}
-    )
-endif()
+# add traa::main and traa::base
+add_subdirectory(${CMAKE_HOME_DIRECTORY}/src)
 
 if(TRAA_OPTION_ENABLE_UNIT_TEST OR TRAA_OPTION_ENABLE_SMOKE_TEST)
     if(NOT IOS AND NOT VISIONOS AND NOT ANDROID)

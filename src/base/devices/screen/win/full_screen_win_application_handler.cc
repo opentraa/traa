@@ -17,7 +17,7 @@
 #include "base/strings/ascii.h"
 #include "base/strings/string_trans.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <algorithm>
 #include <cwctype>

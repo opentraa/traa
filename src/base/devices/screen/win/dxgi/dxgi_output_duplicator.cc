@@ -14,7 +14,7 @@
 #include "base/devices/screen/win/dxgi/dxgi_texture_mapping.h"
 #include "base/devices/screen/win/dxgi/dxgi_texture_staging.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/strings/string_trans.h"
 
 #include <dxgi.h>

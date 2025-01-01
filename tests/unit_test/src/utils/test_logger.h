@@ -1,6 +1,6 @@
 #ifndef TRAA_UNIT_TEST_UTILS_TEST_LOGGER_H_
 #define TRAA_UNIT_TEST_UTILS_TEST_LOGGER_H_
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #define TEST_LOG_DEBUG(TXT) LOG(spdlog::level::debug, "[ut]: " #TXT)
 #define TEST_LOG_INFO(TXT) LOG(spdlog::level::info, "[ut]: " #TXT)

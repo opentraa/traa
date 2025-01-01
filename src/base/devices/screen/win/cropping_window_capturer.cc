@@ -11,7 +11,7 @@
 #include "base/devices/screen/win/cropping_window_capturer.h"
 
 #include "base/devices/screen/cropped_desktop_frame.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <stddef.h>
 #include <utility>

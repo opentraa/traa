@@ -1,13 +1,12 @@
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+cmake_minimum_required(VERSION 3.10)
 
 enable_testing()
 
-set(TRAA_SMOKE_TEST traa-smoke-test)
+set(TRAA_SMOKE_TEST smoketest)
 set(TRAA_SMOKE_TEST_OUTPUT_NAME ${TRAA_SMOKE_TEST})
 
-file(GLOB_RECURSE TRAA_SMOKE_TEST_FILES ${CMAKE_CURRENT_SOURCE_DIR}/**)
-source_group("test" FILES ${TRAA_SMOKE_TEST_FILES})
+file(GLOB_RECURSE TRAA_SMOKE_TEST_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/**)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${TRAA_SMOKE_TEST_FILES})
 
 set(TRAA_SMOKE_TEST_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -16,7 +15,7 @@ set(TRAA_SMOKE_TEST_INCLUDE_DIRS
 
 add_executable(${TRAA_SMOKE_TEST} ${TRAA_SMOKE_TEST_FILES})
 target_link_libraries(${TRAA_SMOKE_TEST} PRIVATE
-    ${TRAA_LIBRARY}
+    traa::main
     gtest
     gtest_main
     gmock

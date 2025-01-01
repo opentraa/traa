@@ -10,7 +10,7 @@
 
 #include "base/devices/screen/linux/x11/x_error_trap.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <stddef.h>
 

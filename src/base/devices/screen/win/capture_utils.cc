@@ -5,7 +5,7 @@
 #include "base/devices/screen/enumerator.h"
 #include "base/devices/screen/utils.h"
 #include "base/devices/screen/win/scoped_gdi_object.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/strings/string_trans.h"
 #include "base/utils/win/version.h"
 

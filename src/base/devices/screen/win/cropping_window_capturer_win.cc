@@ -14,7 +14,7 @@
 #include "base/devices/screen/full_screen_window_detector.h"
 #include "base/devices/screen/win/capture_utils.h"
 #include "base/devices/screen/win/selected_window_context.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/utils/win/version.h"
 
 namespace traa {

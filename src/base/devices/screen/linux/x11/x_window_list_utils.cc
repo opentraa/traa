@@ -7,7 +7,7 @@
 #include "base/devices/screen/linux/x11/x_window_property.h"
 #include "base/devices/screen/utils.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <libyuv/scale_argb.h>
 

@@ -10,7 +10,7 @@
 
 #include "base/devices/screen/win/thread_desktop.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/strings/string_trans.h"
 
 #include <vector>

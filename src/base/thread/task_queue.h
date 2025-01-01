@@ -4,7 +4,7 @@
 #include "traa/error.h"
 
 #include "base/disallow.h"
-#include "base/log/logger.h"
+#include "base/logger.h"
 #include "base/singleton.h"
 #include "base/thread/ffuture.h"
 #include "base/thread/rw_lock.h"

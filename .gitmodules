@@ -19,4 +19,4 @@
 	url = git@github.com:opentraa/spdlog.git
 [submodule "thirdparty/cpu_features"]
 	path = thirdparty/cpu_features
-	url = git@github.com:google/cpu_features.git
+	url = git@github.com:opentraa/cpu_features.git

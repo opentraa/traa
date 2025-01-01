@@ -10,7 +10,7 @@
 
 #include "base/devices/screen/fallback_desktop_capturer_wrapper.h"
 
-#include "base/log/logger.h"
+#include "base/logger.h"
 
 #include <stddef.h>
 #include <utility>
