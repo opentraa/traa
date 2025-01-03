@@ -27,6 +27,8 @@ public:
   // desktop_frame objects always hold BGRA data.
   static constexpr int k_bytes_per_pixel = 4;
 
+  static constexpr float k_standard_dpi = 96.0f;
+
   virtual ~desktop_frame();
 
   desktop_frame(const desktop_frame &) = delete;
