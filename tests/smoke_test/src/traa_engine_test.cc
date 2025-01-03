@@ -1,3 +1,5 @@
+#include "simple_window/simple_window.h"
+
 #include <gtest/gtest.h>
 
 #include <traa/traa.h>
@@ -94,6 +96,9 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
     /*printf("info: id: %lld, title: %s, process_path: %s\n", static_cast<long long>(info->id),
        info->title, info->process_path);*/
   };
+
+  auto simple_window = traa::base::simple_window::create("simple_window", 300, 300);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // enum without icon_size and thumbnail_size.
   {

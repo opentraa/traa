@@ -52,9 +52,7 @@ void desktop_configuration_monitor::reconfigure_callback(CGDirectDisplayID displ
 
 void desktop_configuration_monitor::reconfigured(CGDirectDisplayID display,
                                                  CGDisplayChangeSummaryFlags flags) {
-  // TODO @sylar: optimize the LOG_EVENT
-  LOG_EVENT("SDM", "desktop_configuration_monitor::reconfigured");
-  LOG_INFO("reconfigured: DisplayID {}; ChangeSummaryFlags {}", display, flags);
+  LOG_INFO("desktop_configuration_monitor::reconfigured, display {}, flags {}", display, flags);
 
   if (flags & kCGDisplayBeginConfigurationFlag) {
     reconfiguring_displays_.insert(display);

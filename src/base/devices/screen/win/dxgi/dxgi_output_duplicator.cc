@@ -113,15 +113,22 @@ bool dxgi_output_duplicator::duplicate_output() {
 
   if (static_cast<int>(desc_.ModeDesc.Width) != desktop_rect_.width() ||
       static_cast<int>(desc_.ModeDesc.Height) != desktop_rect_.height()) {
-    LOG_ERROR("IDXGIDuplicateOutput does not return a same size as its IDXGIOutput1, size returned "
+    // TODO @sylar: why the size returned by IDXGIDuplicateOutput is not the same as the size
+    // returned by IDXGIOutput1 when in my virtual machine?
+    LOG_WARN("IDXGIDuplicateOutput does not return a same size as its IDXGIOutput1, size returned "
               "by IDXGIDuplicateOutput is {} x {}, size returned by IDXGIOutput1 is {} x {}",
               desc_.ModeDesc.Width, desc_.ModeDesc.Height, desktop_rect_.width(),
               desktop_rect_.height());
-    return false;
+
+    // TODO @sylar: find out why the size returned by IDXGIDuplicateOutput is not the same as the size
+    // returned by IDXGIOutput1 when in my virtual machine? before that we juse reset the desktop_rect_
+    // to the size returned by IDXGIDuplicateOutput.
+    desktop_rect_ = desktop_rect::make_size(desktop_size(desc_.ModeDesc.Width, desc_.ModeDesc.Height));
+    // return false;
   }
 
   rotation_ = dxgi_rotation_to_rotation(desc_.Rotation);
-  unrotated_size_ = rotate_size(desktop_size(), reverse_rotation(rotation_));
+  unrotated_size_ = rotate_size(get_desktop_size(), reverse_rotation(rotation_));
 
   return true;
 }
@@ -158,8 +165,7 @@ bool dxgi_output_duplicator::contains_mouse_cursor(const DXGI_OUTDUPL_FRAME_INFO
   // AcquireNextFrame indicates that a separate pointer isn’t visible, hence
   // `frame_info.PointerPosition.Visible` is false.
   const bool cursor_embedded_in_frame = !frame_info.PointerPosition.Visible;
-  LOG_EVENT_COND("SDM", cursor_embedded_in_frame, "dxgi_output_duplicator.contains_mouse_cursor",
-                 cursor_embedded_in_frame);
+  LOG_INFO_IF(cursor_embedded_in_frame, "dxgi_output_duplicator.contains_mouse_cursor");
   return cursor_embedded_in_frame;
 }
 
@@ -203,7 +209,7 @@ bool dxgi_output_duplicator::duplicate(context_t *context, desktop_vector offset
         // The `updated_region` returned by Windows is rotated, but the `source`
         // frame is not. So we need to rotate it reversely.
         const desktop_rect source_rect =
-            rotate_rect(it.rect(), desktop_size(), reverse_rotation(rotation_));
+            rotate_rect(it.rect(), get_desktop_size(), reverse_rotation(rotation_));
         rotate_desktop_frame(source, source_rect, rotation_, offset, target);
       }
     } else {
@@ -249,13 +255,13 @@ bool dxgi_output_duplicator::duplicate(context_t *context, desktop_vector offset
 }
 
 desktop_rect dxgi_output_duplicator::get_translated_desktop_rect(desktop_vector offset) const {
-  desktop_rect result(desktop_rect::make_size(desktop_size()));
+  desktop_rect result(desktop_rect::make_size(get_desktop_size()));
   result.translate(offset);
   return result;
 }
 
 desktop_rect dxgi_output_duplicator::get_untranslated_desktop_rect() const {
-  return desktop_rect::make_size(desktop_size());
+  return desktop_rect::make_size(get_desktop_size());
 }
 
 void dxgi_output_duplicator::detect_updated_region(const DXGI_OUTDUPL_FRAME_INFO &frame_info,

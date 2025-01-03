@@ -70,6 +70,7 @@ void alpha_mul(uint32_t *data, int width, int height) {
   for (uint32_t *data_end = data + width * height; data != data_end; ++data) {
     RGBQUAD *from = reinterpret_cast<RGBQUAD *>(data);
     RGBQUAD *to = reinterpret_cast<RGBQUAD *>(data);
+    // TODO @sylar: why rgbReserved is always 0x00? 
     to->rgbBlue = (static_cast<uint16_t>(from->rgbBlue) * from->rgbReserved) / 0xff;
     to->rgbGreen = (static_cast<uint16_t>(from->rgbGreen) * from->rgbReserved) / 0xff;
     to->rgbRed = (static_cast<uint16_t>(from->rgbRed) * from->rgbReserved) / 0xff;

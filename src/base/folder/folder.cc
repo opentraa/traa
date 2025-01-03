@@ -9,14 +9,14 @@ namespace {
 #if defined(TRAA_OS_WINDOWS)
 const char k_end_cahr = '\0';
 const char k_file_path_separators[] = "\\/";
-const char k_file_path_cur_directory[] = ".";
-const char k_file_path_parent_directory[] = "..";
+// const char k_file_path_cur_directory[] = ".";
+// const char k_file_path_parent_directory[] = "..";
 const char k_file_path_ext_separator = '.';
 #else
 const char k_end_cahr = '\0';
 const char k_file_path_separators[] = "/";
-const char k_file_path_cur_directory[] = ".";
-const char k_file_path_parent_directory[] = "..";
+// const char k_file_path_cur_directory[] = ".";
+// const char k_file_path_parent_directory[] = "..";
 const char k_file_path_ext_separator = '.';
 #endif // TRAA_OS_WINDOWS
 

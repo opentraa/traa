@@ -14,11 +14,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#include <stdint.h>
 
 namespace traa {
 namespace base {
-
-typedef unsigned char uint8_t;
 
 // Define an arbitrary color for the test window with unique R, G, and B values
 // so consumers can verify captured content in tests.

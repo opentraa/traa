@@ -87,8 +87,7 @@ void blank_detector_desktop_capturer_wrapper::on_capture_result(
     last_frame_is_blank_ = is_blank_frame(*frame);
     is_first_frame_ = false;
   }
-  LOG_EVENT_COND("SDM", last_frame_is_blank_,
-                 "blank_detector_desktop_capturer_wrapper detected blank frame");
+  LOG_INFO_IF(last_frame_is_blank_, "blank_detector_desktop_capturer_wrapper detected blank frame");
 
   if (!last_frame_is_blank_) {
     non_blank_frame_received_ = true;

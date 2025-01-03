@@ -90,7 +90,7 @@ bool screen_capturer_win_gdi::select_source(source_id_t id) {
 }
 
 void screen_capturer_win_gdi::start(capture_callback *callback) {
-  LOG_EVENT("SDM", "screen_capturer_impl id" + std::to_string(current_capturer_id()));
+  LOG_INFO("screen_capturer_impl id" + std::to_string(current_capturer_id()));
   callback_ = callback;
 
   if (disable_effects_) {

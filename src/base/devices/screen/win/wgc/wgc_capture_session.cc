@@ -88,11 +88,11 @@ enum class get_frame_result {
 };
 
 void record_start_capture_result(start_capture_result error) {
-  LOG_EVENT("SDM", "start_capture_result {}", static_cast<int>(error));
+  LOG_INFO("start_capture_result {}", static_cast<int>(error));
 }
 
 void record_get_frame_result(get_frame_result error) {
-  LOG_EVENT("SDM", "get_frame_result {}", static_cast<int>(error));
+  LOG_INFO("get_frame_result {}", static_cast<int>(error));
 }
 
 bool size_has_changed(ABI::Windows::Graphics::SizeInt32 size_new,

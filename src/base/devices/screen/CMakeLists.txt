@@ -38,6 +38,9 @@ if(WIN32 OR MACOS OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
         "resolution_tracker.cc"
         "rgba_color.h"
         "rgba_color.cc"
+        "screen_capture_frame_queue.h"
+        "screen_capturer_helper.h"
+        "screen_capturer_helper.cc"
         "shared_desktop_frame.cc"
         "shared_desktop_frame.h"
         "shared_memory.h"
@@ -173,15 +176,31 @@ if(WIN32)
         "win/window_finder_win.h"
         "win/window_finder_win.cc"
     )
-elseif(APPLE AND NOT IOS AND NOT VISIONOS)
+elseif(MACOS)
     list(APPEND TRAA_LIBRARY_BASE_DEVICES_SCREEN_FILES 
         "darwin/desktop_configuration_monitor.cc"
         "darwin/desktop_configuration_monitor.h"
         "darwin/desktop_configuration.h"
         "darwin/desktop_configuration.mm"
+        "darwin/desktop_frame_cgimage.h"
+        "darwin/desktop_frame_cgimage.mm"
+        "darwin/desktop_frame_iosurface.h"
+        "darwin/desktop_frame_iosurface.mm"
+        "darwin/desktop_frame_provider.h"
+        "darwin/desktop_frame_provider.mm"
+        "darwin/desktop_frame_utils.h"
+        "darwin/desktop_frame_utils.cc"
         "darwin/enumerator_darwin.mm"
         "darwin/full_screen_mac_application_handler.cc"
         "darwin/full_screen_mac_application_handler.h"
+        "darwin/screen_capturer_darwin.mm"
+        "darwin/screen_capturer_mac.h"
+        "darwin/screen_capturer_mac.mm"
+        "darwin/screen_capturer_sck.h"
+        "darwin/screen_capturer_sck.mm"
+        "darwin/window_capturer_mac.mm"
+        "darwin/window_finder_mac.h"
+        "darwin/window_finder_mac.mm"
         "darwin/window_list_utils.cc"
         "darwin/window_list_utils.h"
     )
@@ -192,52 +211,43 @@ elseif(LINUX)
         "linux/enumerator_linux.cc"
     )
 
-    # Enable x11 if TRAA_OPTION_ENABLE_X11 is set and X11 is found
+    # Add X11 support if TRAA_OPTION_ENABLE_X11 is set
     if(TRAA_OPTION_ENABLE_X11)
-        find_package(X11)
+        message(STATUS "[TRAA] X11 found")
+        message(STATUS "[TRAA] X11_INCLUDE_DIR: ${X11_INCLUDE_DIR}")
+        message(STATUS "[TRAA] X11_X11_LIB: ${X11_X11_LIB}")
+        message(STATUS "[TRAA] X11_Xext_INCLUDE_PATH: ${X11_Xext_INCLUDE_PATH}")
+        message(STATUS "[TRAA] X11_Xext_LIB: ${X11_Xext_LIB}")
+        message(STATUS "[TRAA] X11_Xcomposite_INCLUDE_PATH: ${X11_Xcomposite_INCLUDE_PATH}")
+        message(STATUS "[TRAA] X11_Xcomposite_LIB: ${X11_Xcomposite_LIB}")
+        message(STATUS "[TRAA] X11_Xrandr_INCLUDE_PATH: ${X11_Xrandr_INCLUDE_PATH}")
+        message(STATUS "[TRAA] X11_Xrandr_LIB: ${X11_Xrandr_LIB}")
 
-        if(X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND AND X11_Xrandr_FOUND)
-            set(TRAA_OPTION_ENABLE_X11 ON)
-            add_definitions(-DTRAA_ENABLE_X11)
-            message(STATUS "[TRAA] X11 found")
-            message(STATUS "[TRAA] X11_INCLUDE_DIR: ${X11_INCLUDE_DIR}")
-            message(STATUS "[TRAA] X11_X11_LIB: ${X11_X11_LIB}")
-            message(STATUS "[TRAA] X11_Xext_INCLUDE_PATH: ${X11_Xext_INCLUDE_PATH}")
-            message(STATUS "[TRAA] X11_Xext_LIB: ${X11_Xext_LIB}")
-            message(STATUS "[TRAA] X11_Xcomposite_INCLUDE_PATH: ${X11_Xcomposite_INCLUDE_PATH}")
-            message(STATUS "[TRAA] X11_Xcomposite_LIB: ${X11_Xcomposite_LIB}")
-            message(STATUS "[TRAA] X11_Xrandr_INCLUDE_PATH: ${X11_Xrandr_INCLUDE_PATH}")
-            message(STATUS "[TRAA] X11_Xrandr_LIB: ${X11_Xrandr_LIB}")
+        set(TRAA_X11_INCLUDE_DIRS
+            ${X11_INCLUDE_DIR}
+            ${X11_Xext_INCLUDE_PATH}
+            ${X11_Xcomposite_INCLUDE_PATH}
+            ${X11_Xrandr_INCLUDE_PATH})
+        set(TRAA_X11_LIBS
+            ${X11_X11_LIB}
+            ${X11_Xext_LIB}
+            ${X11_Xcomposite_LIB}
+            ${X11_Xrandr_LIB})
 
-            set(TRAA_X11_INCLUDE_DIRS
-                ${X11_INCLUDE_DIR}
-                ${X11_Xext_INCLUDE_PATH}
-                ${X11_Xcomposite_INCLUDE_PATH}
-                ${X11_Xrandr_INCLUDE_PATH})
-            set(TRAA_X11_LIBS
-                ${X11_X11_LIB}
-                ${X11_Xext_LIB}
-                ${X11_Xcomposite_LIB}
-                ${X11_Xrandr_LIB})
-
-            list(APPEND TRAA_LIBRARY_BASE_DEVICES_SCREEN_FILES 
-                "linux/x11/shared_x_display.cc"
-                "linux/x11/shared_x_display.h"
-                "linux/x11/x_atom_cache.h"
-                "linux/x11/x_atom_cache.cc"
-                "linux/x11/x_error_trap.h"
-                "linux/x11/x_error_trap.cc"
-                "linux/x11/x_server_pixel_buffer.h"
-                "linux/x11/x_server_pixel_buffer.cc"
-                "linux/x11/x_window_list_utils.h"
-                "linux/x11/x_window_list_utils.cc"
-                "linux/x11/x_window_property.h"
-                "linux/x11/x_window_property.cc"
-            )
-        else()
-            message(WARNING "[TRAA] X11 not found, disable X11 support")
-            set(TRAA_OPTION_ENABLE_X11 OFF)
-        endif()
+        list(APPEND TRAA_LIBRARY_BASE_DEVICES_SCREEN_FILES 
+            "linux/x11/shared_x_display.cc"
+            "linux/x11/shared_x_display.h"
+            "linux/x11/x_atom_cache.h"
+            "linux/x11/x_atom_cache.cc"
+            "linux/x11/x_error_trap.h"
+            "linux/x11/x_error_trap.cc"
+            "linux/x11/x_server_pixel_buffer.h"
+            "linux/x11/x_server_pixel_buffer.cc"
+            "linux/x11/x_window_list_utils.h"
+            "linux/x11/x_window_list_utils.cc"
+            "linux/x11/x_window_property.h"
+            "linux/x11/x_window_property.cc"
+        )
     endif()
 
     # Enable wayland if TRAA_OPTION_ENABLE_WAYLAND is set

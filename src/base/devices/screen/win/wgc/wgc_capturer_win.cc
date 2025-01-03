@@ -52,7 +52,7 @@ enum class wgc_capturer_result {
 };
 
 void record_wgc_capturer_result(wgc_capturer_result error) {
-  LOG_EVENT("SDM", "wgc_capturer_result", static_cast<int>(error));
+  LOG_INFO("wgc_capturer_result {}", static_cast<int>(error));
 }
 
 // Checks if the DirtyRegionMode property is present in GraphicsCaptureSession
@@ -84,7 +84,7 @@ void log_dirty_region_support() {
     boolean is_dirty_region_mode_supported = false;
     api_info_statics->IsPropertyPresent(wgc_session_type, dirty_region_mode,
                                         &is_dirty_region_mode_supported);
-    LOG_EVENT_COND("SDM", "wgc_dirty_region_support", !!is_dirty_region_mode_supported);
+    LOG_INFO_IF(!!is_dirty_region_mode_supported, "wgc_dirty_region_support");
   }
 
   delete_hstring(dirty_region_mode);
@@ -229,7 +229,7 @@ bool wgc_capturer_win::focus_on_selected_source() {
 }
 
 void wgc_capturer_win::start(desktop_capturer::capture_callback *callback) {
-  LOG_EVENT("SDM", "wgc_capturer_win::start", static_cast<int>(current_capturer_id()));
+  LOG_INFO("wgc_capturer_win::start, id {}", static_cast<int>(current_capturer_id()));
 
   callback_ = callback;
 

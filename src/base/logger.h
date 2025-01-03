@@ -40,10 +40,29 @@
 #define LOG_API_ARGS_6(ARG1, ARG2, ARG3, ARG4, ARG5, ARG6)                                         \
   LOG_INFO("call {}({}, {}, {}, {}, {}, {})", FUNCTION_MACRO, ARG1, ARG2, ARG3, ARG4, ARG5, ARG6)
 
-#define LOG_EVENT(TAG, ...) LOG_INFO("[{}] {}", TAG, __VA_ARGS__)
-#define LOG_EVENT_COND(TAG, CONDITION, ...)                                                        \
+#define LOG_DEBUG_IF(CONDITION, ...)                                                               \
   if (CONDITION) {                                                                                 \
-    LOG_EVENT(TAG, __VA_ARGS__);                                                                   \
+    LOG_DEBUG(__VA_ARGS__);                                                                        \
+  }
+
+#define LOG_INFO_IF(CONDITION, ...)                                                                \
+  if (CONDITION) {                                                                                 \
+    LOG_INFO(__VA_ARGS__);                                                                         \
+  }
+
+#define LOG_WARN_IF(CONDITION, ...)                                                                \
+  if (CONDITION) {                                                                                 \
+    LOG_WARN(__VA_ARGS__);                                                                         \
+  }
+
+#define LOG_ERROR_IF(CONDITION, ...)                                                               \
+  if (CONDITION) {                                                                                 \
+    LOG_ERROR(__VA_ARGS__);                                                                        \
+  }
+
+#define LOG_FATAL_IF(CONDITION, ...)                                                               \
+  if (CONDITION) {                                                                                 \
+    LOG_FATAL(__VA_ARGS__);                                                                        \
   }
 
 namespace traa {

@@ -60,6 +60,17 @@ if(LINUX)
     # To enable x11 you have install x11 and x11-xext and x11-xcomposite development packages.
     # sudo apt-get install libx11-dev libxext-dev libxcomposite-dev
     option(TRAA_OPTION_ENABLE_X11 "Enable X11 support" ON)
+    
+    if(TRAA_OPTION_ENABLE_X11)
+        find_package(X11)
+        if(X11_FOUND AND X11_Xext_FOUND AND X11_Xcomposite_FOUND AND X11_Xrandr_FOUND)
+            set(TRAA_OPTION_ENABLE_X11 ON)
+            add_definitions(-DTRAA_ENABLE_X11)
+        else()
+            message(WARNING "[TRAA] X11 not found, disable X11 support")
+            set(TRAA_OPTION_ENABLE_X11 OFF)
+        endif()
+    endif()
 
     # TODO(@sylar) COPY FINDERS FROM OBS PROJECT AND USE list(APPEND CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/cmake/finders") TO INCLUDE THEM
     option(TRAA_OPTION_ENABLE_WAYLAND "Enable Wayland support" OFF)
@@ -238,7 +249,8 @@ endif()
 if(MACOS)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
     set(CMAKE_XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET "10.13")
-    set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+    # do not use this anymore, we will use dsymutil and strip to generate dsym file and strip debug and local symbols
+    # set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
 elseif(IOS)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Oz")
 elseif(ANDROID)
@@ -298,7 +310,7 @@ source_group(TREE ${TRAA_THIRDPARTY_JSON_INCLUDE_DIR}/nlohmann FILES ${TRAA_THIR
 add_library(nlohmann_json OBJECT ${TRAA_THIRDPARTY_JSON_FILE})
 add_library(traa::base::json ALIAS nlohmann_json)
 set_target_properties(nlohmann_json PROPERTIES FOLDER thirdparty)
-set_target_properties(nlohmann_json PROPERTY LINKER_LANGUAGE CXX)
+set_target_properties(nlohmann_json PROPERTIES LINKER_LANGUAGE CXX)
 
 # thirdparty libyuv-static
 add_definitions(-DLIBYUV_DISABLE_NEON=1) # TODO @sylar: how to enable neon?
@@ -318,6 +330,7 @@ endif()
 # thirdparty asio
 add_compile_definitions(ASIO_NO_EXCEPTIONS)
 add_compile_definitions(ASIO_NO_TYPEID)
+add_compile_definitions(ASIO_HEADER_ONLY)
 set(TRAA_THIRDPARTY_ASIO_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/asio/asio/include")
 file(GLOB_RECURSE TRAA_THIRDPARTY_ASIO_FILES
     ${CMAKE_HOME_DIRECTORY}/thirdparty/asio/asio/include/asio/*.hpp
@@ -326,7 +339,7 @@ source_group(TREE ${TRAA_THIRDPARTY_ASIO_INCLUDE_DIR}/asio FILES ${TRAA_THIRDPAR
 add_library(asio OBJECT ${TRAA_THIRDPARTY_ASIO_FILES})
 add_library(traa::base::asio ALIAS asio)
 set_target_properties(asio PROPERTIES FOLDER thirdparty)
-set_property(TARGET asio PROPERTY LINKER_LANGUAGE CXX)
+set_target_properties(asio PROPERTIES LINKER_LANGUAGE CXX)
 
 # thirdparty cpu_features
 if(ANDROID)
@@ -358,9 +371,9 @@ add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/cpu_features)
 set(TRAA_THIRDPARTY_CPU_FEATURES_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/cpu_features")
 set(TRAA_THIRDPARTY_CPU_FEATURES_INCLUDE_DIR_NDK_COMPAT "${CMAKE_HOME_DIRECTORY}/thirdparty/cpu_features/ndk_compat")
 set_property(TARGET cpu_features PROPERTY FOLDER "thirdparty")
-set_property(TARGET cpu_features_utils PROPERTY FOLDER "thirdparty/cpu_features")
+set_property(TARGET cpu_features_utils PROPERTY FOLDER "thirdparty")
 if(UNIX)
-    set_property(TARGET cpu_features_hardware_detection PROPERTY FOLDER "thirdparty/cpu_features")
+    set_property(TARGET cpu_features_hardware_detection PROPERTY FOLDER "thirdparty")
 endif()
 
 
@@ -379,10 +392,27 @@ set(TRAA_LIBRARY_INCLUDE_DIRS
 
 include_directories(${TRAA_LIBRARY_INCLUDE_DIRS})
 
+# platform frameworks, TODO @sylar: where should we put this?
+# this will be used by traa::main and traa::unittest
+if(APPLE)
+    set(TRAA_LIBRARY_FRAMEWORKS "-framework Foundation")
+    if(IOS)
+        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework UIKit")
+    elseif(MACOS)
+        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework AppKit")
+        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework CoreVideo")
+        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework IOKit")
+        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework IOSurface")
+        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework CoreMedia")
+        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-weak_framework ScreenCaptureKit") # macOS 12.3
+    endif()
+endif()
+
 
 # add traa::main and traa::base
 add_subdirectory(${CMAKE_HOME_DIRECTORY}/src)
 
+# add test modules
 if(TRAA_OPTION_ENABLE_UNIT_TEST OR TRAA_OPTION_ENABLE_SMOKE_TEST)
     if(NOT IOS AND NOT VISIONOS AND NOT ANDROID)
         add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/googletest)

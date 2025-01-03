@@ -134,7 +134,7 @@ bool window_capturer_win_gdi::is_occluded(const desktop_vector &pos) {
 }
 
 void window_capturer_win_gdi::start(capture_callback *callback) {
-  LOG_EVENT("SDM", "window_capturer_impl id" + std::to_string(current_capturer_id()));
+  LOG_INFO("window_capturer_impl id" + std::to_string(current_capturer_id()));
   callback_ = callback;
 }
 
