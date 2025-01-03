@@ -40,6 +40,7 @@ add_executable(${TRAA_UNIT_TEST}
     ${TRAA_UNIT_TEST_FILES}
     ${TRAA_UNIT_TEST_UTILS_FILES}
 )
+add_executable(traa::unittest ALIAS ${TRAA_UNIT_TEST})
 
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
 target_link_libraries(${TRAA_UNIT_TEST} PRIVATE

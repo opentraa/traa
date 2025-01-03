@@ -82,15 +82,6 @@ set_target_properties(${TRAA_LIBRARY_MAIN} PROPERTIES
 # platform flags
 if(APPLE)
     set(TRAA_LIBRARY_IDENTIFIER "io.traa.core")
-    set(TRAA_LIBRARY_FRAMEWORKS)
-
-    list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework Foundation")
-
-    if(IOS)
-        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework UIKit")
-    elseif(MACOS)
-        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework AppKit")
-    endif()
 
     target_link_libraries(${TRAA_LIBRARY_MAIN} PRIVATE "${TRAA_LIBRARY_FRAMEWORKS}")
 
