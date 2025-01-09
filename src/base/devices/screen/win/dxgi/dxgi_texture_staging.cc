@@ -46,8 +46,7 @@ bool dxgi_texture_staging::initialize_stage(ID3D11Texture2D *texture) {
     D3D11_TEXTURE2D_DESC current_desc;
     stage_->GetDesc(&current_desc);
     const bool recreate_needed = (memcmp(&desc, &current_desc, sizeof(D3D11_TEXTURE2D_DESC)) != 0);
-    LOG_EVENT_COND("SDM", recreate_needed, "dxgit staging texture recreate_needed: {}",
-                   recreate_needed);
+    LOG_INFO_IF(recreate_needed, "dxgit staging texture recreate_needed: {}", recreate_needed);
     if (!recreate_needed) {
       return true;
     }

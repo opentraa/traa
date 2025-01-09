@@ -261,7 +261,7 @@ bool cropping_window_capturer_win::should_use_screen_capturer() {
 }
 
 desktop_rect cropping_window_capturer_win::get_window_rect_in_virtual_screen() {
-  LOG_EVENT("SDM", "cropping_window_capturer_win::get_window_rect_in_virtual_screen");
+  LOG_INFO("cropping_window_capturer_win::get_window_rect_in_virtual_screen");
   desktop_rect window_rect;
   HWND hwnd = reinterpret_cast<HWND>(get_window_to_capture());
   if (!capture_utils::get_window_cropped_rect(hwnd, /*avoid_cropping_border*/ false, &window_rect,
@@ -286,8 +286,7 @@ win_id_t cropping_window_capturer_win::get_window_to_capture() const {
           : 0;
   if (full_screen_source && full_screen_source != selected_source && !fullscreen_usage_logged_) {
     fullscreen_usage_logged_ = true;
-    LOG_EVENT("SDM",
-              "cropping_window_capturer_win::get_window_to_capture: full screen window detected");
+    LOG_INFO("cropping_window_capturer_win::get_window_to_capture: full screen window detected");
   }
   return full_screen_source ? full_screen_source : selected_source;
 }

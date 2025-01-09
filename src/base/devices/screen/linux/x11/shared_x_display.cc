@@ -17,8 +17,8 @@
 
 #include <algorithm>
 
-namespace webrtc {
-
+namespace traa {
+namespace base {
 shared_x_display::shared_x_display(x_display_t *display) : display_(display) {}
 
 shared_x_display::~shared_x_display() { XCloseDisplay(display_); }
@@ -96,4 +96,5 @@ void shared_x_display::ignore_x_server_grabs() {
   }
 }
 
-} // namespace webrtc
+} // namespace base
+} // namespace traa

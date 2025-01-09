@@ -118,8 +118,7 @@ bool fallback_desktop_capturer_wrapper::select_source(source_id_t id) {
     return secondary_capturer_->select_source(id);
   }
   const bool main_capturer_result = main_capturer_->select_source(id);
-  LOG_EVENT_COND("SDM", !main_capturer_result,
-                 "fallback_desktop_capturer_wrapper::select_source failed");
+  LOG_INFO_IF(!main_capturer_result, "fallback_desktop_capturer_wrapper::select_source failed");
   if (!main_capturer_result) {
     main_capturer_permanent_error_ = true;
   }
@@ -145,10 +144,10 @@ bool fallback_desktop_capturer_wrapper::is_occluded(const desktop_vector &pos) {
 
 void fallback_desktop_capturer_wrapper::on_capture_result(desktop_capturer::capture_result result,
                                                           std::unique_ptr<desktop_frame> frame) {
-  LOG_EVENT_COND("SDM", result != desktop_capturer::capture_result::success,
-                 "fallback_desktop_capturer_wrapper::on_capture_result success");
-  LOG_EVENT_COND("SDM", result == desktop_capturer::capture_result::error_permanent,
-                 "fallback_desktop_capturer_wrapper::on_capture_result error_permanent");
+  LOG_INFO_IF(result != desktop_capturer::capture_result::success,
+              "fallback_desktop_capturer_wrapper::on_capture_result success");
+  LOG_INFO_IF(result == desktop_capturer::capture_result::error_permanent,
+              "fallback_desktop_capturer_wrapper::on_capture_result error_permanent");
   if (result == desktop_capturer::capture_result::success) {
     callback_->on_capture_result(result, std::move(frame));
     return;

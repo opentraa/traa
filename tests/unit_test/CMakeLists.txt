@@ -8,23 +8,115 @@ set(TRAA_UNIT_TEST unittest)
 
 set(TRAA_UNIT_TEST_OUTPUT_NAME ${TRAA_UNIT_TEST})
 
-file(GLOB_RECURSE TRAA_UNIT_TEST_FILES "${CMAKE_HOME_DIRECTORY}/src/*_unittest.*")
+set(TRAA_UNIT_TEST_FILES "")
 
-if(NOT WIN32)
-    # exclude files in base/devices/screen/win
-    list(FILTER TRAA_UNIT_TEST_FILES EXCLUDE REGEX "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win")
+# add traa::base::screen
+list(APPEND TRAA_UNIT_TEST_FILES 
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/simple_window/simple_window.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/desktop_frame_generator.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/desktop_frame_generator.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/desktop_frame_generator.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/fake_desktop_capturer.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/fake_desktop_capturer.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/mock_desktop_capturer_callback.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/mock_desktop_capturer_callback.h"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/test_utils_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/test_utils.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/test_utils.h"
+    
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/blank_detector_desktop_capturer_wrapper_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/cropped_desktop_frame_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_capturer_differ_wrapper_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame_rotation_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_frame_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_geometry_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/desktop_region_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/differ_block_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/fallback_desktop_capturer_wrapper_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/rgba_color_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/screen_capturer_helper_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/screen_capturer_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/window_capturer_unittest.cc"
+)
+
+if(APPLE)
+    list(APPEND TRAA_UNIT_TEST_FILES
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/simple_window/simple_window_mac.mm"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_mac.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_unittest.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_lock_posix.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_lock_posix.h"
+
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/darwin/screen_capturer_mac_unittest.cc"
+
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/screen_capturer_integration_test.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/window_finder_unittest.cc"
+    )
+elseif(LINUX AND NOT ANDROID)
+    list(APPEND TRAA_UNIT_TEST_FILES
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/simple_window/simple_window_linux.cc"
+    )
+    if(TRAA_OPTION_ENABLE_X11)
+        list(APPEND TRAA_UNIT_TEST_FILES
+            "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_linux.cc"
+            "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_unittest.cc"
+            "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer.cc"
+            "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer.h"
+            "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_lock_posix.cc"
+            "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_lock_posix.h"
+
+            "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/screen_capturer_integration_test.cc"
+            "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/window_finder_unittest.cc"
+        )
+    endif()
+elseif(WIN32)
+    list(APPEND TRAA_UNIT_TEST_FILES
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/simple_window/simple_window_win.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_win.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/win/test_window.h"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/win/test_window.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer_unittest.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/screen_drawer.h"
+
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_capture_source_unittest.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/wgc/wgc_capturer_win_unittest.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/cursor_unittest.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/win/screen_capturer_win_directx_unittest.cc"
+
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/screen_capturer_integration_test.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/window_finder_unittest.cc"
+    )
 endif()
 
-# add base/devices/screen/test
-file(GLOB TRAA_UNIT_TEST_SCREEN_TEST_FILES "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/*.*")
+# add traa::base::numerics
+list(APPEND TRAA_UNIT_TEST_FILES 
+    "${CMAKE_HOME_DIRECTORY}/src/base/numerics/moving_average_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/numerics/safe_compare_unittest.cc"
+)
 
-# add base/devices/screen/test/win
-if(WIN32)
-    file(GLOB TRAA_UNIT_TEST_SCREEN_TEST_FILES_WIN "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/win/*.*")
-    list(APPEND TRAA_UNIT_TEST_SCREEN_TEST_FILES ${TRAA_UNIT_TEST_SCREEN_TEST_FILES_WIN})
-endif()
+# add traa::base::thread
+list(APPEND TRAA_UNIT_TEST_FILES 
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/callback_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/ffuture_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/task_queue_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/thread/waitable_future_unittest.cc"
+)
 
-list(APPEND TRAA_UNIT_TEST_FILES ${TRAA_UNIT_TEST_SCREEN_TEST_FILES})
+# add traa::base::utils
+list(APPEND TRAA_UNIT_TEST_FILES 
+    "${CMAKE_HOME_DIRECTORY}/src/base/utils/time_utils_unittest.cc"
+)
+
+# add traa::base
+list(APPEND TRAA_UNIT_TEST_FILES 
+    "${CMAKE_HOME_DIRECTORY}/src/base/checks_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/random_unittest.cc"
+)
 
 source_group(TREE ${CMAKE_HOME_DIRECTORY}/src FILES ${TRAA_UNIT_TEST_FILES})
 
@@ -40,10 +132,11 @@ add_executable(${TRAA_UNIT_TEST}
     ${TRAA_UNIT_TEST_FILES}
     ${TRAA_UNIT_TEST_UTILS_FILES}
 )
+add_executable(traa::unittest ALIAS ${TRAA_UNIT_TEST})
 
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
 target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
-    traa::base
+    traa::base::core
     yuv
     gtest
     gtest_main
@@ -68,6 +161,7 @@ if(APPLE)
     set_target_properties(${TRAA_UNIT_TEST} PROPERTIES
         FRAMEWORK TRUE
         FRAMEWORK_VERSION A
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/test/simple_window/mac/info.plist"
         MACOSX_FRAMEWORK_IDENTIFIER "${TRAA_UNIT_TEST_IDENTIFIER}"
         MACOSX_FRAMEWORK_SHORT_VERSION_STRING "${TRAA_VERSION_SHORT}"
         MACOSX_FRAMEWORK_BUNDLE_VERSION "${TRAA_VERSION_SHORT}"

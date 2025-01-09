@@ -109,7 +109,7 @@ screen_capturer_win_directx::screen_capturer_win_directx(const desktop_capture_o
 screen_capturer_win_directx::~screen_capturer_win_directx() = default;
 
 void screen_capturer_win_directx::start(capture_callback *callback) {
-  LOG_EVENT("SDM", "screen_capturer_win_directx::start");
+  LOG_INFO("screen_capturer_win_directx::start");
 
   callback_ = callback;
 }

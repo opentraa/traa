@@ -37,7 +37,7 @@ add_library(traa::main ALIAS ${TRAA_LIBRARY_MAIN})
 target_sources(${TRAA_LIBRARY_MAIN} PRIVATE ${TRAA_LIBRARY_MAIN_FILES})
 
 # link traa::base
-target_link_libraries(${TRAA_LIBRARY_MAIN} PRIVATE traa::base)
+target_link_libraries(${TRAA_LIBRARY_MAIN} PRIVATE traa::base::core)
 
 # link yuv
 target_link_libraries(${TRAA_LIBRARY_MAIN} PRIVATE yuv)
@@ -82,15 +82,6 @@ set_target_properties(${TRAA_LIBRARY_MAIN} PROPERTIES
 # platform flags
 if(APPLE)
     set(TRAA_LIBRARY_IDENTIFIER "io.traa.core")
-    set(TRAA_LIBRARY_FRAMEWORKS)
-
-    list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework Foundation")
-
-    if(IOS)
-        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework UIKit")
-    elseif(MACOS)
-        list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework AppKit")
-    endif()
 
     target_link_libraries(${TRAA_LIBRARY_MAIN} PRIVATE "${TRAA_LIBRARY_FRAMEWORKS}")
 
@@ -106,6 +97,19 @@ if(APPLE)
 
     set_target_properties(${TRAA_LIBRARY_MAIN} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
 
+
+    # dsymutil to generate dsym file
+    add_custom_command(
+        TARGET ${TRAA_LIBRARY_MAIN}
+        POST_BUILD
+        COMMAND dsymutil
+        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/${TRAA_LIBRARY_MAIN_OUTPUT_NAME}.framework/${TRAA_LIBRARY_MAIN_OUTPUT_NAME}" 
+        "-o" 
+        "${TRAA_ARCHIVE_OUTPUT_DIRECTORY}/${TRAA_LIBRARY_MAIN_OUTPUT_NAME}.framework.dSYM"
+        COMMENT "Generate dsym file done on final binary."
+    )
+
+    # strip to strip debug and local symbols
     add_custom_command(
         TARGET ${TRAA_LIBRARY_MAIN}
         POST_BUILD
