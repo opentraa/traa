@@ -33,6 +33,13 @@ namespace base {
 namespace capture_utils {
 // dpi
 
+float get_dpi_scale_for_process(HANDLE process) {
+  UINT dpi = ::GetSystemDpiForProcess(process);
+  return static_cast<float>(dpi) / desktop_frame::k_standard_dpi;
+}
+
+float get_dpi_scale_for_process() { return get_dpi_scale_for_process(::GetCurrentProcess()); }
+
 float get_dpi_scale(HWND window) {
   const int dpi = ::GetDpiForWindow(window);
   return static_cast<float>(dpi) / USER_DEFAULT_SCREEN_DPI;
@@ -929,14 +936,14 @@ bool window_capture_helper_win::is_window_visible_on_current_desktop(HWND window
 bool window_capture_helper_win::enumerate_capturable_windows(
     desktop_capturer::source_list_t *results, bool enumerate_current_process_windows,
     LONG ex_style_filters) {
-  int flags = (TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN | TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNTITLED |
-               TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE);
+  int flags =
+      (TRAA_SCREEN_SOURCE_FLAG_IGNORE_SCREEN | TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_UNRESPONSIVE);
 
   if (!enumerate_current_process_windows) {
     flags |= TRAA_SCREEN_SOURCE_FLAG_IGNORE_CURRENT_PROCESS_WINDOWS;
   }
 
-  if (ex_style_filters & WS_EX_TOOLWINDOW) {
+  if (!(ex_style_filters & WS_EX_TOOLWINDOW)) {
     flags |= TRAA_SCREEN_SOURCE_FLAG_NOT_IGNORE_TOOLWINDOW;
   }
 

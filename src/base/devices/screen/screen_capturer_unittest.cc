@@ -34,9 +34,6 @@ namespace base {
 class screen_capturer_test : public ::testing::Test {
 public:
   void SetUp() override {
-#if defined(TRAA_OS_WINDOWS)
-    ::SetProcessDPIAware();
-#endif
     capturer_ = desktop_capturer::create_screen_capturer(desktop_capture_options::create_default());
 #if defined(TRAA_OS_WINDOWS) || defined(TRAA_OS_MACOS) ||                                          \
     (defined(TRAA_OS_LINUX) && (defined(TRAA_ENABLE_WAYLAND) || defined(TRAA_ENABLE_X11)))

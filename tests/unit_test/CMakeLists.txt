@@ -97,6 +97,12 @@ list(APPEND TRAA_UNIT_TEST_FILES
     "${CMAKE_HOME_DIRECTORY}/src/base/numerics/safe_compare_unittest.cc"
 )
 
+# add traa::base::system
+list(APPEND TRAA_UNIT_TEST_FILES 
+    "${CMAKE_HOME_DIRECTORY}/src/base/system/metrics_default_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/system/metrics_unittest.cc"
+)
+
 # add traa::base::thread
 list(APPEND TRAA_UNIT_TEST_FILES 
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/callback_unittest.cc"
@@ -115,13 +121,15 @@ list(APPEND TRAA_UNIT_TEST_FILES
 # add traa::base
 list(APPEND TRAA_UNIT_TEST_FILES 
     "${CMAKE_HOME_DIRECTORY}/src/base/checks_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/platform_thread_unittest.cc"
     "${CMAKE_HOME_DIRECTORY}/src/base/random_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/string_to_number_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/string_utils_unittest.cc"
 )
-
 source_group(TREE ${CMAKE_HOME_DIRECTORY}/src FILES ${TRAA_UNIT_TEST_FILES})
 
-file(GLOB_RECURSE TRAA_UNIT_TEST_UTILS_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/**)
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${TRAA_UNIT_TEST_UTILS_FILES})
+file(GLOB_RECURSE TRAA_UNIT_TEST_MAIN_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/**)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${TRAA_UNIT_TEST_MAIN_FILES})
 
 set(TRAA_UNIT_TEST_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -130,11 +138,12 @@ set(TRAA_UNIT_TEST_INCLUDE_DIRS
 
 add_executable(${TRAA_UNIT_TEST}
     ${TRAA_UNIT_TEST_FILES}
-    ${TRAA_UNIT_TEST_UTILS_FILES}
+    ${TRAA_UNIT_TEST_MAIN_FILES}
 )
 add_executable(traa::unittest ALIAS ${TRAA_UNIT_TEST})
 
 target_compile_definitions(${TRAA_UNIT_TEST} PRIVATE TRAA_UNIT_TEST)
+
 target_link_libraries(${TRAA_UNIT_TEST} PRIVATE
     traa::base::core
     yuv

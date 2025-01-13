@@ -10,6 +10,8 @@
 
 #include "base/devices/screen/win/screen_capturer_win_gdi.h"
 
+#include "base/checks.h"
+#include "base/devices/screen/desktop_capture_metrics_helper.h"
 #include "base/devices/screen/desktop_capture_options.h"
 #include "base/devices/screen/desktop_capture_types.h"
 #include "base/devices/screen/desktop_frame.h"
@@ -20,6 +22,7 @@
 #include "base/devices/screen/win/desktop_frame_win.h"
 #include "base/devices/screen/win/thread_desktop.h"
 #include "base/logger.h"
+#include "base/system/metrics.h"
 #include "base/utils/time_utils.h"
 
 #include <dwmapi.h>
@@ -73,6 +76,8 @@ void screen_capturer_win_gdi::capture_frame() {
   frame->mutable_updated_region()->set_rect(desktop_rect::make_size(frame->size()));
 
   int64_t capture_time_ms = (time_nanos() - capture_start_time_nanos) / k_num_nanosecs_per_millisec;
+  TRAA_HISTOGRAM_COUNTS_1000("WebRTC.DesktopCapture.Win.ScreenGdiCapturerFrameTime",
+                             capture_time_ms);
   frame->set_capture_time_ms(capture_time_ms);
   frame->set_capturer_id(desktop_capture_id::k_capture_gdi_screen);
   callback_->on_capture_result(capture_result::success, std::move(frame));
@@ -90,7 +95,10 @@ bool screen_capturer_win_gdi::select_source(source_id_t id) {
 }
 
 void screen_capturer_win_gdi::start(capture_callback *callback) {
-  LOG_INFO("screen_capturer_impl id" + std::to_string(current_capturer_id()));
+  TRAA_DCHECK(!callback_);
+  TRAA_DCHECK(callback);
+  record_capturer_impl(desktop_capture_id::k_capture_gdi_screen);
+
   callback_ = callback;
 
   if (disable_effects_) {

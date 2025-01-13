@@ -13,6 +13,7 @@
 #include "base/devices/screen/desktop_geometry.h"
 #include "base/devices/screen/desktop_region.h"
 #include "base/logger.h"
+#include "base/system/metrics.h"
 
 #include <stdint.h>
 #include <utility>
@@ -87,7 +88,7 @@ void blank_detector_desktop_capturer_wrapper::on_capture_result(
     last_frame_is_blank_ = is_blank_frame(*frame);
     is_first_frame_ = false;
   }
-  LOG_INFO_IF(last_frame_is_blank_, "blank_detector_desktop_capturer_wrapper detected blank frame");
+  TRAA_HISTOGRAM_BOOLEAN("WebRTC.DesktopCapture.BlankFrameDetected", last_frame_is_blank_);
 
   if (!last_frame_is_blank_) {
     non_blank_frame_received_ = true;
