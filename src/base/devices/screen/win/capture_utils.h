@@ -23,6 +23,9 @@ class desktop_rect;
 // capture utils
 namespace capture_utils {
 // dpi
+float get_dpi_scale_for_process(HANDLE process);
+float get_dpi_scale_for_process();
+
 float get_dpi_scale(HWND window);
 
 bool is_dpi_aware();

@@ -11,7 +11,7 @@
 #include "base/devices/screen/fallback_desktop_capturer_wrapper.h"
 
 #include "base/logger.h"
-
+#include "base/system/metrics.h"
 #include <stddef.h>
 #include <utility>
 
@@ -118,7 +118,8 @@ bool fallback_desktop_capturer_wrapper::select_source(source_id_t id) {
     return secondary_capturer_->select_source(id);
   }
   const bool main_capturer_result = main_capturer_->select_source(id);
-  LOG_INFO_IF(!main_capturer_result, "fallback_desktop_capturer_wrapper::select_source failed");
+  TRAA_HISTOGRAM_BOOLEAN("WebRTC.DesktopCapture.PrimaryCapturerSelectSourceError",
+                         main_capturer_result);
   if (!main_capturer_result) {
     main_capturer_permanent_error_ = true;
   }
@@ -144,10 +145,10 @@ bool fallback_desktop_capturer_wrapper::is_occluded(const desktop_vector &pos) {
 
 void fallback_desktop_capturer_wrapper::on_capture_result(desktop_capturer::capture_result result,
                                                           std::unique_ptr<desktop_frame> frame) {
-  LOG_INFO_IF(result != desktop_capturer::capture_result::success,
-              "fallback_desktop_capturer_wrapper::on_capture_result success");
-  LOG_INFO_IF(result == desktop_capturer::capture_result::error_permanent,
-              "fallback_desktop_capturer_wrapper::on_capture_result error_permanent");
+  TRAA_HISTOGRAM_BOOLEAN("WebRTC.DesktopCapture.PrimaryCapturerError",
+                         result != desktop_capturer::capture_result::success);
+  TRAA_HISTOGRAM_BOOLEAN("WebRTC.DesktopCapture.PrimaryCapturerPermanentError",
+                         result == desktop_capturer::capture_result::error_permanent);
   if (result == desktop_capturer::capture_result::success) {
     callback_->on_capture_result(result, std::move(frame));
     return;

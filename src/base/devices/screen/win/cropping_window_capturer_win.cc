@@ -286,7 +286,7 @@ win_id_t cropping_window_capturer_win::get_window_to_capture() const {
           : 0;
   if (full_screen_source && full_screen_source != selected_source && !fullscreen_usage_logged_) {
     fullscreen_usage_logged_ = true;
-    LOG_INFO("cropping_window_capturer_win::get_window_to_capture: full screen window detected");
+    log_desktop_capturer_fullscreen_detector_usage();
   }
   return full_screen_source ? full_screen_source : selected_source;
 }

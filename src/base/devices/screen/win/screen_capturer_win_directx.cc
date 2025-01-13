@@ -10,10 +10,13 @@
 
 #include "base/devices/screen/win/screen_capturer_win_directx.h"
 
+#include "base/checks.h"
+#include "base/devices/screen/desktop_capture_metrics_helper.h"
 #include "base/devices/screen/desktop_capture_types.h"
 #include "base/devices/screen/desktop_frame.h"
 #include "base/devices/screen/win/capture_utils.h"
 #include "base/logger.h"
+#include "base/system/metrics.h"
 #include "base/utils/time_utils.h"
 
 #include <algorithm>
@@ -109,7 +112,9 @@ screen_capturer_win_directx::screen_capturer_win_directx(const desktop_capture_o
 screen_capturer_win_directx::~screen_capturer_win_directx() = default;
 
 void screen_capturer_win_directx::start(capture_callback *callback) {
-  LOG_INFO("screen_capturer_win_directx::start");
+  TRAA_DCHECK(!callback_);
+  TRAA_DCHECK(callback);
+  record_capturer_impl(desktop_capture_id::k_capture_dxgi);
 
   callback_ = callback;
 }
@@ -136,7 +141,8 @@ void screen_capturer_win_directx::capture_frame() {
   if (current_screen_id_ == k_screen_id_full) {
     result = controller_->duplicate(frames.current_frame());
   } else {
-    result = controller_->duplicate_monitor(frames.current_frame(), static_cast<int>(current_screen_id_));
+    result = controller_->duplicate_monitor(frames.current_frame(),
+                                            static_cast<int>(current_screen_id_));
   }
 
   using duplicate_result = dxgi_duplicator_controller::duplicate_result;
@@ -144,6 +150,10 @@ void screen_capturer_win_directx::capture_frame() {
     LOG_ERROR("dxgi_duplicator_controller failed to capture desktop, error code {}",
               dxgi_duplicator_controller::result_name(result));
   }
+
+  TRAA_HISTOGRAM_ENUMERATION(
+      "WebRTC.DesktopCapture.Win.DirectXCapturerResult", static_cast<int>(result),
+      static_cast<int>(dxgi_duplicator_controller::duplicate_result::max_value));
 
   switch (result) {
   case duplicate_result::unsupported_session: {
@@ -172,7 +182,10 @@ void screen_capturer_win_directx::capture_frame() {
   case duplicate_result::succeeded: {
     std::unique_ptr<desktop_frame> frame = frames.current_frame()->frame()->share();
 
-    int64_t capture_time_ms = (time_nanos() - capture_start_time_nanos) / k_num_nanosecs_per_millisec;
+    int64_t capture_time_ms =
+        (time_nanos() - capture_start_time_nanos) / k_num_nanosecs_per_millisec;
+    TRAA_HISTOGRAM_COUNTS_1000("WebRTC.DesktopCapture.Win.DirectXCapturerFrameTime",
+                               capture_time_ms);
 
     frame->set_capture_time_ms(capture_time_ms);
     frame->set_capturer_id(desktop_capture_id::k_capture_dxgi);

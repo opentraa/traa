@@ -10,9 +10,12 @@
 
 #include "base/devices/screen/win/wgc/wgc_capturer_win.h"
 
+#include "base/checks.h"
+#include "base/devices/screen/desktop_capture_metrics_helper.h"
 #include "base/devices/screen/desktop_capture_types.h"
 #include "base/devices/screen/win/wgc/wgc_desktop_frame.h"
 #include "base/logger.h"
+#include "base/system/metrics.h"
 #include "base/utils/time_utils.h"
 #include "base/utils/win/get_activation_factory.h"
 #include "base/utils/win/hstring.h"
@@ -52,7 +55,8 @@ enum class wgc_capturer_result {
 };
 
 void record_wgc_capturer_result(wgc_capturer_result error) {
-  LOG_INFO("wgc_capturer_result {}", static_cast<int>(error));
+  TRAA_HISTOGRAM_ENUMERATION("WebRTC.DesktopCapture.Win.WgcCapturerResult", static_cast<int>(error),
+                             static_cast<int>(wgc_capturer_result::max_value));
 }
 
 // Checks if the DirtyRegionMode property is present in GraphicsCaptureSession
@@ -84,7 +88,8 @@ void log_dirty_region_support() {
     boolean is_dirty_region_mode_supported = false;
     api_info_statics->IsPropertyPresent(wgc_session_type, dirty_region_mode,
                                         &is_dirty_region_mode_supported);
-    LOG_INFO_IF(!!is_dirty_region_mode_supported, "wgc_dirty_region_support");
+    TRAA_HISTOGRAM_BOOLEAN("WebRTC.DesktopCapture.Win.WgcDirtyRegionSupport",
+                           !!is_dirty_region_mode_supported);
   }
 
   delete_hstring(dirty_region_mode);
@@ -229,7 +234,9 @@ bool wgc_capturer_win::focus_on_selected_source() {
 }
 
 void wgc_capturer_win::start(desktop_capturer::capture_callback *callback) {
-  LOG_INFO("wgc_capturer_win::start, id {}", static_cast<int>(current_capturer_id()));
+  TRAA_DCHECK(!callback_);
+  TRAA_DCHECK(callback);
+  record_capturer_impl(desktop_capture_id::k_capture_wgc);
 
   callback_ = callback;
 
@@ -343,7 +350,7 @@ void wgc_capturer_win::capture_frame() {
 
   std::unique_ptr<desktop_frame> frame;
   if (!capture_session->get_frame(&frame, capture_source_->is_capturable())) {
-    LOG_ERROR("GetFrame failed.");
+    LOG_ERROR("get frame failed.");
     ongoing_captures_.erase(capture_source_->get_source_id());
     callback_->on_capture_result(desktop_capturer::capture_result::error_permanent,
                                  /*frame=*/nullptr);
@@ -359,6 +366,8 @@ void wgc_capturer_win::capture_frame() {
   }
 
   int64_t capture_time_ms = (time_nanos() - capture_start_time_nanos) / k_num_nanosecs_per_millisec;
+  TRAA_HISTOGRAM_COUNTS_1000("WebRTC.DesktopCapture.Win.WgcCapturerFrameTime", capture_time_ms);
+
   frame->set_capture_time_ms(capture_time_ms);
   frame->set_capturer_id(desktop_capture_id::k_capture_wgc);
   frame->set_may_contain_cursor(options_.prefer_cursor_embedded());
@@ -373,7 +382,7 @@ bool wgc_capturer_win::is_source_being_captured(desktop_capturer::source_id_t id
   if (session_iter == ongoing_captures_.end())
     return false;
 
-  return session_iter->second.is_capture_started();
+  return session_iter->second.is_capture_started() && !session_iter->second.is_item_closed();
 }
 
 } // namespace base

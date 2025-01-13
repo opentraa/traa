@@ -12,6 +12,7 @@
 
 #include "base/devices/screen/win/wgc/wgc_desktop_frame.h"
 #include "base/logger.h"
+#include "base/system/metrics.h"
 #include "base/system/sleep.h"
 #include "base/utils/time_utils.h"
 #include "base/utils/win/create_direct3d_device.h"
@@ -88,11 +89,15 @@ enum class get_frame_result {
 };
 
 void record_start_capture_result(start_capture_result error) {
-  LOG_INFO("start_capture_result {}", static_cast<int>(error));
+  TRAA_HISTOGRAM_ENUMERATION("WebRTC.DesktopCapture.Win.WgcCaptureSessionStartResult",
+                             static_cast<int>(error),
+                             static_cast<int>(start_capture_result::max_value));
 }
 
 void record_get_frame_result(get_frame_result error) {
-  LOG_INFO("get_frame_result {}", static_cast<int>(error));
+  TRAA_HISTOGRAM_ENUMERATION("WebRTC.DesktopCapture.Win.WgcCaptureSessionGetFrameResult",
+                             static_cast<int>(error),
+                             static_cast<int>(get_frame_result::max_value));
 }
 
 bool size_has_changed(ABI::Windows::Graphics::SizeInt32 size_new,
@@ -110,11 +115,16 @@ wgc_capture_session::wgc_capture_session(ComPtr<ID3D11Device> d3d11_device,
 wgc_capture_session::~wgc_capture_session() { remove_event_handler(); }
 
 HRESULT wgc_capture_session::start_capture(const desktop_capture_options &options) {
+  TRAA_DCHECK(!is_capture_started_);
+
   if (item_closed_) {
-    LOG_ERROR("The target source has been closed.");
+    LOG_ERROR("the target source has been closed.");
     record_start_capture_result(start_capture_result::source_closed);
     return E_ABORT;
   }
+
+  TRAA_DCHECK(d3d11_device_);
+  TRAA_DCHECK(item_);
 
   // Listen for the Closed event, to detect if the source we are capturing is
   // closed (e.g. application window is closed or monitor is disconnected). If
@@ -192,7 +202,7 @@ HRESULT wgc_capture_session::start_capture(const desktop_capture_options &option
 
   hr = session_->StartCapture();
   if (FAILED(hr)) {
-    LOG_ERROR("Failed to start CaptureSession: {}", hr);
+    LOG_ERROR("failed to start CaptureSession: {}", hr);
     record_start_capture_result(start_capture_result::start_capture_failed);
     return hr;
   }
@@ -207,6 +217,7 @@ void wgc_capture_session::ensure_frame() {
   // Try to process the captured frame and copy it to the `queue_`.
   HRESULT hr = process_frame();
   if (SUCCEEDED(hr)) {
+    TRAA_CHECK(queue_.current_frame());
     return;
   }
 
@@ -248,7 +259,7 @@ void wgc_capture_session::ensure_frame() {
 bool wgc_capture_session::get_frame(std::unique_ptr<desktop_frame> *output_frame,
                                     bool source_should_be_capturable) {
   if (item_closed_) {
-    LOG_ERROR("The target source has been closed.");
+    LOG_ERROR("the target source has been closed.");
     record_get_frame_result(get_frame_result::item_closed);
     return false;
   }
@@ -302,6 +313,8 @@ HRESULT wgc_capture_session::create_mapped_texture(ComPtr<ID3D11Texture2D> src_t
 }
 
 HRESULT wgc_capture_session::process_frame() {
+  TRAA_DCHECK(is_capture_started_);
+
   ComPtr<WGC::IDirect3D11CaptureFrame> capture_frame;
   HRESULT hr = frame_pool_->TryGetNextFrame(&capture_frame);
   if (FAILED(hr)) {
@@ -313,12 +326,12 @@ HRESULT wgc_capture_session::process_frame() {
   if (!capture_frame) {
     if (!queue_.current_frame()) {
       // The frame pool was empty and so is the external queue.
-      LOG_ERROR("Frame pool was empty => kFrameDropped.");
+      LOG_ERROR("frame pool was empty => kFrameDropped.");
       record_get_frame_result(get_frame_result::frame_dropped);
     } else {
       // The frame pool was empty but there is still one old frame available in
       // external the queue.
-      LOG_ERROR("Frame pool was empty => kFramePoolEmpty.");
+      LOG_ERROR("frame pool was empty => kFramePoolEmpty.");
       record_get_frame_result(get_frame_result::frame_pool_empty);
     }
     return E_FAIL;
@@ -326,7 +339,7 @@ HRESULT wgc_capture_session::process_frame() {
 
   queue_.move_to_next_frame();
   if (queue_.current_frame() && queue_.current_frame()->is_shared()) {
-    LOG_ERROR("Overwriting frame that is still shared.");
+    LOG_ERROR("overwriting frame that is still shared.");
   }
 
   // We need to get `capture_frame` as an `ID3D11Texture2D` so that we can get
@@ -453,6 +466,8 @@ HRESULT wgc_capture_session::process_frame() {
   uint8_t *prev_data = can_be_compared ? previous_frame->data() : nullptr;
 
   const int width_in_bytes = current_frame->size().width() * desktop_frame::k_bytes_per_pixel;
+  TRAA_DCHECK_GE(current_frame->stride(), width_in_bytes);
+  TRAA_DCHECK_GE(map_info.RowPitch, width_in_bytes);
   const int middle_pixel_offset = (image_width / 2) * desktop_frame::k_bytes_per_pixel;
   for (int i = 0; i < image_height; i++) {
     memcpy(dst_data, src_data, width_in_bytes);
@@ -509,7 +524,7 @@ HRESULT wgc_capture_session::process_frame() {
 
 HRESULT wgc_capture_session::on_item_closed(WGC::IGraphicsCaptureItem *sender,
                                             IInspectable *event_args) {
-  LOG_INFO("Capture target has been closed.");
+  LOG_INFO("capture target has been closed.");
   item_closed_ = true;
 
   remove_event_handler();
@@ -528,7 +543,7 @@ void wgc_capture_session::remove_event_handler() {
     hr = item_->remove_Closed(*item_closed_token_);
     item_closed_token_.reset();
     if (FAILED(hr))
-      LOG_WARN("Failed to remove Closed event handler: {}", hr);
+      LOG_WARN("failed to remove Closed event handler: {}", hr);
   }
 }
 

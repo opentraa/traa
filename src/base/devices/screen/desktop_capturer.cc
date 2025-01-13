@@ -9,11 +9,10 @@
  */
 
 #include "base/devices/screen/desktop_capturer.h"
+
 #include "base/devices/screen/desktop_capture_options.h"
 #include "base/platform.h"
-
-#include <cstring>
-#include <utility>
+#include "base/system/metrics.h"
 
 #include "base/devices/screen/desktop_capturer_differ_wrapper.h"
 
@@ -27,8 +26,15 @@
 #include "base/devices/screen/linux/wayland/base_capturer_pipewire.h"
 #endif // defined(TRAA_ENABLE_WAYLAND)
 
+#include <cstring>
+#include <utility>
+
 namespace traa {
 namespace base {
+
+void log_desktop_capturer_fullscreen_detector_usage() {
+  TRAA_HISTOGRAM_BOOLEAN("WebRTC.Screenshare.DesktopCapturerFullscreenDetector", true);
+}
 
 desktop_capturer::~desktop_capturer() = default;
 

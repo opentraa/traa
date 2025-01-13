@@ -11,12 +11,15 @@
 #include "base/devices/screen/win/window_capturer_win_gdi.h"
 
 #include "base/arraysize.h"
+#include "base/checks.h"
 #include "base/devices/screen/cropped_desktop_frame.h"
+#include "base/devices/screen/desktop_capture_metrics_helper.h"
 #include "base/devices/screen/desktop_capture_types.h"
 #include "base/devices/screen/desktop_capturer.h"
 #include "base/devices/screen/win/desktop_frame_win.h"
 #include "base/devices/screen/win/selected_window_context.h"
 #include "base/logger.h"
+#include "base/system/metrics.h"
 #include "base/utils/time_utils.h"
 #include "base/utils/win/version.h"
 
@@ -134,7 +137,10 @@ bool window_capturer_win_gdi::is_occluded(const desktop_vector &pos) {
 }
 
 void window_capturer_win_gdi::start(capture_callback *callback) {
-  LOG_INFO("window_capturer_impl id" + std::to_string(current_capturer_id()));
+  TRAA_DCHECK(!callback_);
+  TRAA_DCHECK(callback);
+  record_capturer_impl(desktop_capture_id::k_capture_gdi_win);
+
   callback_ = callback;
 }
 
@@ -151,6 +157,9 @@ void window_capturer_win_gdi::capture_frame() {
   }
 
   int64_t capture_time_ms = (time_nanos() - capture_start_time_nanos) / k_num_nanosecs_per_millisec;
+  TRAA_HISTOGRAM_COUNTS_1000("WebRTC.DesktopCapture.Win.WindowGdiCapturerFrameTime",
+                             capture_time_ms);
+
   results.frame->set_capture_time_ms(capture_time_ms);
   results.frame->set_capturer_id(current_capturer_id());
   callback_->on_capture_result(results.result, std::move(results.frame));

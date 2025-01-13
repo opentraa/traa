@@ -6,6 +6,8 @@ set(TRAA_LIBRARY_BASE_SYSTEM_FILES
     "cpu_features.cc"
     "cpu_info.cc"
     "cpu_info.h"
+    "metrics.cc"
+    "metrics.h"
     "sleep.cc"
     "sleep.h"
     "system_time.cc"
