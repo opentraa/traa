@@ -27,6 +27,8 @@
 namespace traa {
 namespace base {
 
+void log_desktop_capturer_fullscreen_detector_usage();
+
 class desktop_capture_options;
 class desktop_frame;
 

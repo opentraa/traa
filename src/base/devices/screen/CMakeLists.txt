@@ -7,6 +7,8 @@ if(WIN32 OR MACOS OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
         "cropped_desktop_frame.cc"
         "cropped_desktop_frame.h"
         "delegated_source_list_controller.h"
+        "desktop_capture_metrics_helper.cc"
+        "desktop_capture_metrics_helper.h"
         "desktop_capture_options.cc"
         "desktop_capture_options.h"
         "desktop_capture_types.h"

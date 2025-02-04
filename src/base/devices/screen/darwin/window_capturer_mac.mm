@@ -183,7 +183,7 @@ void window_capturer_mac::capture_frame() {
     if (full_screen_window != kCGNullWindowID) {
       // If this is the first time this happens, report to UMA that the feature is active.
       if (!fullscreen_usage_logged_) {
-        LOG_INFO("window_capturer_mac::capture_frame: full screen window detected");
+        log_desktop_capturer_fullscreen_detector_usage();
         fullscreen_usage_logged_ = true;
       }
       on_screen_window = full_screen_window;

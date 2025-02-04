@@ -300,6 +300,7 @@ set(TRAA_THIRDPARTY_SPDLOG_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/spdlo
 add_subdirectory(${CMAKE_HOME_DIRECTORY}/thirdparty/spdlog)
 set_property(TARGET spdlog PROPERTY FOLDER "thirdparty")
 
+# TODO @sylar: remove this and use cjson
 # thirdparty nlohmann::json
 set(TRAA_THIRDPARTY_JSON_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/thirdparty/json/single_include")
 set(TRAA_THIRDPARTY_JSON_FILE
@@ -406,6 +407,15 @@ if(APPLE)
         list(APPEND TRAA_LIBRARY_FRAMEWORKS "-framework CoreMedia")
         list(APPEND TRAA_LIBRARY_FRAMEWORKS "-weak_framework ScreenCaptureKit") # macOS 12.3
     endif()
+endif()
+
+# TODO @sylar: some unit test cases need metrics enabled to check the results, 
+# we just enable metrics when unit test is enabled, this is a workaround, 
+# we compile base files as a static library, and link it to the unit test,
+# which can reduce the compile time of whole project, to enable metrics when unit test is enabled means
+# the final shared library will include metrics, which is not what we want.
+if(TRAA_OPTION_ENABLE_UNIT_TEST) 
+    add_definitions(-DTRAA_METRICS_ENABLED)
 endif()
 
 

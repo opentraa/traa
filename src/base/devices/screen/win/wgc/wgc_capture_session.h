@@ -50,6 +50,10 @@ class wgc_capture_session final {
     return is_capture_started_;
   }
 
+  bool is_item_closed() const {
+    return item_closed_;
+  }
+
   // We keep 2 buffers in the frame pool since it results in a good compromise
   // between latency/capture-rate and the rate at which
   // Direct3D11CaptureFramePool.TryGetNextFrame returns NULL and we have to fall
