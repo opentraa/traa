@@ -1,7 +1,6 @@
 #include "traa/traa.h"
 
 #include "base/logger.h"
-#include "base/thread/rw_lock.h"
 #include "base/thread/task_queue.h"
 #include "main/engine.h"
 #include "main/utils/obj_string.h"
@@ -14,24 +13,6 @@ static const traa::base::task_queue::task_queue_id_t g_main_queue_id = 0;
 
 // The main queue name.
 static const char *k_main_queue_name = "traa_main";
-
-// TODO @sylar: how to remove this rw lock?
-// To avoid to use the global lock, we should figure out a way to resolve this situation:
-// 1. enqueue a task to the main queue.
-// 2. destroy the main queue before the task is executed, which will happen in multi-threading.
-// 3. task.wait() will block forever, coz the main queue is destroyed, and the task is not executed.
-//
-// TODO @sylar: remove this later, coz we use ffuture and task_queue::at_exit_t to resolve the issue
-// above. The main queue rw lock.
-static traa::base::rw_lock g_main_queue_rw_lock;
-#define USE_MAIN_QUEUE_LOCK 0
-#if USE_MAIN_QUEUE_LOCK
-#define MAIN_QUEUE_LOCK_W traa::base::rw_lock_guard guard(g_main_queue_rw_lock, true);
-#define MAIN_QUEUE_LOCK_R traa::base::rw_lock_guard guard(g_main_queue_rw_lock, false);
-#else
-#define MAIN_QUEUE_LOCK_W
-#define MAIN_QUEUE_LOCK_R
-#endif
 
 // The engine instance.
 // The engine instance is created when traa_init is called and deleted when traa_release is called.
@@ -62,8 +43,6 @@ int traa_init(const traa_config *config) {
   }
 
   LOG_API_ARGS_1(traa::main::obj_string::to_string(config));
-
-  MAIN_QUEUE_LOCK_W
 
   // no need to lock here coz we have rw lock in task_queue_manager
   if (!traa::base::task_queue_manager::is_task_queue_exist(g_main_queue_id) &&
@@ -112,8 +91,6 @@ int traa_init(const traa_config *config) {
 void traa_release() {
   LOG_API_ARGS_0();
 
-  MAIN_QUEUE_LOCK_W
-
 #if TRAA_TEST_ENABLE_API_COUNTER
   printf("traa_release: %ld\r\n", g_traa_release_count.fetch_add(1) + 1);
 #endif // TRAA_UNIT_TEST
@@ -127,8 +104,6 @@ int traa_set_event_handler(const traa_event_handler *handler) {
   if (handler == nullptr) {
     return traa_error::TRAA_ERROR_INVALID_ARGUMENT;
   }
-
-  MAIN_QUEUE_LOCK_R
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id,
@@ -167,8 +142,6 @@ int traa_enum_device_info(traa_device_type type, traa_device_info **infos, int *
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
 
-  MAIN_QUEUE_LOCK_R
-
   return traa::base::task_queue_manager::post_task(g_main_queue_id,
                                                    [type, infos, count]() {
                                                      return g_engine_instance->enum_device_info(
@@ -183,8 +156,6 @@ int traa_free_device_info(traa_device_info infos[]) {
   if (infos == nullptr) {
     return TRAA_ERROR_INVALID_ARGUMENT;
   }
-
-  MAIN_QUEUE_LOCK_R
 
   return traa::base::task_queue_manager::post_task(
              g_main_queue_id, [infos]() { return g_engine_instance->free_device_info(infos); })
