@@ -166,6 +166,13 @@ typedef enum traa_error {
   TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED = 21,
 
   /**
+   * @brief Invalid source id error.
+   *
+   * This is an invalid source id error.
+   */
+  TRAA_ERROR_INVALID_SOURCE_ID = 22,
+
+  /**
    * @brief Error count.
    *
    * This is the error count.

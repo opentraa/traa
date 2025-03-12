@@ -366,7 +366,8 @@ void wgc_capturer_win::capture_frame() {
   }
 
   int64_t capture_time_ms = (time_nanos() - capture_start_time_nanos) / k_num_nanosecs_per_millisec;
-  TRAA_HISTOGRAM_COUNTS_1000("WebRTC.DesktopCapture.Win.WgcCapturerFrameTime", capture_time_ms);
+  TRAA_HISTOGRAM_COUNTS_1000("WebRTC.DesktopCapture.Win.WgcCapturerFrameTime",
+                             static_cast<int>(capture_time_ms));
 
   frame->set_capture_time_ms(capture_time_ms);
   frame->set_capturer_id(desktop_capture_id::k_capture_wgc);

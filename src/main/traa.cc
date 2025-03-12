@@ -192,6 +192,24 @@ int traa_free_screen_source_info(traa_screen_source_info infos[], int count) {
 
   return traa::main::engine::free_screen_source_info(infos, count);
 }
+
+int traa_create_snapshot(const int64_t source_id, const traa_size snapshot_size, uint8_t **data,
+                         int *data_size, traa_size *actual_size) {
+  LOG_API_ARGS_5(source_id, traa::main::obj_string::to_string(snapshot_size),
+                 traa::main::obj_string::to_string(data),
+                 traa::main::obj_string::to_string(data_size),
+                 traa::main::obj_string::to_string(actual_size));
+
+  return traa::main::engine::create_snapshot(source_id, snapshot_size, data, data_size,
+                                             actual_size);
+}
+
+void traa_free_snapshot(uint8_t *data) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(data));
+
+  return traa::main::engine::free_snapshot(data);
+}
+
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
        // || !TARGET_OS_VISION)) || __linux__
 #endif

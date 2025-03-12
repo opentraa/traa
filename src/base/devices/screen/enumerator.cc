@@ -24,6 +24,10 @@ int screen_source_info_enumerator::free_screen_source_info(traa_screen_source_in
 
   return traa_error::TRAA_ERROR_NONE;
 }
+
+void screen_source_info_enumerator::free_snapshot(uint8_t *data) {
+  delete[] data;
+}
 #endif // (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&
        // (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&
        // (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
