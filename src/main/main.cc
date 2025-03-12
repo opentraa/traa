@@ -32,9 +32,7 @@ static void
     traa_fini(void) {
   TRAA_DEBUG_LOG("traa_fini started\r\n");
 
-  //
-  // DO NOT USE ANY CODES THAT DEPENDS ON OTHER MODULES COZ THEY MAY BE UNLOADED ALREADY
-  //
+  // DO NOT DO ANYTHING THAT DEPENDS ON OTHER MODULES OR ANY ROGUE BEHAVIOR
 
   TRAA_DEBUG_LOG("traa_fini finished\r\n");
 }
@@ -59,12 +57,7 @@ static
     traa_init(void) {
   TRAA_DEBUG_LOG("traa_init started\r\n");
 
-  // Initialize the log service.
-  traa::base::logger::set_level(spdlog::level::info);
-  traa::base::logger::set_log_file("");
-
-  // Initialize the task queue manager.
-  traa::base::task_queue_manager::init();
+  // DO NOT DO ANYTHING THAT DEPENDS ON OTHER MODULES OR ANY ROGUE BEHAVIOR
 
 #if defined(_MSC_VER)
   atexit(traa_fini);
