@@ -195,7 +195,7 @@ bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t
     return false;
   }
 
-  auto data_size = scaled_size.width() * scaled_size.height() * 4;
+  auto data_size = scaled_size.width() * scaled_size.height() * desktop_frame::k_bytes_per_pixel;
 
   *icon_data = new uint8_t[data_size];
   if (!*icon_data) {
@@ -211,6 +211,29 @@ bool get_process_icon_data(LPCWSTR process_path, desktop_size icon_size, uint8_t
   size = scaled_size.to_traa_size();
 
   return true;
+}
+
+bool is_source_id_valid(const int64_t source_id, bool &is_window) {
+  if (source_id < 0) {
+    return false;
+  }
+
+  // try to find source_id in the window list
+  HWND window = reinterpret_cast<HWND>(source_id);
+  if (::IsWindow(window)) {
+    is_window = true;
+    return true;
+  }
+
+  // try to find source_id in the screen list
+  DISPLAY_DEVICEW device;
+  device.cb = sizeof(device);
+  if (::EnumDisplayDevicesW(NULL, static_cast<DWORD>(source_id), &device, 0)) {
+    is_window = false;
+    return true;
+  }
+
+  return false;
 }
 
 BOOL WINAPI enum_windows_cb(HWND window, LPARAM lParam) {
@@ -411,10 +434,10 @@ int enum_windows(enumerator_param &param) {
   BOOL ret = ::EnumWindows(enum_windows_cb, reinterpret_cast<LPARAM>(&param));
   if (!ret) {
     LOG_ERROR("call ::EnumWindows failed: {}", ::GetLastError());
-    return traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED;
+    return TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED;
   }
 
-  return traa_error::TRAA_ERROR_NONE;
+  return TRAA_ERROR_NONE;
 }
 
 int enum_screens(enumerator_param &param) {
@@ -437,7 +460,8 @@ int enum_screens(enumerator_param &param) {
     DEVMODEW device_mode;
     device_mode.dmSize = sizeof(device_mode);
     device_mode.dmDriverExtra = 0;
-    BOOL result = ::EnumDisplaySettingsExW(device.DeviceName, ENUM_CURRENT_SETTINGS, &device_mode, 0);
+    BOOL result =
+        ::EnumDisplaySettingsExW(device.DeviceName, ENUM_CURRENT_SETTINGS, &device_mode, 0);
     if (!result) {
       break;
     }
@@ -470,7 +494,7 @@ int enum_screens(enumerator_param &param) {
     param.infos.push_back(screen_info);
   }
 
-  return traa_error::TRAA_ERROR_NONE;
+  return TRAA_ERROR_NONE;
 }
 
 } // namespace
@@ -500,7 +524,7 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
   }
 
   if (param.infos.size() == 0) {
-    return traa_error::TRAA_ERROR_NONE;
+    return TRAA_ERROR_NONE;
   }
 
   *count = static_cast<int>(param.infos.size());
@@ -508,7 +532,7 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
       reinterpret_cast<traa_screen_source_info *>(new traa_screen_source_info[param.infos.size()]);
   if (*infos == nullptr) {
     LOG_ERROR("alloca memroy for infos failed: {}", ::GetLastError());
-    return traa_error::TRAA_ERROR_OUT_OF_MEMORY;
+    return TRAA_ERROR_OUT_OF_MEMORY;
   }
 
   for (size_t i = 0; i < param.infos.size(); ++i) {
@@ -526,7 +550,59 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
     }
   }
 
-  return traa_error::TRAA_ERROR_NONE;
+  return TRAA_ERROR_NONE;
+}
+
+int screen_source_info_enumerator::create_snapshot(const int64_t source_id,
+                                                   const traa_size snapshot_size, uint8_t **data,
+                                                   int *data_size, traa_size *actual_size) {
+  if (source_id < 0 || data == nullptr || data_size == nullptr || actual_size == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  bool is_window = false;
+  if (!is_source_id_valid(source_id, is_window)) {
+    return TRAA_ERROR_INVALID_SOURCE_ID;
+  }
+
+  if (is_window) {
+    thumbnail thumbnail_instance;
+    thumbnail_instance.get_thumbnail_data(reinterpret_cast<HWND>(source_id), snapshot_size, data,
+                                          *actual_size);
+  } else {
+    DISPLAY_DEVICEW device;
+    device.cb = sizeof(device);
+    if (!::EnumDisplayDevicesW(NULL, static_cast<DWORD>(source_id), &device, 0)) {
+      LOG_ERROR("enum display devices failed: {}", ::GetLastError());
+      return TRAA_ERROR_INVALID_SOURCE_ID;
+    }
+
+    DEVMODEW device_mode;
+    device_mode.dmSize = sizeof(device_mode);
+    device_mode.dmDriverExtra = 0;
+    if (!::EnumDisplaySettingsExW(device.DeviceName, ENUM_CURRENT_SETTINGS, &device_mode, 0)) {
+      LOG_ERROR("enum display settings failed: {}", ::GetLastError());
+      return TRAA_ERROR_INVALID_SOURCE_ID;
+    }
+
+    desktop_rect screen_rect =
+        desktop_rect::make_ltrb(device_mode.dmPosition.x, device_mode.dmPosition.y,
+                                device_mode.dmPelsWidth, device_mode.dmPelsHeight);
+    if (screen_rect.is_empty()) {
+      return TRAA_ERROR_INVALID_SOURCE_ID;
+    }
+
+    // get the screen snapshot with GDI
+    bool ret = capture_utils::get_screen_image_by_gdi(screen_rect.to_traa_rect(), snapshot_size,
+                                                      data, *actual_size);
+    if (!ret) {
+      return TRAA_ERROR_INVALID_SOURCE_ID;
+    }
+  }
+
+  *data_size = actual_size->width * actual_size->height * desktop_frame::k_bytes_per_pixel;
+
+  return TRAA_ERROR_NONE;
 }
 
 } // namespace base

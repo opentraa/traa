@@ -208,5 +208,129 @@ TEST_F(traa_engine_test, traa_enum_and_free_screen_source_info) {
     EXPECT_TRUE(traa_free_screen_source_info(infos, count) == traa_error::TRAA_ERROR_NONE);
   }
 }
+
+// only available on windows and macos
+#if defined(_WIN32) || defined(__APPLE__)
+TEST_F(traa_engine_test, traa_create_snapshot) {
+  // Create a window first to ensure there is an available window source
+  auto simple_window = traa::base::simple_window::create("simple_window", 300, 300);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  // get the available source IDs (screen and window)
+  int64_t screen_source_id = -1;
+  int64_t window_source_id = -1;
+
+  {
+    traa_screen_source_info *infos = nullptr;
+    int count = 0;
+
+    int ret = traa_enum_screen_source_info({0, 0}, {0, 0}, 0, &infos, &count);
+    EXPECT_TRUE(ret == traa_error::TRAA_ERROR_NONE ||
+                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED ||
+                ret == traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED);
+
+    if (ret == traa_error::TRAA_ERROR_NONE && count > 0) {
+      // find a screen and a window to test
+      for (int i = 0; i < count; i++) {
+        if (!infos[i].is_window && screen_source_id == -1) {
+          screen_source_id = infos[i].id;
+        } else if (infos[i].is_window && window_source_id == -1) {
+          window_source_id = infos[i].id;
+        }
+
+        if (screen_source_id != -1 && window_source_id != -1) {
+          break;
+        }
+      }
+
+      printf("Found screen_source_id: %lld, window_source_id: %lld\n",
+             static_cast<long long>(screen_source_id), static_cast<long long>(window_source_id));
+    }
+
+    if (infos != nullptr) {
+      traa_free_screen_source_info(infos, count);
+    }
+  }
+
+  // test 1: invalid source ID
+  {
+    uint8_t *data = nullptr;
+    int data_size = 0;
+    traa_size snapshot_size(800, 600);
+    traa_size actual_size;
+    int ret = traa_create_snapshot(-1, snapshot_size, &data, &data_size, &actual_size);
+    EXPECT_EQ(ret, traa_error::TRAA_ERROR_INVALID_ARGUMENT);
+    EXPECT_EQ(data, nullptr);
+    EXPECT_EQ(data_size, 0);
+    EXPECT_EQ(actual_size.width, 0);
+    EXPECT_EQ(actual_size.height, 0);
+  }
+
+  // test 2: invalid input - nullptr
+  {
+    traa_size snapshot_size(800, 600);
+
+    int ret = traa_create_snapshot(1, snapshot_size, nullptr, nullptr, nullptr);
+    EXPECT_EQ(ret, traa_error::TRAA_ERROR_INVALID_ARGUMENT);
+  }
+
+  // test 3: valid input - use screen source ID
+  if (screen_source_id != -1) {
+    uint8_t *data = nullptr;
+    int data_size = 0;
+    traa_size snapshot_size(800, 600);
+    traa_size actual_size;
+
+    int ret =
+        traa_create_snapshot(screen_source_id, snapshot_size, &data, &data_size, &actual_size);
+    EXPECT_TRUE(ret == traa_error::TRAA_ERROR_NONE ||
+                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED);
+
+    if (ret == traa_error::TRAA_ERROR_NONE) {
+      printf("data_size: %d, actual_size: %d, %d\n", data_size, actual_size.width,
+             actual_size.height);
+      EXPECT_NE(data, nullptr);
+      EXPECT_GT(data_size, 0);
+      EXPECT_GT(actual_size.width, 0);
+      EXPECT_GT(actual_size.height, 0);
+
+      // if get the data, should free it
+      traa_free_snapshot(data);
+    } else if (ret == traa_error::TRAA_ERROR_PERMISSION_DENIED) {
+      printf("Permission denied for screen capture\n");
+    }
+  } else {
+    printf("No valid screen source ID found, skipping screen snapshot test\n");
+  }
+
+  // test 4: valid input - use window source ID
+  if (window_source_id != -1) {
+    uint8_t *data = nullptr;
+    int data_size = 0;
+    traa_size snapshot_size(800, 600);
+    traa_size actual_size;
+    int ret =
+        traa_create_snapshot(window_source_id, snapshot_size, &data, &data_size, &actual_size);
+    EXPECT_TRUE(ret == traa_error::TRAA_ERROR_NONE ||
+                ret == traa_error::TRAA_ERROR_PERMISSION_DENIED);
+
+    if (ret == traa_error::TRAA_ERROR_NONE) {
+      printf("data_size: %d, actual_size: %d, %d\n", data_size, actual_size.width,
+             actual_size.height);
+      EXPECT_NE(data, nullptr);
+      EXPECT_GT(data_size, 0);
+      EXPECT_GT(actual_size.width, 0);
+      EXPECT_GT(actual_size.height, 0);
+
+      // if get the data, should free it
+      traa_free_snapshot(data);
+    } else if (ret == traa_error::TRAA_ERROR_PERMISSION_DENIED) {
+      printf("Permission denied for window capture\n");
+    }
+  } else {
+    printf("No valid window source ID found, skipping window snapshot test\n");
+  }
+}
+#endif // _WIN32 || __APPLE__
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
        // || !TARGET_OS_VISION)) || __linux__

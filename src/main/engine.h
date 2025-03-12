@@ -35,6 +35,11 @@ public:
                                      traa_screen_source_info **infos, int *count);
 
   static int free_screen_source_info(traa_screen_source_info infos[], int count);
+
+  static int create_snapshot(const int64_t source_id, const traa_size snapshot_size, uint8_t **data,
+                             int *data_size, traa_size *actual_size);
+
+  static void free_snapshot(uint8_t *data);
 #endif // (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&
        // (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&
        // (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)

@@ -31,5 +31,11 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
   return traa_error::TRAA_ERROR_ENUM_SCREEN_SOURCE_INFO_FAILED;
 }
 
+int screen_source_info_enumerator::create_snapshot(const int64_t source_id,
+                                                   const traa_size snapshot_size, uint8_t **data,
+                                                   int *data_size, traa_size *actual_size) {
+  return traa_error::TRAA_ERROR_NOT_IMPLEMENTED;
+}
+
 } // namespace base
 } // namespace traa

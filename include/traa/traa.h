@@ -126,6 +126,32 @@ TRAA_API int TRAA_CALL traa_enum_screen_source_info(const traa_size icon_size,
  * information.
  */
 TRAA_API int TRAA_CALL traa_free_screen_source_info(traa_screen_source_info infos[], int count);
+
+/**
+ * @brief Creates a snapshot of the specified source.
+ *
+ * This function creates a snapshot of the specified source and returns the snapshot data.
+ *
+ * @param source_id The ID of the source to create a snapshot of.
+ * @param snapshot_size The size of the snapshot.
+ * @param data A pointer to a pointer to the snapshot data.
+ * @param data_size The size of the snapshot data.
+ * @param actual_size The actual size of the snapshot data.
+ * @return An integer value indicating the success or failure of the operation.
+ *         A return value of 0 indicates success, while a non-zero value
+ *         indicates failure.
+ */
+TRAA_API int TRAA_CALL traa_create_snapshot(const int64_t source_id, const traa_size snapshot_size,
+                                            uint8_t **data, int *data_size, traa_size *actual_size);
+
+/**
+ * @brief Frees the memory allocated for the snapshot data.
+ *
+ * This function frees the memory allocated for the snapshot data.
+ *
+ * @param data A pointer to the snapshot data to free.
+ */
+TRAA_API void TRAA_CALL traa_free_snapshot(uint8_t *data);
 #endif // (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&
        // (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&
        // (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)

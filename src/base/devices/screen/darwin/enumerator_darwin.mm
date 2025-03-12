@@ -80,6 +80,54 @@ NSBitmapImageRep *scale_image(NSBitmapImageRep *origin_image_rep, CGSize scaled_
   return nil;
 }
 
+bool is_source_id_valid(const int64_t source_id, bool &is_window) {
+  if (source_id <= 0) {
+    return false;
+  }
+
+  // try to find source_id in the screen list
+  NSArray *screen_array = NSScreen.screens;
+  for (size_t i = 0; i < screen_array.count; i++) {
+    NSScreen *screen = screen_array[i];
+    CGDirectDisplayID screen_id = static_cast<CGDirectDisplayID>(
+        [[screen.deviceDescription objectForKey:@"NSScreenNumber"] unsignedIntValue]);
+    if (source_id == static_cast<int64_t>(screen_id)) {
+      is_window = false;
+      return true;
+    }
+  }
+
+  // try to find source_id in the window list
+  CFArrayRef window_array = CGWindowListCopyWindowInfo(
+      kCGWindowListOptionAll | kCGWindowListExcludeDesktopElements, kCGNullWindowID);
+  for (CFIndex i = 0; i < CFArrayGetCount(window_array); i++) {
+    CFDictionaryRef window =
+        reinterpret_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(window_array, i));
+    if (!window) {
+      continue;
+    }
+
+    CFNumberRef window_id =
+        reinterpret_cast<CFNumberRef>(CFDictionaryGetValue(window, kCGWindowNumber));
+    if (!window_id) {
+      continue;
+    }
+
+    int64_t window_id_value;
+    if (!CFNumberGetValue(window_id, kCFNumberSInt64Type, &window_id_value) ||
+        window_id_value <= 0) {
+      continue;
+    }
+
+    if (source_id == window_id_value) {
+      is_window = true;
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void dump_image_to_file(NSBitmapImageRep *image_rep, const char *file_name) {
   if (image_rep == nil || file_name == nullptr) {
     return;
@@ -414,14 +462,14 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
   }
 
   if (sources.size() == 0) {
-    return traa_error::TRAA_ERROR_NONE;
+    return TRAA_ERROR_NONE;
   }
 
   *count = static_cast<int>(sources.size());
   *infos = reinterpret_cast<traa_screen_source_info *>(new traa_screen_source_info[sources.size()]);
   if (*infos == nullptr) {
     LOG_ERROR("alloca memroy for infos failed");
-    return traa_error::TRAA_ERROR_OUT_OF_MEMORY;
+    return TRAA_ERROR_OUT_OF_MEMORY;
   }
 
   for (size_t i = 0; i < sources.size(); ++i) {
@@ -438,6 +486,57 @@ int screen_source_info_enumerator::enum_screen_source_info(const traa_size icon_
               std::min(sizeof(dest_info.process_path) - 1, std::strlen(source_info.process_path)));
     }
   }
+
+  return TRAA_ERROR_NONE;
+}
+
+int screen_source_info_enumerator::create_snapshot(const int64_t source_id,
+                                                   const traa_size snapshot_size, uint8_t **data,
+                                                   int *data_size, traa_size *actual_size) {
+  if (source_id < 0 || data == nullptr || data_size == nullptr || actual_size == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  if (__builtin_available(macOS 11, *)) {
+    if (!CGPreflightScreenCaptureAccess()) {
+      CGRequestScreenCaptureAccess();
+      return TRAA_ERROR_PERMISSION_DENIED;
+    }
+  }
+
+  bool is_window = false;
+  if (!is_source_id_valid(source_id, is_window)) {
+    return TRAA_ERROR_INVALID_SOURCE_ID;
+  }
+
+  NSBitmapImageRep *image_rep = get_image_rep(is_window, static_cast<CGWindowID>(source_id));
+  if (!image_rep) {
+    return TRAA_ERROR_INVALID_SOURCE_ID;
+  }
+
+  NSImage *image = [NSImage new];
+  [image addRepresentation:image_rep];
+
+  desktop_size scaled_size =
+      calc_scaled_size(desktop_size(image.size.width, image.size.height), snapshot_size);
+  CGSize scaled_ns_size = CGSizeMake(scaled_size.width(), scaled_size.height());
+  NSBitmapImageRep *scaled_image_rep = scale_image(image_rep, scaled_ns_size);
+  if (!scaled_image_rep) {
+    return TRAA_ERROR_INVALID_SOURCE_ID;
+  }
+
+  size_t thumbnail_data_size = [scaled_image_rep pixelsWide] * [scaled_image_rep pixelsHigh] *
+                               [scaled_image_rep samplesPerPixel] * sizeof(unsigned char);
+
+  *data = new uint8_t[thumbnail_data_size];
+  *data_size = static_cast<int>(thumbnail_data_size);
+  if (*data == nullptr) {
+    LOG_ERROR("alloc memory for data failed");
+    return TRAA_ERROR_OUT_OF_MEMORY;
+  }
+
+  memcpy(*data, [scaled_image_rep bitmapData], thumbnail_data_size);
+  *actual_size = scaled_size.to_traa_size();
 
   return TRAA_ERROR_NONE;
 }
