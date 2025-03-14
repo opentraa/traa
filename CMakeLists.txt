@@ -32,7 +32,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Name project traa.
 project(traa C CXX)
-message(STATUS "[TRAA] configuring...")
+if(NOT DEFINED TRAA_OPTION_VERSION OR TRAA_OPTION_VERSION STREQUAL "")
+    set(TRAA_OPTION_VERSION "1.0.0")
+endif()
+message(STATUS "[TRAA] configuring ${TRAA_OPTION_VERSION}...")
 
 # CMAKE_SYSTEM_NAME only be set after project defined.
 message(STATUS "[TRAA] current target system name ${CMAKE_SYSTEM_NAME}")
@@ -55,6 +58,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Options
 option(TRAA_OPTION_ENABLE_UNIT_TEST "Enable unit test" OFF)
 option(TRAA_OPTION_ENABLE_SMOKE_TEST "Enable smoke test" OFF)
+option(TRAA_OPTION_NO_FRAMEWORK "Do not build framework for Apple platforms" OFF)
 
 if(LINUX)
     # To enable x11 you have install x11 and x11-xext and x11-xcomposite development packages.

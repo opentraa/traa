@@ -18,6 +18,7 @@ BUILD_UNITTEST=OFF
 BUILD_SMOKETEST=OFF
 ANDROID_ABI="arm64-v8a,armeabi-v7a,x86,x86_64"
 TARGET_ARCH="x86_64"
+NO_FRAMEWORK=OFF
 
 # cpu_features library on Android implements getauxval() for API level < 18, see cpu_features/src/hwcaps_linux_or_android.c
 # The implementation call dlopen() to load libc.so and then call dlsym() to get the address of getauxval().
@@ -45,13 +46,14 @@ show_usage() {
     echo "  -b, --bin-folder        Binary output folder [default: bin]"
     echo "  -s, --source-dir        Source directory [default: current directory]"
     echo "  -v, --version           Version of the build [default: 1.0.0]"
-    echo "  -U, --unittest          Build unit tests (ON/OFF) [default: OFF]"
-    echo "  -S, --smoketest         Build smoke tests (ON/OFF) [default: OFF]"
+    echo "  -U, --unittest          Build unit tests"
+    echo "  -S, --smoketest         Build smoke tests"
     echo "  -A, --android-abi       Android ABI [default: arm64-v8a,armeabi-v7a,x86,x86_64]"
     echo "  -V, --verbose           Verbose output"
     echo "  -h, --help              Show this help message"
     echo "  -L, --api-level         Android API level [default: 18]"
     echo "  -a, --arch              Target architecture for Linux (x86_64/aarch64_clang/aarch64_gnu) [default: x86_64]"
+    echo "      --no-framework      Do not build framework for Apple platforms"
 }
 
 # parse command line arguments
@@ -82,12 +84,12 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -U|--unittest)
-            BUILD_UNITTEST="$2"
-            shift 2
+            BUILD_UNITTEST="ON"
+            shift
             ;;
         -S|--smoketest)
-            BUILD_SMOKETEST="$2"
-            shift 2
+            BUILD_SMOKETEST="ON"
+            shift
             ;;
         -A|--android-abi)
             ANDROID_ABI="$2"
@@ -108,6 +110,10 @@ while [[ $# -gt 0 ]]; do
         -a|--arch)
             TARGET_ARCH="$2"
             shift 2
+            ;;
+        --no-framework)
+            NO_FRAMEWORK="ON"
+            shift
             ;;
         *)
             log "ERROR" "Unknown option: $1"
@@ -249,6 +255,7 @@ build() {
                 -DTRAA_OPTION_ENABLE_UNIT_TEST="$BUILD_UNITTEST" \
                 -DTRAA_OPTION_ENABLE_SMOKE_TEST="$BUILD_SMOKETEST" \
                 -DTRAA_OPTION_VERSION="$VERSION" \
+                -DTRAA_OPTION_NO_FRAMEWORK="$NO_FRAMEWORK" \
                 -S "$SOURCE_DIR"
             ;;
         "linux")

@@ -69,8 +69,8 @@ goto:eof
     echo   -s, --source-dir        Source directory [default: current directory]
     echo   -v, --version           Version number [default: 0.0.1]
     echo   -V, --verbose           Verbose output
-    echo   -U, --unittest          Build unit tests (ON/OFF) [default: OFF]
-    echo   -S, --smoketest         Build smoke tests (ON/OFF) [default: OFF]
+    echo   -U, --unittest          Build unit tests
+    echo   -S, --smoketest         Build smoke tests
     echo   -h, --help              Show this help message
     exit 0
 goto:eof
@@ -121,17 +121,13 @@ goto:eof
     ) else if "%arg%"=="--verbose" (
         set "VERBOSE=1"
     ) else if "%arg%"=="-U" (
-        set "BUILD_UNITTEST=%~1"
-        shift
+        set "BUILD_UNITTEST=ON"
     ) else if "%arg%"=="--unittest" (
-        set "BUILD_UNITTEST=%~1"
-        shift
+        set "BUILD_UNITTEST=ON"
     ) else if "%arg%"=="-S" (
-        set "BUILD_SMOKETEST=%~1"
-        shift
+        set "BUILD_SMOKETEST=ON"
     ) else if "%arg%"=="--smoketest" (
-        set "BUILD_SMOKETEST=%~1"
-        shift
+        set "BUILD_SMOKETEST=ON"
     ) else if "%arg%"=="-h" (
         call :show_usage
     ) else (
