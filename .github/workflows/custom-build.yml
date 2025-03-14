@@ -176,14 +176,20 @@ jobs:
           -f ${{ steps.strings.outputs.build-dir }}
           -b ${{ steps.strings.outputs.build-output-dir }}
 
-      - name: Build for macOS iOS and xrOS
-        if: ${{ matrix.os == 'macos-latest' && (matrix.target_platform == 'macos' || matrix.target_platform == 'ios' || matrix.target_platform == 'xros') }}
+      - name: Build for iOS and xrOS
+        if: ${{ matrix.os == 'macos-latest' && (matrix.target_platform == 'ios' || matrix.target_platform == 'xros') }}
         run: >
           sh scripts/build.sh -p ${{ matrix.target_platform }} 
           -v ${{ inputs.build_version }} 
           -t ${{ inputs.build_type }}
           -f ${{ steps.strings.outputs.build-dir }}
           -b ${{ steps.strings.outputs.build-output-dir }}
+
+      - name: Build for macOS
+        if: ${{ matrix.os == 'macos-latest' && (matrix.target_platform == 'macos') }}
+        run: |
+          sh scripts/build.sh -p ${{ matrix.target_platform }} -v ${{ inputs.build_version }} -t ${{ inputs.build_type }} -f ${{ steps.strings.outputs.build-dir }} -b ${{ steps.strings.outputs.build-output-dir }}
+          sh scripts/build.sh -p ${{ matrix.target_platform }} -v ${{ inputs.build_version }} -t ${{ inputs.build_type }} -f ${{ steps.strings.outputs.build-dir }} -b ${{ steps.strings.outputs.build-output-dir }} --no-framework
 
       - name: Upload artifacts
         if: ${{ inputs.upload_artifacts == true }}

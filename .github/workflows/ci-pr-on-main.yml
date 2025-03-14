@@ -38,8 +38,8 @@ jobs:
         -t ${{env.BUILD_TYPE}}
         -f ${{ steps.strings.outputs.build-dir }}
         -b ${{ steps.strings.outputs.build-output-dir }}
-        -U ON
-        -S ON
+        -U
+        -S
 
     - name: Unit Test
       working-directory: ${{ steps.strings.outputs.build-dir }}/linux/x86_64/tests/unit_test
@@ -73,8 +73,8 @@ jobs:
         -t ${{env.BUILD_TYPE}}
         -f ${{ steps.strings.outputs.build-dir }}
         -b ${{ steps.strings.outputs.build-output-dir }}
-        -U ON
-        -S ON
+        -U
+        -S
 
     - name: Unit Test
       working-directory: ${{ steps.strings.outputs.build-dir }}\\x64\\tests/unit_test
@@ -108,8 +108,8 @@ jobs:
         -t ${{env.BUILD_TYPE}}
         -f ${{ steps.strings.outputs.build-dir }}
         -b ${{ steps.strings.outputs.build-output-dir }}
-        -U ON
-        -S ON
+        -U
+        -S
 
     - name: Unit Test
       working-directory: ${{ steps.strings.outputs.build-dir }}/macos/tests/unit_test
