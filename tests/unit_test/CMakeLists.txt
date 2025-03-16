@@ -163,7 +163,7 @@ set_target_properties(${TRAA_UNIT_TEST} PROPERTIES
 
 # platform flags
 if(APPLE)
-    set(TRAA_UNIT_TEST_IDENTIFIER "io.traa.unittest")
+    set(TRAA_UNIT_TEST_IDENTIFIER "org.opentraa.traa.unittest")
 
     target_link_libraries(${TRAA_UNIT_TEST} PRIVATE "${TRAA_LIBRARY_FRAMEWORKS}")
 
