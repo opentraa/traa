@@ -81,7 +81,7 @@ set_target_properties(${TRAA_LIBRARY_MAIN} PROPERTIES
 
 # platform flags
 if(APPLE)
-    set(TRAA_LIBRARY_IDENTIFIER "io.traa.core")
+    set(TRAA_LIBRARY_IDENTIFIER "org.opentraa.traa")
 
     target_link_libraries(${TRAA_LIBRARY_MAIN} PRIVATE "${TRAA_LIBRARY_FRAMEWORKS}")
 

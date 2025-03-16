@@ -52,7 +52,7 @@ set_target_properties(${TRAA_SMOKE_TEST} PROPERTIES
 
 # platform flags
 if(APPLE)
-    set(TRAA_SMOKE_TEST_IDENTIFIER "io.traa.smoketest")
+    set(TRAA_SMOKE_TEST_IDENTIFIER "org.opentraa.traa.smoketest")
 
     target_link_libraries(${TRAA_SMOKE_TEST} PRIVATE "${TRAA_LIBRARY_FRAMEWORKS}")
 
