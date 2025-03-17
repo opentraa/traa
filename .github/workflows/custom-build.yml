@@ -183,7 +183,7 @@ jobs:
           -v ${{ inputs.build_version }} 
           -t ${{ inputs.build_type }}
           -f ${{ steps.strings.outputs.build-dir }}
-          -b ${{ steps.strings.outputs
+          -b ${{ steps.strings.outputs.build-output-dir }}
       
       # There is no need to sign frameworks
       # - name: Sign macOS iOS and xrOS
