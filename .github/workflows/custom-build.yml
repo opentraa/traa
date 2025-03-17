@@ -183,12 +183,42 @@ jobs:
           -v ${{ inputs.build_version }} 
           -t ${{ inputs.build_type }}
           -f ${{ steps.strings.outputs.build-dir }}
-          -b ${{ steps.strings.outputs.build-output-dir }}
+          -b ${{ steps.strings.outputs
+      
+      # There is no need to sign frameworks
+      # - name: Sign macOS iOS and xrOS
+      #   if: ${{ matrix.os == 'macos-latest' && (matrix.target_platform == 'macos' || matrix.target_platform == 'ios' || matrix.target_platform == 'xros') }}
+      #   env:
+      #     BUILD_CERTIFICATE_BASE64: ${{ secrets.DIST_BUILD_CERTIFICATE_BASE64 }}
+      #     BUILD_CERTIFICATE_NAME: ${{ secrets.DIST_BUILD_CERTIFICATE_NAME }}
+      #     P12_PASSWORD: ${{ secrets.DIST_P12_PASSWORD }}
+      #     KEYCHAIN_PASSWORD: ${{ secrets.DIST_KEYCHAIN_PASSWORD }}
+      #   run: |
+      #     CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+      #     KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+      #     # import certificate and provisioning profile from secrets
+      #     echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+      #     # create temporary keychain
+      #     security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+      #     security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+      #     security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+      #     # import certificate to keychain
+      #     security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+      #     security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+      #     security list-keychain -d user -s $KEYCHAIN_PATH
+
+      #     # sign every framework in the build output directory with command:
+      #     find ${{ steps.strings.outputs.build-output-dir }} -name "*.framework" -exec codesign --force --deep --sign "$BUILD_CERTIFICATE_NAME" --options runtime --timestamp --verbose=2 {} \;
 
       - name: Upload artifacts
         if: ${{ inputs.upload_artifacts == true }}
-        uses: actions/upload-artifact@v4
+        # https://github.com/actions/upload-artifact/issues/93 the official version do not support to keep the symbolic link for now
+        uses: eXhumer/upload-artifact@0b7d5f5684d3f642f978d2faad9ade64f5b4dd57
         with:
           name: ${{ matrix.target_platform }}-${{ inputs.build_version }}-${{ steps.strings.outputs.build-id }}-${{ steps.strings.outputs.timestamp }}
           path: ${{ steps.strings.outputs.build-output-dir }}
+          follow-symlinks: false
           if-no-files-found: error

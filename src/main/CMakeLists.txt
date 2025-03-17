@@ -36,6 +36,11 @@ add_library(traa::main ALIAS ${TRAA_LIBRARY_MAIN})
 # add main files
 target_sources(${TRAA_LIBRARY_MAIN} PRIVATE ${TRAA_LIBRARY_MAIN_FILES})
 
+# add public header files
+# this also will take effect when generate framework, if you want to add public header files to framework,
+# you must add public header files to target sources.
+target_sources(${TRAA_LIBRARY_MAIN} PRIVATE ${TRAA_LIBRARY_PUBLIC_HEADER_FILES})
+
 # link traa::base
 target_link_libraries(${TRAA_LIBRARY_MAIN} PRIVATE traa::base::core)
 
