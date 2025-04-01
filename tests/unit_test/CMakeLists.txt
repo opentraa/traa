@@ -107,7 +107,6 @@ list(APPEND TRAA_UNIT_TEST_FILES
 list(APPEND TRAA_UNIT_TEST_FILES 
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/callback_unittest.cc"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/ffuture_unittest.cc"
-    "${CMAKE_HOME_DIRECTORY}/src/base/thread/rw_lock_unittest.cc"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/task_queue_unittest.cc"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/thread_util_unittest.cc"
     "${CMAKE_HOME_DIRECTORY}/src/base/thread/waitable_future_unittest.cc"

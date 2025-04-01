@@ -7,7 +7,6 @@
 #include "base/logger.h"
 #include "base/singleton.h"
 #include "base/thread/ffuture.h"
-#include "base/thread/rw_lock.h"
 #include "base/thread/thread_util.h"
 #include "base/thread/waitable_future.h"
 
@@ -17,6 +16,7 @@
 #include <queue>
 #include <thread>
 #include <unordered_map>
+#include <shared_mutex>
 
 #if defined(ASIO_NO_EXCEPTIONS)
 
@@ -491,7 +491,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, true);
+    std::unique_lock<std::shared_mutex> lock(self.lock_);
     if (self.tls_key_.load() == UINTPTR_MAX) {
       std::uintptr_t key = UINTPTR_MAX;
       int ret = thread_util::tls_alloc(&key, nullptr);
@@ -516,7 +516,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, true);
+    std::unique_lock<std::shared_mutex> lock(self.lock_);
     for (auto &it : self.task_queues_) {
       it.second->stop();
     }
@@ -526,7 +526,6 @@ public:
       std::uintptr_t key = self.tls_key_.load();
       thread_util::tls_free(&key);
 
-      // must reset the TLS key to UINTPTR_MAX, coz task queue manager is a singleton
       self.tls_key_.store(UINTPTR_MAX);
     }
   }
@@ -547,7 +546,7 @@ public:
   static size_t get_task_queue_count() {
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, false);
+    std::shared_lock<std::shared_mutex> lock(self.lock_);
     return self.task_queues_.size();
   }
 
@@ -567,7 +566,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, true);
+    std::unique_lock<std::shared_mutex> lock(self.lock_);
     if (self.task_queues_.find(id) != self.task_queues_.end()) {
       LOG_ERROR("task queue {} already exists", id);
       return self.task_queues_[id];
@@ -592,7 +591,7 @@ public:
 
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, true);
+    std::unique_lock<std::shared_mutex> lock(self.lock_);
     auto it = self.task_queues_.find(id);
     if (it == self.task_queues_.end()) {
       LOG_ERROR("task queue {} does not exist", id);
@@ -618,11 +617,9 @@ public:
    * returned.
    */
   static std::shared_ptr<task_queue> get_task_queue(task_queue::task_queue_id_t id) {
-    // LOG_API_ARGS_1(id);
-
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, false);
+    std::shared_lock<std::shared_mutex> lock(self.lock_);
     auto it = self.task_queues_.find(id);
     if (it == self.task_queues_.end()) {
       return nullptr;
@@ -640,7 +637,7 @@ public:
   static bool is_task_queue_exist(task_queue::task_queue_id_t id) {
     auto &self = instance();
 
-    rw_lock_guard guard(self.lock_, false);
+    std::shared_lock<std::shared_mutex> lock(self.lock_);
     return self.task_queues_.find(id) != self.task_queues_.end();
   }
 
@@ -696,8 +693,6 @@ public:
    * queue and a waitable_future object representing the result of the task is returned.
    */
   template <typename F> static auto post_task(task_queue::task_queue_id_t id, F &&f) {
-    // LOG_API_ARGS_2(id, reinterpret_cast<std::uintptr_t>(&f));
-
     auto queue = get_task_queue(id);
     if (!queue) {
       LOG_ERROR("task queue {} does not exist", id);
@@ -733,7 +728,7 @@ private:
   std::atomic<std::uintptr_t> tls_key_ = {UINTPTR_MAX};
 
   // The read-write lock for the task queues.
-  rw_lock lock_;
+  std::shared_mutex lock_;
 
   // The task queues.
   std::unordered_map<task_queue::task_queue_id_t, std::shared_ptr<task_queue>> task_queues_;

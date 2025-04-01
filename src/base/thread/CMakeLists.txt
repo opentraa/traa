@@ -4,23 +4,18 @@ set(TRAA_LIBRARY_BASE_THREAD_FILES
     "callback.h"
     "ffuture.h"
     "ffuture.cc"
-    "rw_lock.h"
     "task_queue.h"
     "thread_util.h"
     "waitable_future.h"
 )
 
 if(WIN32)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "rw_lock_win.cc")
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "thread_util_win.cc")
 elseif(ANDROID)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "rw_lock_linux.cc")
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "thread_util_linux.cc")
 elseif(APPLE)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "rw_lock_darwin.cc")
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "thread_util_darwin.cc")
 elseif(LINUX)
-    list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "rw_lock_linux.cc")
     list(APPEND TRAA_LIBRARY_BASE_THREAD_FILES "thread_util_linux.cc")
 endif()
 
