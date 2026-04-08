@@ -615,6 +615,86 @@ typedef struct traa_screen_source_info {
        // !TARGET_OS_VISION)) || __linux__
 
 /**
+ * @brief Enumeration of video frame pixel formats.
+ *
+ * Values correspond one-to-one with the internal traa::base::video_type enum,
+ * allowing direct static_cast conversion between the two.
+ */
+typedef enum traa_video_frame_format {
+  TRAA_VIDEO_FRAME_FORMAT_UNKNOWN = 0,
+  TRAA_VIDEO_FRAME_FORMAT_I420 = 1,
+  TRAA_VIDEO_FRAME_FORMAT_IYUV = 2,
+  TRAA_VIDEO_FRAME_FORMAT_RGB24 = 3,
+  TRAA_VIDEO_FRAME_FORMAT_YUY2 = 4,
+  TRAA_VIDEO_FRAME_FORMAT_YV12 = 5,
+  TRAA_VIDEO_FRAME_FORMAT_RGB565 = 6,
+  TRAA_VIDEO_FRAME_FORMAT_NV12 = 7,
+  TRAA_VIDEO_FRAME_FORMAT_UYVY = 8,
+  TRAA_VIDEO_FRAME_FORMAT_MJPEG = 9,
+} traa_video_frame_format;
+
+/**
+ * @brief Describes a camera's capture capability (resolution, frame rate, format).
+ *
+ * Used to query and select appropriate capture parameters for a camera device.
+ */
+typedef struct traa_video_capability {
+  int32_t width;
+  int32_t height;
+  int32_t max_fps;
+  traa_video_frame_format format;
+  bool interlaced;
+
+#if defined(__cplusplus)
+  traa_video_capability()
+      : width(0), height(0), max_fps(0), format(TRAA_VIDEO_FRAME_FORMAT_UNKNOWN),
+        interlaced(false) {}
+#endif // defined(__cplusplus)
+} traa_video_capability;
+
+/**
+ * @brief Represents a single video frame captured from a camera device.
+ *
+ * The data pointer is only valid during the on_video_frame callback invocation.
+ * Callers must copy the data if they need to retain it beyond the callback scope.
+ */
+typedef struct traa_video_frame {
+  const uint8_t *data;
+  int32_t data_length;
+  int32_t width;
+  int32_t height;
+  traa_video_frame_format format;
+  int64_t timestamp_ms;
+
+#if defined(__cplusplus)
+  traa_video_frame()
+      : data(nullptr), data_length(0), width(0), height(0),
+        format(TRAA_VIDEO_FRAME_FORMAT_UNKNOWN), timestamp_ms(0) {}
+#endif // defined(__cplusplus)
+} traa_video_frame;
+
+/**
+ * @brief Configuration for starting a camera capture session.
+ *
+ * Contains the device identifier, desired capture capability, a frame callback
+ * function pointer, and user-supplied context data. The on_video_frame callback
+ * is invoked on the capture thread (not the main task queue) whenever a new
+ * I420 frame is available. The frame data pointer is only valid during the
+ * callback invocation.
+ */
+typedef struct traa_camera_config {
+  const char *device_id;
+  traa_video_capability capability;
+  void (*on_video_frame)(const traa_userdata userdata, const traa_video_frame *frame);
+  traa_userdata userdata;
+
+#if defined(__cplusplus)
+  traa_camera_config()
+      : device_id(nullptr), capability(), on_video_frame(nullptr), userdata(nullptr) {}
+#endif // defined(__cplusplus)
+} traa_camera_config;
+
+/**
  * @brief The log level for TRAA.
  *
  * This is the log level for TRAA.

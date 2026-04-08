@@ -1,4 +1,5 @@
 # traa
+
 [![Build Status](https://github.com/opentraa/traa/actions/workflows/ci-pr-on-main.yml/badge.svg)](https://github.com/opentraa/traa/actions)
 ![GitHub stars](https://img.shields.io/github/stars/opentraa/traa)
 ![GitHub forks](https://img.shields.io/github/forks/opentraa/traa)
@@ -8,112 +9,136 @@
 
 ## Introduction
 
-`traa` is a versatile project aimed at recording anything, anywhere. The primary focus is to provide robust solutions for various recording scenarios, making it a highly adaptable tool for multiple use cases.
+**traa** (Track Record Anything Anywhere) is a cross-platform C/C++ dynamic library for audio and video capture, processing, and display. It exposes a clean, pure C API so developers can easily integrate recording capabilities into any project.
 
 ## Vision
 
-Our ultimate goal is to create a very small but feature-rich dynamic library for audio and video capture, processing, and display. This will allow audio and video developers to easily integrate it into their projects. In the future, we aim to incorporate AI capabilities to enhance audio and video processing.
+Create a very small but feature-rich dynamic library that covers the full audio/video pipeline — capture, processing, and display — across all major platforms. In the future, we aim to incorporate AI capabilities to enhance audio and video processing.
 
-## Contribution
+## Platform Support
 
-We welcome contributions from the community. Feel free to open issues or submit pull requests to help improve `traa`.
+| Platform | Architecture | Screen Enumeration | Screen Capture | Snapshot |
+|----------|-------------|-------------------|----------------|----------|
+| Windows  | x86, x64, ARM64 | ✅ | ✅ GDI, DXGI, WGC | ✅ |
+| macOS    | Universal (x86_64 + arm64) | ✅ | ✅ CoreGraphics, ScreenCaptureKit | ✅ |
+| Linux    | x86_64, aarch64 | ✅ X11 | 🔧 Partial | ❌ |
+| Android  | arm64-v8a, armeabi-v7a, x86, x86_64 | ❌ | ❌ | ❌ |
+| iOS      | arm64 | ❌ | ❌ | ❌ |
+| visionOS | arm64 | ❌ | ❌ | ❌ |
 
-## Motivation
+## Features
 
-If you find this project useful, a star on GitHub would be greatly appreciated. Your support motivates us to keep improving and adding new features.
+### Implemented
 
-## Implemented Features
+- **Screen Source Enumeration** — Enumerate screens and windows with icon/thumbnail support (Windows, macOS, Linux/X11)
+- **Screen Capture on Windows** — Multiple backends: GDI, DXGI, Windows Graphics Capture (WGC), with automatic fallback
+- **Screen Capture on macOS** — CoreGraphics and ScreenCaptureKit (macOS 12.3+), with IOSurface acceleration
+- **Window Capture on macOS** — CGWindowListCreateImage with full-screen window detection
+- **Screen Snapshot** — Create scaled snapshots of any screen or window (Windows, macOS)
+- **ASIO-based Async Threading** — Task queues with periodic/one-shot timers using `asio::io_context`
+- **Capturer Framework** — Abstract `desktop_capturer` with differ wrapper, blank detection, and fallback wrappers
 
-- **ASIO-based Asynchronous Threading Model**: The project includes a task timer that executes tasks repeatedly at specified intervals using `asio::io_context`. This model ensures efficient task scheduling and execution.
-- **Screen Source Enumeration**: The project provides functionality for enumerating screen sources on Windows and macOS, retrieving screen source information such as icon size and thumbnail size.
-- **Screen Capture On Windows**: The project provides functionality for capturing screen on Windows.
+### In Progress
 
-## Unimplemented Features
+- **Linux Screen Capture** — X11 source enumeration works; raw capture and snapshot not yet implemented; Wayland PipeWire capturer exists but is disabled by default
+- **Video Device Management (VDM)** — Windows camera capture via DirectShow (porting from WebRTC `modules/video_capture`); other platforms planned
 
-- **Audio Device Management (ADM)**: This module will handle the enumeration, capture, and routing of audio devices such as speakers and microphones.
-- **Video Device Management (VDM)**: This module will manage the enumeration and capture of video devices such as cameras.
-- **Audio and Video Stream Processing**: Includes tasks such as resampling, compression, encoding, merging, multimedia file storage, voice changing, beautification, and streaming.
-- **Screen Capture On macOS**: The project provides functionality for capturing screen on macOS.
-- **Screen Capture On Linux**: The project provides functionality for capturing screen on Linux.
-- **Screen Capture On Android**: The project provides functionality for capturing screen on Android.
-- **Screen Capture On iOS**: The project provides functionality for capturing screen on iOS.
-- **Screen Capture On Linux**: The project provides functionality for capturing screen on Linux.
+### Planned
+
+- **Audio Device Management (ADM)** — Enumeration, capture, and routing of microphones and speakers
+- **Audio/Video Stream Processing** — Resampling, compression, encoding, merging, storage, voice changing, beautification, and streaming
+- **Screen Capture on Android/iOS** — Mobile platform screen recording
+- **Wayland Support** — PipeWire-based capture for modern Linux desktops
+- **AI-Enhanced Processing** — Intelligent audio and video processing
 
 ## How to Build
 
 ### Prerequisites
-- CMake 3.x or higher
-- For Linux: gcc/g++ or clang/clang++
-- For Windows: Visual Studio Build Tools
-- For macOS: Xcode and Command Line Tools
-- For Android: Android NDK and Android Studio
-- For iOS/xrOS: Xcode
 
-### Build Steps
+- CMake 3.10+
+- C++17 compiler
+- **Windows**: Visual Studio Build Tools
+- **macOS**: Xcode and Command Line Tools
+- **Linux**: gcc/g++ or clang/clang++ (X11 dev packages for screen capture: `libx11-dev libxext-dev libxcomposite-dev libxrandr-dev`)
+- **Android**: Android NDK
+- **iOS/visionOS**: Xcode
 
-#### Clone the repository:
+### Clone
+
 ```sh
 git clone --recurse-submodules https://github.com/opentraa/traa.git
 cd traa
 ```
 
-#### Using Build Scripts
+### Build
 
-The project provides build scripts for easy compilation:
-
-##### On Unix-like Systems (Linux, macOS, iOS, xrOS, Android):
-```sh
-./scripts/build.sh -p <platform> [options]
-```
-
-Available platforms:
-- `macos`: Build for macOS
-- `ios`: Build for iOS
-- `xros`: Build for Apple Vision Pro
-- `linux`: Build for Linux
-- `android`: Build for Android
-
-Common options:
-- `-t, --build-type`: Build type (Debug/Release) [default: Release]
-- `-U, --unittest`: Build unit tests (ON/OFF) [default: OFF]
-- `-S, --smoketest`: Build smoke tests (ON/OFF) [default: OFF]
-- `-V, --verbose`: Enable verbose output
-- `-v, --version`: Specify version number
-
-Platform-specific options:
-- For Android: `-A, --android-abi`: Specify ABIs (default: arm64-v8a,armeabi-v7a,x86,x86_64)
-- For Linux: `-a, --arch`: Target architecture (x86_64/aarch64_clang/aarch64_gnu)
-
-##### On Windows:
-```batch
-scripts\build.bat [options]
-```
-
-Available options:
-- `-a, --arch`: Architecture (Win32/x64/ARM64) [default: x64]
-- `-t, --build-type`: Build type (Debug/Release) [default: Release]
-- `-U, --unittest`: Build unit tests (ON/OFF) [default: OFF]
-- `-S, --smoketest`: Build smoke tests (ON/OFF) [default: OFF]
-- `-V, --verbose`: Enable verbose output
-
-#### Example Commands
-
-Build for macOS:
+#### macOS
 ```sh
 ./scripts/build.sh -p macos -t Release
 ```
 
-Build for Windows (x64):
+#### Windows
 ```batch
 scripts\build.bat -a x64 -t Release
 ```
 
-Build for Android with specific ABIs:
+#### Linux
+```sh
+./scripts/build.sh -p linux -t Release
+```
+
+#### Android
 ```sh
 ./scripts/build.sh -p android -A "arm64-v8a,x86_64"
 ```
 
-Build for Linux with unit tests:
+#### iOS
 ```sh
-./scripts/build.sh -p linux -U ON
+./scripts/build.sh -p ios -t Release
 ```
+
+#### With Unit Tests
+```sh
+# macOS/Linux
+./scripts/build.sh -p macos -U ON
+
+# Windows
+scripts\build.bat -a x64 -U ON
+```
+
+### Build Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-p, --platform` | Target platform (macOS/iOS/xrOS/Linux/Android) | Required |
+| `-t, --build-type` | Debug or Release | Release |
+| `-a, --arch` | Architecture (Windows: Win32/x64/ARM64, Linux: x86_64/aarch64_clang/aarch64_gnu) | x64 / x86_64 |
+| `-U, --unittest` | Build unit tests | OFF |
+| `-S, --smoketest` | Build smoke tests | OFF |
+| `-A, --android-abi` | Android ABIs | arm64-v8a,armeabi-v7a,x86,x86_64 |
+| `-V, --verbose` | Verbose build output | OFF |
+| `-v, --version` | Version string | 1.0.0 |
+
+## Architecture
+
+```
+include/traa/       Public C API (base.h, error.h, export.h, traa.h)
+src/base/           Core library — threading, screen capture, utilities
+src/main/           API implementation layer (engine + C wrappers)
+thirdparty/         Dependencies (ASIO, spdlog, libyuv, googletest, ...)
+tests/              Unit tests and smoke tests
+```
+
+The library is built as a shared library (`traa.dll` / `libtraa.so` / `traa.framework`). All public API calls are thread-safe, serialized through an ASIO-based task queue.
+
+## Contributing
+
+We welcome contributions from the community. Feel free to open issues or submit pull requests to help improve traa.
+
+## Support
+
+If you find this project useful, a ⭐ on GitHub would be greatly appreciated. Your support motivates us to keep improving and adding new features.
+
+## License
+
+See [LICENSE](LICENSE) for details.

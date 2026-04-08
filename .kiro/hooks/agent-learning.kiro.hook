@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Agent Learning on Session End",
+  "description": "When an agent session ends, review the conversation to extract valuable learnings about the project (new patterns discovered, gotchas, architecture decisions, implementation details) and update the relevant AGENTS.md files if the learnings are significant enough to help future sessions.",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the conversation that just ended. Determine if any valuable project knowledge was discovered that would benefit future AI sessions. Only update if the learnings are significant (not trivial).\n\nEvaluate these categories:\n1. **Architecture insights** — New understanding of how modules interact, hidden dependencies, design decisions\n2. **Gotchas & pitfalls** — Build issues, platform quirks, common mistakes discovered\n3. **Implementation patterns** — New coding patterns, workarounds, or conventions established\n4. **API changes** — New public APIs added, modified, or deprecated\n5. **Status changes** — Features that moved from unimplemented to implemented, or bugs discovered\n\nIf significant learnings exist:\n1. Identify which AGENTS.md file(s) should be updated (root `AGENTS.md`, `src/base/AGENTS.md`, `src/base/thread/AGENTS.md`, `src/base/devices/screen/AGENTS.md`, `src/main/AGENTS.md`, or `.kiro/steering/project-context.md`)\n2. Make minimal, precise updates — append to existing sections or add a \"Learnings\" section\n3. Do NOT rewrite entire files — only add the new knowledge\n4. Keep updates factual and concise, no fluff\n\nIf no significant learnings, do nothing — skip silently."
+  }
+}

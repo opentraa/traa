@@ -57,3 +57,6 @@ CMakeCache.txt
 *.yuv
 
 *.spec
+
+# kiro
+.kiro/specs

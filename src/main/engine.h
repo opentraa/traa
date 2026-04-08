@@ -3,13 +3,21 @@
 
 #include <traa/traa.h>
 
+#include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "base/disallow.h"
 #include "base/thread/callback.h"
 
 namespace traa {
+namespace base {
+class device_info_impl;
+class video_capture_impl;
+class video_frame_callback;
+} // namespace base
+
 namespace main {
 
 class engine : public base::support_weak_callback {
@@ -44,7 +52,30 @@ public:
        // (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&
        // (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
 
+  // Camera capability query
+  int get_camera_capability(const char *device_id, traa_video_capability **capabilities,
+                            int *count);
+  int free_camera_capability(traa_video_capability *capabilities);
+
+  // Camera capture management
+  int start_camera_capture(const traa_camera_config *config);
+  int stop_camera_capture(const char *device_id);
+
 private:
+  // Ensure camera device_info is initialized (lazy init)
+  base::device_info_impl *ensure_camera_device_info();
+
+  // Camera device info (lazy init)
+  std::unique_ptr<base::device_info_impl> camera_device_info_;
+
+  // Frame callback adapter: bridges video_frame_callback → user C function pointer
+  struct camera_capture_context {
+    std::unique_ptr<base::video_capture_impl> capture;
+    std::unique_ptr<base::video_frame_callback> adapter;
+  };
+
+  // Active camera captures, indexed by device_id
+  std::unordered_map<std::string, camera_capture_context> camera_captures_;
 };
 
 } // namespace main

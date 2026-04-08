@@ -138,6 +138,9 @@ elseif(WIN32)
         dxgi.lib
         d3d11.lib
         Winmm.lib
+        strmiids.lib
+        ole32.lib
+        oleaut32.lib
     )
 elseif(ANDROID)
     find_library(log-lib log)

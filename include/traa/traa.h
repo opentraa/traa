@@ -90,6 +90,84 @@ TRAA_API int TRAA_CALL traa_enum_device_info(traa_device_type type, traa_device_
  */
 TRAA_API int TRAA_CALL traa_free_device_info(traa_device_info infos[]);
 
+/**
+ * @brief Queries the capture capabilities of a specified camera device.
+ *
+ * This function retrieves all supported capture capabilities (resolution, frame rate, format) for
+ * the camera device identified by @p device_id. The caller must free the returned array by calling
+ * @ref traa_free_camera_capability.
+ *
+ * @param device_id The unique identifier of the camera device to query.
+ * @param capabilities A pointer to receive the allocated array of traa_video_capability structures.
+ * @param count A pointer to receive the number of capabilities in the returned array.
+ * @return An integer value indicating the success or failure of the operation.
+ *         A return value of 0 indicates success, while a non-zero value
+ *         indicates failure.
+ *
+ * @note The caller is responsible for freeing the returned capabilities array by calling
+ *       @ref traa_free_camera_capability.
+ */
+TRAA_API int TRAA_CALL traa_get_camera_capability(const char *device_id,
+                                                   traa_video_capability **capabilities,
+                                                   int *count);
+
+/**
+ * @brief Frees the memory allocated for camera capabilities.
+ *
+ * This function frees the memory allocated by @ref traa_get_camera_capability.
+ *
+ * @param capabilities A pointer to the traa_video_capability array to free.
+ * @return An integer value indicating the success or failure of the operation.
+ *         A return value of 0 indicates success, while a non-zero value
+ *         indicates failure.
+ *
+ * @note This function must be called to free the memory allocated by
+ *       @ref traa_get_camera_capability.
+ */
+TRAA_API int TRAA_CALL traa_free_camera_capability(traa_video_capability *capabilities);
+
+/**
+ * @brief Starts video capture on the specified camera device.
+ *
+ * This function starts capturing video frames from the camera device specified in @p config.
+ * Captured frames are delivered through the @c on_video_frame callback registered in the
+ * configuration. The callback is invoked on the capture thread, not the main task queue thread.
+ *
+ * @param config A pointer to a traa_camera_config structure containing the device ID, desired
+ *               capture capability, frame callback, and user data.
+ * @return An integer value indicating the success or failure of the operation.
+ *         A return value of 0 indicates success, while a non-zero value
+ *         indicates failure.
+ *
+ * @note The @c on_video_frame callback is called on the capture thread. The @c data pointer in
+ *       traa_video_frame is only valid during the callback invocation.
+ * @note Only one capture session per device is allowed. Starting capture on a device that is
+ *       already capturing will return @c TRAA_ERROR_ALREADY_EXISTS.
+ *
+ * @see traa_stop_camera_capture
+ * @see traa_camera_config
+ */
+TRAA_API int TRAA_CALL traa_start_camera_capture(const traa_camera_config *config);
+
+/**
+ * @brief Stops video capture on the specified camera device.
+ *
+ * This function stops an ongoing video capture session for the camera device identified by
+ * @p device_id and releases the associated resources. After this call, the @c on_video_frame
+ * callback registered for this device will no longer be invoked.
+ *
+ * @param device_id The unique identifier of the camera device to stop capturing.
+ * @return An integer value indicating the success or failure of the operation.
+ *         A return value of 0 indicates success, while a non-zero value
+ *         indicates failure.
+ *
+ * @note If the specified device has no active capture session, this function returns
+ *       @c TRAA_ERROR_NOT_FOUND.
+ *
+ * @see traa_start_camera_capture
+ */
+TRAA_API int TRAA_CALL traa_stop_camera_capture(const char *device_id);
+
 #if (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&      \
     (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&                                           \
     (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)

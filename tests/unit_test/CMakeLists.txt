@@ -88,8 +88,26 @@ elseif(WIN32)
 
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/screen_capturer_integration_test.cc"
         "${CMAKE_HOME_DIRECTORY}/src/base/devices/screen/window_finder_unittest.cc"
+
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/win/help_functions_ds.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/win/help_functions_ds_unittest.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/win/device_info_ds.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/win/device_info_ds_unittest.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/win/sink_filter_ds.cc"
+        "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/win/sink_filter_ds_unittest.cc"
     )
 endif()
+
+# add traa::base::camera
+list(APPEND TRAA_UNIT_TEST_FILES
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/video_capture_defines.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/video_capture_defines_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/video_capture_impl.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/video_capture_impl_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/device_info_impl.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/device_info_impl_unittest.cc"
+    "${CMAKE_HOME_DIRECTORY}/src/base/devices/camera/camera_integration_unittest.cc"
+)
 
 # add traa::base::numerics
 list(APPEND TRAA_UNIT_TEST_FILES 
@@ -184,6 +202,9 @@ elseif(WIN32)
         dxgi.lib
         d3d11.lib
         Winmm.lib
+        strmiids.lib
+        ole32.lib
+        oleaut32.lib
     )
 elseif(ANDROID)
     set_target_properties(${TRAA_UNIT_TEST} PROPERTIES
