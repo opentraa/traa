@@ -42,6 +42,7 @@ Create a very small but feature-rich dynamic library that covers the full audio/
 
 - **Linux Screen Capture** — X11 source enumeration works; raw capture and snapshot not yet implemented; Wayland PipeWire capturer exists but is disabled by default
 - **Video Device Management (VDM)** — Windows camera capture via DirectShow (porting from WebRTC `modules/video_capture`); other platforms planned
+- **SDL Visual Demo** — Interactive SDL3-based demo app (`traa_sdl_demo`) for testing all traa features with a graphical UI. Located in `examples/sdl_visual_demo/`, enabled via `TRAA_OPTION_ENABLE_SDL_DEMO`
 
 ### Planned
 
@@ -115,6 +116,7 @@ scripts\build.bat -a x64 -U ON
 | `-a, --arch` | Architecture (Windows: Win32/x64/ARM64, Linux: x86_64/aarch64_clang/aarch64_gnu) | x64 / x86_64 |
 | `-U, --unittest` | Build unit tests | OFF |
 | `-S, --smoketest` | Build smoke tests | OFF |
+| `--sdl-demo` | Build SDL visual demo (`TRAA_OPTION_ENABLE_SDL_DEMO`) | OFF |
 | `-A, --android-abi` | Android ABIs | arm64-v8a,armeabi-v7a,x86,x86_64 |
 | `-V, --verbose` | Verbose build output | OFF |
 | `-v, --version` | Version string | 1.0.0 |
@@ -125,7 +127,8 @@ scripts\build.bat -a x64 -U ON
 include/traa/       Public C API (base.h, error.h, export.h, traa.h)
 src/base/           Core library — threading, screen capture, utilities
 src/main/           API implementation layer (engine + C wrappers)
-thirdparty/         Dependencies (ASIO, spdlog, libyuv, googletest, ...)
+examples/           Demo applications (sdl_visual_demo)
+thirdparty/         Dependencies (ASIO, spdlog, libyuv, SDL3, googletest, ...)
 tests/              Unit tests and smoke tests
 ```
 

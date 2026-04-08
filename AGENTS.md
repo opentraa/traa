@@ -16,7 +16,8 @@ AGENTS.md (this file)              ← Project-wide: API, build, conventions
 │   ├── src/base/thread/AGENTS.md  ← Threading: task_queue, futures, timers, weak callbacks
 │   ├── src/base/devices/screen/AGENTS.md  ← Screen capture: capturers, enumerators, per-platform
 │   └── src/base/devices/camera/   ← Camera capture: Windows DirectShow implemented, other platforms planned
-└── src/main/AGENTS.md             ← Public API: engine, C wrappers, call flow, adding new APIs
+├── src/main/AGENTS.md             ← Public API: engine, C wrappers, call flow, adding new APIs
+└── examples/sdl_visual_demo/AGENTS.md ← SDL Demo: Panel architecture, UI rendering, build config (in progress)
 ```
 
 When working on a specific module, read both the root AGENTS.md AND the relevant sub-agent file for full context.
@@ -53,6 +54,12 @@ src/
 │   ├── traa.cc         # C API wrapper (routes calls through task queue)
 │   ├── main.cc         # Shared library init/fini (constructor/destructor)
 │   └── utils/          # Helper utilities (obj_string)
+examples/
+└── sdl_visual_demo/    # SDL3 visual demo [see examples/sdl_visual_demo/AGENTS.md]
+    ├── panels/         # Panel implementations (device, screen_source, snapshot, camera, log)
+    ├── ui/             # UI rendering utilities (theme, renderer)
+    ├── utils/          # Frame converter, thread-safe frame buffer
+    └── tests/          # Demo-specific unit and property tests
 thirdparty/             # Git submodules (see Dependencies)
 tests/
 ├── unit_test/          # Google Test unit tests
@@ -72,6 +79,8 @@ projects/android/       # Android Gradle project
 | `camera` | `traa::base::devices::camera` | OBJECT | Camera capture module (cross-platform base + Windows DirectShow) |
 | `unittest` | `traa::unittest` | EXECUTABLE | Unit tests |
 | `smoketest` | `traa::smoketest` | EXECUTABLE | Smoke tests |
+| `traa_sdl_demo` | — | EXECUTABLE | SDL3 visual demo app (gated by `TRAA_OPTION_ENABLE_SDL_DEMO`) |
+| `traa_sdl_demo_test` | — | EXECUTABLE | SDL demo unit/property tests (gated by `TRAA_OPTION_ENABLE_UNIT_TEST` + `TRAA_OPTION_ENABLE_SDL_DEMO`) |
 
 ## Public C API
 
@@ -127,6 +136,7 @@ Error codes are defined in `include/traa/error.h` as `traa_error` enum (0 = succ
 | **cpu_features** | CPU capability detection |
 | **abseil-cpp** | Utility library (conditionally enabled) |
 | **googletest** | Unit testing framework |
+| **SDL3** | Window/rendering for SDL visual demo (conditionally included via `TRAA_OPTION_ENABLE_SDL_DEMO`) |
 
 ## Build System
 
@@ -143,9 +153,11 @@ Error codes are defined in `include/traa/error.h` as `traa_error` enum (0 = succ
 # Windows
 scripts\build.bat -a x64 -t Release
 scripts\build.bat -a x64 -t Debug -U     # with unit tests
+scripts\build.bat -a x64 -t Debug --sdl-demo  # with SDL visual demo
 
 # macOS
 ./scripts/build.sh -p macos -t Release
+./scripts/build.sh -p macos --sdl-demo    # with SDL visual demo
 
 # Linux
 ./scripts/build.sh -p linux -t Release -U ON
@@ -163,6 +175,7 @@ scripts\build.bat -a x64 -t Debug -U     # with unit tests
 - `TRAA_OPTION_NO_FRAMEWORK` — Skip framework on Apple (OFF)
 - `TRAA_OPTION_ENABLE_X11` — Linux X11 support (ON)
 - `TRAA_OPTION_ENABLE_WAYLAND` — Linux Wayland support (OFF)
+- `TRAA_OPTION_ENABLE_SDL_DEMO` — Build SDL visual demo app (OFF, desktop only)
 - `TRAA_OPTION_VERSION` — Version string (default "1.0.0")
 
 ## Coding Conventions
@@ -216,6 +229,24 @@ Desktop-only screen capture features use:
 - **Test discovery**: `gtest_discover_tests()` for CTest integration
 - **Test file location**: Co-located `*_unittest.cc` files next to source, plus `test/` directories for test utilities
 
+### Smoke Test Coverage
+
+Smoke tests in `tests/smoke_test/src/` provide exhaustive coverage of all 16 public C API functions:
+
+| Test File | Coverage |
+|---|---|
+| `traa_engine_test.cc` | Multi-thread init/release, log level, log config, screen source enum, snapshot (original) |
+| `traa_lifecycle_test.cc` | init/release lifecycle: valid config, nullptr, double init, reinit, post-release API calls |
+| `traa_event_handler_test.cc` | Event handler set/replace/clear, nullptr handler, pre-init call, userdata verification |
+| `traa_log_test.cc` | All 7 log levels, pre-init log level, log config with valid/nullptr/nonexistent paths |
+| `traa_device_enum_test.cc` | Camera/microphone/speaker enumeration, field validation, nullptr params, unknown type, free |
+| `traa_camera_capture_test.cc` | Camera capability query, capture start/stop, frame receipt, duplicate start, error paths |
+| `traa_screen_source_test.cc` | Screen source flags (ignore screen/window/minimized/current process), icon/thumbnail, nullptr params |
+| `traa_snapshot_test.cc` | Snapshot with valid/invalid source IDs, nullptr params, zero size, free |
+| `traa_error_consistency_test.cc` | Systematic error code validation: uninitialized calls, nullptr params, enum range, double init |
+
+New smoke test files are auto-discovered by `GLOB_RECURSE` — no CMakeLists.txt changes needed. On MSVC, re-run cmake configure after adding new files. Each test file that needs the initialized engine redefines the `traa_engine_test` fixture locally (Google Test requires fixture visibility in the same translation unit).
+
 ## Adding New Code
 
 ### New source file
@@ -254,9 +285,10 @@ Desktop-only screen capture features use:
 ## Build Gotchas
 
 - **Git submodules must be initialized before building**: Run `git clone --recurse-submodules` or `git submodule update --init --recursive`. Some submodules (especially `cpu_features`, `asio`) may silently appear as empty directories with only a `.git` file — use `git submodule update --init --force <path>` to fix.
-- **Windows build.bat `-U` flag**: The `-U` (unittest) flag is a boolean toggle, not a key-value pair. Use `scripts\build.bat -a x64 -t Debug -U`, NOT `-U ON`.
+- **Windows build.bat `-U` flag**: The `-U` (unittest) flag is a boolean toggle, not a key-value pair. Use `scripts\build.bat -a x64 -t Debug -U`, NOT `-U ON`. Same pattern applies to `--sdl-demo`.
 - **DXGI warnings in tests are expected**: On machines without dedicated GPU or in remote desktop sessions, DXGI tests log "Cannot initialize any DxgiOutputDuplicator instance" warnings but still pass — this is by design (fallback behavior).
 - **WebRTC-ported camera classes may have `protected` destructors**: WebRTC uses ref-counting (`AddRef`/`Release`) which requires protected destructors. traa uses `unique_ptr`/raw `new`/`delete`, so destructors must be `public`. When porting new WebRTC classes, check destructor visibility — `video_capture_ds::~video_capture_ds` needed this fix.
+- **GLOB_RECURSE and MSVC**: The SDL demo CMakeLists uses `file(GLOB_RECURSE ...)` to collect source files. On MSVC, adding new `.cc`/`.h` files requires a cmake re-configure (`cmake -B build/win/x64 ...`) before rebuilding — the Visual Studio generator caches the file list and won't detect new files on a plain `cmake --build`.
 
 ## Current Status
 

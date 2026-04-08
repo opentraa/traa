@@ -122,6 +122,18 @@ Debug utility for converting traa types to JSON-like strings for `LOG_API_ARGS_N
 4. The engine creates/destroys subsystem managers in `init()`/destructor
 5. Create sub-agent AGENTS.md for the new subsystem
 
+## API Parameter Validation Gotchas
+
+These behaviors were discovered during exhaustive smoke testing and are important for writing correct tests and client code:
+
+1. **`traa_enum_device_info`** — Only returns `TRAA_ERROR_INVALID_ARGUMENT` when BOTH `infos` AND `count` are nullptr. Passing only one as nullptr lets the call proceed to the engine (may crash or return unexpected results).
+2. **`traa_get_camera_capability`** — Same pattern: only validates when BOTH `capabilities` AND `count` are nullptr. Single nullptr passes through.
+3. **`traa_enum_screen_source_info`** — Same pattern: only validates when BOTH `infos` AND `count` are nullptr.
+4. **`traa_set_log`** — Has NO init check. It directly configures the logger and returns `TRAA_ERROR_NONE` even before `traa_init()` is called. This is unlike most other APIs which return `TRAA_ERROR_NOT_INITIALIZED`.
+5. **`traa_set_log_level`** — Stateless, can be called at any time (before/after init). This is documented and expected.
+6. **`engine::init()`** — Always returns `TRAA_ERROR_NONE`. There is currently no double-init detection (`TRAA_ERROR_ALREADY_INITIALIZED` is never returned). Calling `traa_init` twice without `traa_release` succeeds silently.
+7. **`traa_create_snapshot` with zero-size** — Returns `TRAA_ERROR_NOT_FOUND` (not `TRAA_ERROR_INVALID_ARGUMENT`) when snapshot_size is {0,0}.
+
 ## Critical Rules
 
 1. All public API calls MUST go through the main task queue (except stateless log functions)

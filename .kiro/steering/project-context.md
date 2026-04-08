@@ -133,6 +133,21 @@ Note: Git submodules must be initialized before building (`git submodule update 
 - `TRAA_OPTION_ENABLE_X11` — Linux X11 support (default ON)
 - `TRAA_OPTION_ENABLE_WAYLAND` — Linux Wayland support (default OFF)
 
+### SDL Visual Demo (In Progress)
+
+The project includes an SDL3-based visual demo app at `examples/sdl_visual_demo/`, enabled via `TRAA_OPTION_ENABLE_SDL_DEMO` (default OFF). Spec at `.kiro/specs/sdl-visual-demo/`.
+
+Key architecture decisions:
+- **Panel plugin pattern**: `panel_manager` manages functional panels (device, screen_source, snapshot, camera, log) via `panel_base` abstract class
+- **UI rendering**: Pure SDL3 built-in API (`SDL_RenderDebugText`, basic draw primitives), no external UI library or font files
+- **Thread-safe frame buffer**: `frame_buffer` class uses `std::mutex` for camera capture thread → SDL render thread data transfer, with minimal lock hold time (copy under lock, texture creation outside lock)
+- **Image conversion**: Lightweight I420→BGRA converter using BT.601 coefficients, avoids depending on libyuv from the demo
+- **Build integration**: `traa_sdl_demo` links `traa::main` (shared lib) + `SDL3::SDL3`; output dir matches `TRAA_ARCHIVE_OUTPUT_DIRECTORY` so the demo can find the traa shared library at runtime
+- **Test target**: `traa_sdl_demo_test` links `gtest` + `SDL3::SDL3` + `traa::main`; uses `GLOB_RECURSE` to auto-discover test files; gated by both `TRAA_OPTION_ENABLE_SDL_DEMO` and `TRAA_OPTION_ENABLE_UNIT_TEST`
+- **Header guards**: `TRAA_SDL_DEMO_` prefix (e.g., `TRAA_SDL_DEMO_APP_H_`, `TRAA_SDL_DEMO_PANELS_PANEL_BASE_H_`)
+- **Build gotcha**: Use `scripts\build.bat --sdl-demo` (Windows) or `./scripts/build.sh -p <platform> --sdl-demo` (macOS/Linux) to build with SDL demo enabled
+- **Known bug (fixed)**: Camera panel's device/capability list items were unclickable because `on_render` and `on_event` each defined layout constants as local `constexpr`. Fixed by extracting to class-level `static constexpr` members (`k_padding`, `k_btn_w`, `k_btn_h`, `k_line_height`, `k_gap`, `k_item_h`). Spec at `.kiro/specs/smoke-test-and-demo-fix/`.
+
 ## Third-Party Dependencies
 
 All dependencies are managed via git submodules under `thirdparty/`:
@@ -146,6 +161,7 @@ All dependencies are managed via git submodules under `thirdparty/`:
 | cpu_features | CPU capability detection |
 | abseil-cpp | Utility library (conditionally used) |
 | googletest | Unit testing framework |
+| SDL3 | Window/rendering for SDL visual demo (conditional, `TRAA_OPTION_ENABLE_SDL_DEMO`) |
 
 ## Coding Conventions
 
@@ -243,5 +259,6 @@ The project uses a hierarchical agent structure. Each sub-module has its own AGE
 - `src/base/thread/AGENTS.md` — Threading module: task_queue, futures, timers, weak callbacks
 - `src/base/devices/screen/AGENTS.md` — Screen capture: capturers, enumerators, per-platform implementation details
 - `src/main/AGENTS.md` — Public API: engine, C wrappers, call flow, adding new API guide
+- `examples/sdl_visual_demo/AGENTS.md` — SDL Demo: Panel architecture, UI rendering, build config (in progress)
 
 When working on a specific module, reference both the root AGENTS.md and the corresponding sub-module's AGENTS.md.
