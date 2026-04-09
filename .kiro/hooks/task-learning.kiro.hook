@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Update Docs After Task",
+  "description": "After a spec task completes, MANDATORY check and update project documentation (AGENTS.md, README.md, steering files) if the task introduced structural changes.",
+  "version": "2",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "MANDATORY: A spec task just completed. You MUST check and act on each item below BEFORE proceeding to the next task. Do NOT skip this.\n\nCheck ALL of the following:\n1. **New CMake options or targets added?** → Update `AGENTS.md` Build Targets table and Key CMake Options, AND `README.md` Build Options table\n2. **New source directories or files created?** → Update `AGENTS.md` Architecture Overview directory tree, AND `.kiro/steering/project-context.md` directory structure\n3. **New public API functions added?** → Update `AGENTS.md` Public C API section\n4. **New third-party dependencies introduced?** → Update `AGENTS.md` Dependencies table AND `README.md` Architecture section\n5. **Feature status changed (new/completed/deprecated)?** → Update `AGENTS.md` Current Status sections AND `README.md` Features sections\n6. **New sub-module AGENTS.md created?** → Update `AGENTS.md` Sub-Agent Hierarchy AND `.kiro/steering/project-context.md` Sub-Module Agent Documentation\n\nRules:\n- Be surgical — append or modify specific lines only, never rewrite entire files\n- If NOTHING changed structurally, skip silently\n- When in doubt, UPDATE — it's better to have accurate docs than stale ones"
+  }
+}

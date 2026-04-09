@@ -16,6 +16,7 @@ VERSION="1.0.0"
 VERBOSE=0
 BUILD_UNITTEST=OFF
 BUILD_SMOKETEST=OFF
+BUILD_SDL_DEMO=OFF
 ANDROID_ABI="arm64-v8a,armeabi-v7a,x86,x86_64"
 TARGET_ARCH="x86_64"
 NO_FRAMEWORK=OFF
@@ -48,6 +49,7 @@ show_usage() {
     echo "  -v, --version           Version of the build [default: 1.0.0]"
     echo "  -U, --unittest          Build unit tests"
     echo "  -S, --smoketest         Build smoke tests"
+    echo "      --sdl-demo          Build SDL visual demo"
     echo "  -A, --android-abi       Android ABI [default: arm64-v8a,armeabi-v7a,x86,x86_64]"
     echo "  -V, --verbose           Verbose output"
     echo "  -h, --help              Show this help message"
@@ -89,6 +91,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -S|--smoketest)
             BUILD_SMOKETEST="ON"
+            shift
+            ;;
+        --sdl-demo)
+            BUILD_SDL_DEMO="ON"
             shift
             ;;
         -A|--android-abi)
@@ -193,6 +199,7 @@ build() {
                 -DTRAA_OPTION_BIN_FOLDER="$bin_folder_abi" \
                 -DTRAA_OPTION_ENABLE_UNIT_TEST="$BUILD_UNITTEST" \
                 -DTRAA_OPTION_ENABLE_SMOKE_TEST="$BUILD_SMOKETEST" \
+                -DTRAA_OPTION_ENABLE_SDL_DEMO="$BUILD_SDL_DEMO" \
                 -DTRAA_OPTION_VERSION="$VERSION" \
                 -S "$SOURCE_DIR"
 
@@ -254,6 +261,7 @@ build() {
                 -DTRAA_OPTION_BIN_FOLDER="$BIN_FOLDER" \
                 -DTRAA_OPTION_ENABLE_UNIT_TEST="$BUILD_UNITTEST" \
                 -DTRAA_OPTION_ENABLE_SMOKE_TEST="$BUILD_SMOKETEST" \
+                -DTRAA_OPTION_ENABLE_SDL_DEMO="$BUILD_SDL_DEMO" \
                 -DTRAA_OPTION_VERSION="$VERSION" \
                 -DTRAA_OPTION_NO_FRAMEWORK="$NO_FRAMEWORK" \
                 -S "$SOURCE_DIR"
@@ -284,6 +292,7 @@ build() {
                 -DTRAA_OPTION_BIN_FOLDER="$BIN_FOLDER" \
                 -DTRAA_OPTION_ENABLE_UNIT_TEST="$BUILD_UNITTEST" \
                 -DTRAA_OPTION_ENABLE_SMOKE_TEST="$BUILD_SMOKETEST" \
+                -DTRAA_OPTION_ENABLE_SDL_DEMO="$BUILD_SDL_DEMO" \
                 -DTRAA_OPTION_VERSION="$VERSION" \
                 -S "$SOURCE_DIR"
             ;;

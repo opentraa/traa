@@ -32,6 +32,7 @@ set "VERSION=0.0.1"
 set "VERBOSE=0"
 set "BUILD_UNITTEST=OFF"
 set "BUILD_SMOKETEST=OFF"
+set "BUILD_SDL_DEMO=OFF"
 
 :: Execute main build function
 call :parse_args %*
@@ -71,6 +72,7 @@ goto:eof
     echo   -V, --verbose           Verbose output
     echo   -U, --unittest          Build unit tests
     echo   -S, --smoketest         Build smoke tests
+    echo       --sdl-demo            Build SDL visual demo
     echo   -h, --help              Show this help message
     exit 0
 goto:eof
@@ -128,6 +130,8 @@ goto:eof
         set "BUILD_SMOKETEST=ON"
     ) else if "%arg%"=="--smoketest" (
         set "BUILD_SMOKETEST=ON"
+    ) else if "%arg%"=="--sdl-demo" (
+        set "BUILD_SDL_DEMO=ON"
     ) else if "%arg%"=="-h" (
         call :show_usage
     ) else (
@@ -160,6 +164,7 @@ goto:eof
         -DTRAA_OPTION_BIN_FOLDER="%BIN_FOLDER%" ^
         -DTRAA_OPTION_ENABLE_UNIT_TEST="%BUILD_UNITTEST%" ^
         -DTRAA_OPTION_ENABLE_SMOKE_TEST="%BUILD_SMOKETEST%" ^
+        -DTRAA_OPTION_ENABLE_SDL_DEMO="%BUILD_SDL_DEMO%" ^
         -DTRAA_OPTION_VERSION="%VERSION%" ^
         -S "%SOURCE_DIR%"
 

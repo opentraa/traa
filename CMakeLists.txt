@@ -59,6 +59,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(TRAA_OPTION_ENABLE_UNIT_TEST "Enable unit test" OFF)
 option(TRAA_OPTION_ENABLE_SMOKE_TEST "Enable smoke test" OFF)
 option(TRAA_OPTION_NO_FRAMEWORK "Do not build framework for Apple platforms" OFF)
+option(TRAA_OPTION_ENABLE_SDL_DEMO "Enable SDL visual demo" OFF)
 
 if(LINUX)
     # To enable x11 you have install x11 and x11-xext and x11-xcomposite development packages.
@@ -443,4 +444,9 @@ if(TRAA_OPTION_ENABLE_UNIT_TEST OR TRAA_OPTION_ENABLE_SMOKE_TEST)
             add_subdirectory(${CMAKE_HOME_DIRECTORY}/tests/smoke_test)
         endif()
     endif()
+endif()
+
+# add SDL visual demo
+if(TRAA_OPTION_ENABLE_SDL_DEMO)
+    add_subdirectory(${CMAKE_HOME_DIRECTORY}/examples/sdl_visual_demo)
 endif()

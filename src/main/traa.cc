@@ -162,6 +162,67 @@ int traa_free_device_info(traa_device_info infos[]) {
       .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }
 
+int traa_get_camera_capability(const char *device_id, traa_video_capability **capabilities,
+                               int *count) {
+  LOG_API_ARGS_3(traa::main::obj_string::to_string(device_id),
+                 traa::main::obj_string::to_string(capabilities),
+                 traa::main::obj_string::to_string(count));
+
+  if (device_id == nullptr || (capabilities == nullptr && count == nullptr)) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  return traa::base::task_queue_manager::post_task(g_main_queue_id,
+                                                   [device_id, capabilities, count]() {
+                                                     return g_engine_instance
+                                                         ->get_camera_capability(device_id,
+                                                                                 capabilities,
+                                                                                 count);
+                                                   })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+int traa_free_camera_capability(traa_video_capability *capabilities) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(capabilities));
+
+  if (capabilities == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [capabilities]() {
+               return g_engine_instance->free_camera_capability(capabilities);
+             })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+int traa_start_camera_capture(const traa_camera_config *config) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(config));
+
+  if (config == nullptr || config->device_id == nullptr || config->on_video_frame == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [config]() { return g_engine_instance->start_camera_capture(config); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+int traa_stop_camera_capture(const char *device_id) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(device_id));
+
+  if (device_id == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [device_id]() { return g_engine_instance->stop_camera_capture(device_id); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
 #if !defined(__ANDROID__)
 #if defined(_WIN32) ||                                                                             \
     (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
@@ -208,6 +269,40 @@ void traa_free_snapshot(uint8_t *data) {
   LOG_API_ARGS_1(traa::main::obj_string::to_string(data));
 
   return traa::main::engine::free_snapshot(data);
+}
+
+int traa_start_screen_capture(const traa_screen_capture_config *config) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(config));
+
+  if (config == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  if (config->on_video_frame == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  if (config->source_id == TRAA_INVALID_SCREEN_ID) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [config]() { return g_engine_instance->start_screen_capture(config); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+int traa_stop_screen_capture(const int64_t source_id) {
+  LOG_API_ARGS_1(source_id);
+
+  if (source_id == TRAA_INVALID_SCREEN_ID) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [source_id]() { return g_engine_instance->stop_screen_capture(source_id); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
 }
 
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)

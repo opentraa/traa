@@ -20,3 +20,6 @@
 [submodule "thirdparty/cpu_features"]
 	path = thirdparty/cpu_features
 	url = git@github.com:opentraa/cpu_features.git
+[submodule "thirdparty/sdl"]
+	path = thirdparty/sdl
+	url = git@github.com:libsdl-org/SDL.git

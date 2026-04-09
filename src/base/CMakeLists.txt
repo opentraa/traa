@@ -69,16 +69,19 @@ target_sources(${TRAA_LIBRARY_CORE} PRIVATE
 
 if(WIN32)
     target_sources(${TRAA_LIBRARY_CORE} PRIVATE  
+        $<TARGET_OBJECTS:traa::base::devices::camera>
         $<TARGET_OBJECTS:traa::base::strings>
         $<TARGET_OBJECTS:traa::base::devices::screen>
     )
 elseif(ANDROID)
 elseif(MACOS)
     target_sources(${TRAA_LIBRARY_CORE} PRIVATE
+        $<TARGET_OBJECTS:traa::base::devices::camera>
         $<TARGET_OBJECTS:traa::base::devices::screen>
     )
 elseif(LINUX)
     target_sources(${TRAA_LIBRARY_CORE} PRIVATE
+        $<TARGET_OBJECTS:traa::base::devices::camera>
         $<TARGET_OBJECTS:traa::base::devices::screen>
     )
 endif()
