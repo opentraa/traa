@@ -3,8 +3,10 @@
 
 #include <traa/traa.h>
 
+#include <atomic>
 #include <memory>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -13,6 +15,7 @@
 
 namespace traa {
 namespace base {
+class desktop_capturer;
 class device_info_impl;
 class video_capture_impl;
 class video_frame_callback;
@@ -48,6 +51,9 @@ public:
                              int *data_size, traa_size *actual_size);
 
   static void free_snapshot(uint8_t *data);
+
+  int start_screen_capture(const traa_screen_capture_config *config);
+  int stop_screen_capture(const int64_t source_id);
 #endif // (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&
        // (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&
        // (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
@@ -76,6 +82,31 @@ private:
 
   // Active camera captures, indexed by device_id
   std::unordered_map<std::string, camera_capture_context> camera_captures_;
+
+#if (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&      \
+    (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&                                           \
+    (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
+  // Screen capture context: one per active screen/window capture session
+  struct screen_capture_context {
+    std::unique_ptr<base::desktop_capturer> capturer;
+    std::unique_ptr<std::thread> capture_thread;
+    std::atomic<bool> running{false};
+    void (*on_video_frame)(const traa_userdata, const traa_video_frame *) = nullptr;
+    traa_userdata userdata = nullptr;
+    traa_size frame_size;
+
+    screen_capture_context() = default;
+    screen_capture_context(screen_capture_context &&) = default;
+    screen_capture_context &operator=(screen_capture_context &&) = default;
+
+    DISALLOW_COPY_AND_ASSIGN(screen_capture_context);
+  };
+
+  // Active screen captures, indexed by source_id
+  std::unordered_map<int64_t, screen_capture_context> screen_captures_;
+#endif // (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&
+       // (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&
+       // (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
 };
 
 } // namespace main

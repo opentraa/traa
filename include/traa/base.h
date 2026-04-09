@@ -611,6 +611,29 @@ typedef struct traa_screen_source_info {
         thumbnail_data(nullptr) {}
 #endif // defined(__cplusplus)
 } traa_screen_source_info;
+
+/**
+ * @brief Configuration for starting a screen capture session.
+ *
+ * Contains the screen source identifier, desired frame size, a frame callback
+ * function pointer, and user-supplied context data. The on_video_frame callback
+ * is invoked on the capture thread (not the main task queue) whenever a new
+ * BGRA frame is available. The frame data pointer is only valid during the
+ * callback invocation.
+ */
+struct traa_video_frame;
+typedef struct traa_screen_capture_config {
+  int64_t source_id;
+  traa_size frame_size;
+  void (*on_video_frame)(const traa_userdata userdata, const traa_video_frame *frame);
+  traa_userdata userdata;
+
+#if defined(__cplusplus)
+  traa_screen_capture_config()
+      : source_id(TRAA_INVALID_SCREEN_ID), frame_size(), on_video_frame(nullptr),
+        userdata(nullptr) {}
+#endif // defined(__cplusplus)
+} traa_screen_capture_config;
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && (!defined(TARGET_OS_VISION) ||
        // !TARGET_OS_VISION)) || __linux__
 
@@ -631,6 +654,7 @@ typedef enum traa_video_frame_format {
   TRAA_VIDEO_FRAME_FORMAT_NV12 = 7,
   TRAA_VIDEO_FRAME_FORMAT_UYVY = 8,
   TRAA_VIDEO_FRAME_FORMAT_MJPEG = 9,
+  TRAA_VIDEO_FRAME_FORMAT_BGRA = 10,
 } traa_video_frame_format;
 
 /**

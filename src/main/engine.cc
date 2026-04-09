@@ -2,10 +2,19 @@
 
 #include "base/devices/camera/device_info_impl.h"
 #include "base/devices/camera/video_capture_impl.h"
+#include "base/devices/screen/desktop_capture_options.h"
+#include "base/devices/screen/desktop_capturer.h"
 #include "base/devices/screen/enumerator.h"
 #include "base/logger.h"
 
 #include "main/utils/obj_string.h"
+
+#include "libyuv/scale_argb.h"
+
+#include <chrono>
+#include <cstring>
+#include <tuple>
+#include <vector>
 
 namespace traa {
 namespace base {
@@ -69,12 +78,113 @@ to_public_capability(const base::video_capture_capability &cap) {
   return result;
 }
 
+#if (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&      \
+    (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&                                           \
+    (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
+
+// Adapts desktop_capturer::capture_callback to the user's on_video_frame C function pointer.
+// Handles BGRA frame wrapping and optional scaling via libyuv::ARGBScale.
+class screen_capture_callback : public base::desktop_capturer::capture_callback {
+public:
+  screen_capture_callback(
+      void (*on_video_frame)(const traa_userdata, const traa_video_frame *),
+      traa_userdata userdata, traa_size frame_size)
+      : on_video_frame_(on_video_frame), userdata_(userdata), frame_size_(frame_size) {}
+
+  void on_capture_result(base::desktop_capturer::capture_result result,
+                         std::unique_ptr<base::desktop_frame> frame) override {
+    if (result != base::desktop_capturer::capture_result::success || !frame) {
+      return;
+    }
+
+    const int src_width = frame->size().width();
+    const int src_height = frame->size().height();
+    if (src_width <= 0 || src_height <= 0) {
+      return;
+    }
+
+    const uint8_t *src_data = frame->data();
+    const int src_stride = frame->stride();
+
+    const bool need_scale = frame_size_.width > 0 && frame_size_.height > 0 &&
+                            (frame_size_.width != src_width || frame_size_.height != src_height);
+
+    traa_video_frame video_frame;
+    video_frame.format = TRAA_VIDEO_FRAME_FORMAT_BGRA;
+
+    if (need_scale) {
+      const int dst_width = frame_size_.width;
+      const int dst_height = frame_size_.height;
+      const int dst_stride = dst_width * 4;
+      const size_t dst_size = static_cast<size_t>(dst_stride) * dst_height;
+
+      scale_buffer_.resize(dst_size);
+
+      int ret = libyuv::ARGBScale(src_data, src_stride, src_width, src_height,
+                                   scale_buffer_.data(), dst_stride, dst_width, dst_height,
+                                   libyuv::kFilterBilinear);
+      if (ret != 0) {
+        LOG_WARN("ARGBScale failed with error {}", ret);
+        return;
+      }
+
+      video_frame.data = scale_buffer_.data();
+      video_frame.data_length = static_cast<int32_t>(dst_size);
+      video_frame.width = dst_width;
+      video_frame.height = dst_height;
+    } else {
+      const int packed_stride = src_width * 4;
+      if (src_stride != packed_stride) {
+        // desktop_frame has row padding — strip it to produce tightly-packed BGRA
+        const size_t packed_size = static_cast<size_t>(packed_stride) * src_height;
+        scale_buffer_.resize(packed_size);
+        for (int row = 0; row < src_height; ++row) {
+          std::memcpy(scale_buffer_.data() + row * packed_stride,
+                      src_data + row * src_stride, packed_stride);
+        }
+        video_frame.data = scale_buffer_.data();
+        video_frame.data_length = static_cast<int32_t>(packed_size);
+      } else {
+        video_frame.data = src_data;
+        video_frame.data_length = src_width * src_height * 4;
+      }
+      video_frame.width = src_width;
+      video_frame.height = src_height;
+    }
+
+    video_frame.timestamp_ms = frame->capture_time_ms();
+
+    on_video_frame_(userdata_, &video_frame);
+  }
+
+private:
+  void (*on_video_frame_)(const traa_userdata, const traa_video_frame *);
+  traa_userdata userdata_;
+  traa_size frame_size_;
+  std::vector<uint8_t> scale_buffer_;
+};
+
+#endif // desktop platform guard
+
 } // namespace
 
 engine::engine() { LOG_API_ARGS_0(); }
 
 engine::~engine() {
   LOG_API_ARGS_0();
+
+#if (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&      \
+    (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&                                           \
+    (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
+  // Stop all active screen captures
+  for (auto &pair : screen_captures_) {
+    pair.second.running.store(false);
+    if (pair.second.capture_thread && pair.second.capture_thread->joinable()) {
+      pair.second.capture_thread->join();
+    }
+  }
+  screen_captures_.clear();
+#endif
 
   // Stop all active camera captures
   for (auto &pair : camera_captures_) {
@@ -232,6 +342,121 @@ int engine::create_snapshot(const int64_t source_id, const traa_size snapshot_si
 
 void engine::free_snapshot(uint8_t *data) {
   return base::screen_source_info_enumerator::free_snapshot(data);
+}
+
+int engine::start_screen_capture(const traa_screen_capture_config *config) {
+  const int64_t source_id = config->source_id;
+
+  // Check for duplicate
+  if (screen_captures_.find(source_id) != screen_captures_.end()) {
+    LOG_WARN("screen capture for source_id {} already exists", source_id);
+    return TRAA_ERROR_ALREADY_EXISTS;
+  }
+
+  // Enumerate sources to determine if this is a window or screen
+  traa_screen_source_info *infos = nullptr;
+  int count = 0;
+  int ret = enum_screen_source_info(traa_size(), traa_size(),
+                                    TRAA_SCREEN_SOURCE_FLAG_NONE, &infos, &count);
+  if (ret != TRAA_ERROR_NONE || infos == nullptr || count <= 0) {
+    LOG_ERROR("failed to enumerate screen source info, error: {}", ret);
+    return TRAA_ERROR_NOT_FOUND;
+  }
+
+  bool found = false;
+  bool is_window = false;
+  for (int i = 0; i < count; ++i) {
+    if (infos[i].id == source_id) {
+      found = true;
+      is_window = infos[i].is_window;
+      break;
+    }
+  }
+
+  free_screen_source_info(infos, count);
+
+  if (!found) {
+    LOG_ERROR("source_id {} not found in enumerated sources", source_id);
+    return TRAA_ERROR_NOT_FOUND;
+  }
+
+  // Create the appropriate capturer
+  auto options = base::desktop_capture_options::create_default();
+  std::unique_ptr<base::desktop_capturer> capturer;
+  if (is_window) {
+    capturer = base::desktop_capturer::create_window_capturer(options);
+  } else {
+    capturer = base::desktop_capturer::create_screen_capturer(options);
+  }
+
+  if (!capturer) {
+    LOG_ERROR("failed to create {} capturer for source_id {}",
+              is_window ? "window" : "screen", source_id);
+    return TRAA_ERROR_UNKNOWN;
+  }
+
+  // Create callback adapter
+  auto callback = std::make_unique<screen_capture_callback>(
+      config->on_video_frame, config->userdata, config->frame_size);
+
+  // Start the capturer with the callback (raw pointer — callback must outlive capturer)
+  capturer->start(callback.get());
+
+  // Select the source
+  if (!capturer->select_source(static_cast<base::desktop_capturer::source_id_t>(source_id))) {
+    LOG_ERROR("failed to select source_id {}", source_id);
+    return TRAA_ERROR_NOT_FOUND;
+  }
+
+  // Build the context and start the capture thread
+  // Use emplace to construct in-place since screen_capture_context contains std::atomic
+  auto [it, inserted] = screen_captures_.emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(source_id),
+      std::forward_as_tuple());
+
+  auto &stored_ctx = it->second;
+  stored_ctx.capturer = std::move(capturer);
+  stored_ctx.on_video_frame = config->on_video_frame;
+  stored_ctx.userdata = config->userdata;
+  stored_ctx.frame_size = config->frame_size;
+  stored_ctx.running.store(true);
+
+  // Move callback ownership into a shared_ptr so the thread can hold a reference
+  auto shared_callback = std::shared_ptr<screen_capture_callback>(callback.release());
+
+  base::desktop_capturer *capturer_ptr = stored_ctx.capturer.get();
+  std::atomic<bool> *running_ptr = &stored_ctx.running;
+
+  stored_ctx.capture_thread = std::make_unique<std::thread>(
+      [capturer_ptr, running_ptr, shared_callback]() {
+        constexpr auto frame_interval = std::chrono::milliseconds(33); // ~30 fps
+        while (running_ptr->load()) {
+          capturer_ptr->capture_frame();
+          std::this_thread::sleep_for(frame_interval);
+        }
+      });
+
+  LOG_INFO("screen capture started for source_id {}", source_id);
+  return TRAA_ERROR_NONE;
+}
+
+int engine::stop_screen_capture(const int64_t source_id) {
+  auto it = screen_captures_.find(source_id);
+  if (it == screen_captures_.end()) {
+    LOG_WARN("no active screen capture for source_id {}", source_id);
+    return TRAA_ERROR_NOT_FOUND;
+  }
+
+  it->second.running.store(false);
+  if (it->second.capture_thread && it->second.capture_thread->joinable()) {
+    it->second.capture_thread->join();
+  }
+
+  screen_captures_.erase(it);
+
+  LOG_INFO("screen capture stopped for source_id {}", source_id);
+  return TRAA_ERROR_NONE;
 }
 
 #endif // (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&

@@ -56,7 +56,7 @@ src/
 │   └── utils/          # Helper utilities (obj_string)
 examples/
 └── sdl_visual_demo/    # SDL3 visual demo [see examples/sdl_visual_demo/AGENTS.md]
-    ├── panels/         # Panel implementations (device, screen_source, snapshot, camera, log)
+    ├── panels/         # Panel implementations (device, screen_source, snapshot, camera, screen_capture, log)
     ├── ui/             # UI rendering utilities (theme, renderer)
     ├── utils/          # Frame converter, thread-safe frame buffer
     └── tests/          # Demo-specific unit and property tests
@@ -113,6 +113,8 @@ int  traa_enum_screen_source_info(..., traa_screen_source_info **infos, int *cou
 int  traa_free_screen_source_info(traa_screen_source_info infos[], int count);
 int  traa_create_snapshot(int64_t source_id, traa_size snapshot_size, ...);
 void traa_free_snapshot(uint8_t *data);
+int  traa_start_screen_capture(const traa_screen_capture_config *config);
+int  traa_stop_screen_capture(const int64_t source_id);
 ```
 
 Error codes are defined in `include/traa/error.h` as `traa_error` enum (0 = success).
@@ -244,6 +246,7 @@ Smoke tests in `tests/smoke_test/src/` provide exhaustive coverage of all 16 pub
 | `traa_screen_source_test.cc` | Screen source flags (ignore screen/window/minimized/current process), icon/thumbnail, nullptr params |
 | `traa_snapshot_test.cc` | Snapshot with valid/invalid source IDs, nullptr params, zero size, free |
 | `traa_error_consistency_test.cc` | Systematic error code validation: uninitialized calls, nullptr params, enum range, double init |
+| `traa_screen_capture_test.cc` | Screen capture start/stop, nullptr/invalid params, duplicate start, frame receipt, permission skip |
 
 New smoke test files are auto-discovered by `GLOB_RECURSE` — no CMakeLists.txt changes needed. On MSVC, re-run cmake configure after adding new files. Each test file that needs the initialized engine redefines the `traa_engine_test` fixture locally (Google Test requires fixture visibility in the same translation unit).
 
@@ -304,6 +307,7 @@ New smoke test files are auto-discovered by `GLOB_RECURSE` — no CMakeLists.txt
 - Cross-platform device abstraction layer
 - Windows Camera Capture — DirectShow-based camera capture ported from WebRTC to `src/base/devices/camera/`. OBJECT lib `traa::base::devices::camera`. Cross-platform base classes (`video_capture_impl`, `device_info_impl`, `video_type` enum, `video_capture_capability`) plus Windows DirectShow implementation (`help_functions_ds`, `device_info_ds`, `sink_filter_ds`, `video_capture_ds`, factory functions). 10 property-based tests. Windows link deps: strmiids.lib, ole32.lib, oleaut32.lib.
 - Camera Capture Integration — integrating camera module into engine and public C API. Spec at `.kiro/specs/camera-capture-integration/`. New public APIs: `traa_get_camera_capability`, `traa_free_camera_capability`, `traa_start_camera_capture`, `traa_stop_camera_capture`. New C types in `base.h`: `traa_video_frame`, `traa_video_capability`, `traa_video_frame_format`, `traa_camera_config`. Engine manages multiple simultaneous camera captures keyed by device_id. Frame callback (`on_video_frame`) runs on capture thread, not main queue.
+- Continuous Screen Capture — `traa_start_screen_capture` / `traa_stop_screen_capture` public C API with `traa_screen_capture_config`. Engine manages per-session capture threads keyed by `int64_t source_id`, BGRA frame callback via `desktop_capturer`, optional `libyuv::ARGBScale` scaling. New `TRAA_VIDEO_FRAME_FORMAT_BGRA` enum value. SDL demo Screen Capture panel with real-time preview. 4 property-based tests + 7 smoke tests. Spec at `.kiro/specs/screen-capture-preview/`.
 
 ### Partially Implemented
 - Screen capture on Linux — source enumeration via X11 works; snapshot (`create_snapshot`) returns `TRAA_ERROR_NOT_IMPLEMENTED`; raw screen/window capturers fall through to null capturer unless Wayland PipeWire is enabled

@@ -52,6 +52,8 @@ Central manager inheriting `support_weak_callback`. Responsibilities:
   - `enum_screen_source_info()` — Delegates to `screen_source_info_enumerator`
   - `free_screen_source_info()` — Delegates to `screen_source_info_enumerator`
   - `create_snapshot()` / `free_snapshot()` — Delegates to `screen_source_info_enumerator`
+- Non-static methods (desktop platforms only):
+  - `start_screen_capture(config)` / `stop_screen_capture(source_id)` — Continuous screen capture
 
 The engine instance is `thread_local` on the main queue thread. It is created in `traa_init()` and destroyed when the main queue is released.
 
@@ -78,9 +80,25 @@ Handles shared library load/unload:
 - **MSVC**: `.CRT$XCU` section for init, `atexit()` for cleanup
 - Currently minimal — just debug logging, no heavy initialization
 
+### Screen Capture Integration (implemented)
+
+Engine manages continuous screen captures keyed by `int64_t source_id` (multiple simultaneous captures supported). Screen-capture-related engine methods (desktop platforms only, non-static):
+- `start_screen_capture(config)` / `stop_screen_capture(source_id)`
+
+Private members: `screen_captures_` (`unordered_map<int64_t, screen_capture_context>`), inside desktop platform guard.
+
+Key design decisions and differences from camera capture:
+- **Callback ownership**: `screen_capture_callback` is created as `unique_ptr`, then moved into a `shared_ptr` captured by the thread lambda. This is necessary because `desktop_capturer::start(callback*)` takes a raw pointer, so the callback must outlive both the capturer and the thread. The `shared_ptr` ensures the callback is destroyed only after the thread exits.
+- **Thread model**: Each capture session spawns a dedicated `std::thread` that loops `capture_frame()` + `sleep_for(33ms)` (~30fps). This differs from camera capture which relies on the platform capture module's internal threading. The thread is joined on `stop_screen_capture()` or engine destruction.
+- **Source type detection**: `start_screen_capture` calls `enum_screen_source_info()` at startup to determine if the `source_id` refers to a window or screen, then creates the appropriate capturer via `create_window_capturer()` or `create_screen_capturer()`. This incurs a one-time enumeration cost per start.
+- **Frame format**: Always delivers BGRA (`TRAA_VIDEO_FRAME_FORMAT_BGRA`), matching `desktop_frame`'s native format. Optional scaling via `libyuv::ARGBScale` when `config.frame_size` is non-zero.
+- **`screen_capture_context`**: Move-only struct (contains `atomic<bool>`, `unique_ptr`). Uses `DISALLOW_COPY_AND_ASSIGN`. Emplaced into the map via `piecewise_construct` to avoid copy/move issues with `std::atomic`.
+- **Forward declaration in base.h**: `traa_screen_capture_config` references `traa_video_frame` in its function pointer type, but `traa_video_frame` is defined later in the file. A `struct traa_video_frame;` forward declaration was added before the config struct to resolve this.
+- **Stride stripping (bug fix)**: `desktop_frame::stride()` on Windows is often larger than `width * 4` due to GPU texture alignment. Since `traa_video_frame` has no stride field, the callback must deliver tightly-packed BGRA data. When `stride != width * 4`, the no-scale path copies row-by-row into `scale_buffer_` to strip padding. Without this, rendered output shows diagonal tearing/shearing.
+
 ### `obj_string` (utils/obj_string.h)
 
-Debug utility for converting traa types to JSON-like strings for `LOG_API_ARGS_N()` macros. Supports: `traa_config`, `traa_log_config`, `traa_event_handler`, `traa_size`, `traa_point`, `traa_rect`, `traa_device_type`, `traa_log_level`, `traa_video_frame_format`, `traa_video_capability`, `traa_video_frame`, `traa_camera_config`, pointers.
+Debug utility for converting traa types to JSON-like strings for `LOG_API_ARGS_N()` macros. Supports: `traa_config`, `traa_log_config`, `traa_event_handler`, `traa_size`, `traa_point`, `traa_rect`, `traa_device_type`, `traa_log_level`, `traa_video_frame_format`, `traa_video_capability`, `traa_video_frame`, `traa_camera_config`, `traa_screen_capture_config` (desktop only), pointers.
 
 ## Links to Base Module
 
@@ -133,6 +151,7 @@ These behaviors were discovered during exhaustive smoke testing and are importan
 5. **`traa_set_log_level`** — Stateless, can be called at any time (before/after init). This is documented and expected.
 6. **`engine::init()`** — Always returns `TRAA_ERROR_NONE`. There is currently no double-init detection (`TRAA_ERROR_ALREADY_INITIALIZED` is never returned). Calling `traa_init` twice without `traa_release` succeeds silently.
 7. **`traa_create_snapshot` with zero-size** — Returns `TRAA_ERROR_NOT_FOUND` (not `TRAA_ERROR_INVALID_ARGUMENT`) when snapshot_size is {0,0}.
+8. **`traa_screen_capture_config` in base.h** — The struct's `on_video_frame` function pointer references `traa_video_frame`, which is defined later in the file. A `struct traa_video_frame;` forward declaration is required before the config struct. Without it, C compilers will error on the incomplete type in the function pointer parameter.
 
 ## Critical Rules
 

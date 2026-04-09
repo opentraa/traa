@@ -30,6 +30,7 @@ private:
   std::vector<uint8_t> buffer_;
   int width_ = 0;
   int height_ = 0;
+  traa_video_frame_format format_ = TRAA_VIDEO_FRAME_FORMAT_UNKNOWN;
   bool has_new_frame_ = false;
 };
 

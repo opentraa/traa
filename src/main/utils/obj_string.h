@@ -319,6 +319,8 @@ public:
       return "uyvy";
     case TRAA_VIDEO_FRAME_FORMAT_MJPEG:
       return "mjpeg";
+    case TRAA_VIDEO_FRAME_FORMAT_BGRA:
+      return "bgra";
     default:
       return "unknown";
     }
@@ -440,6 +442,50 @@ public:
   }
 
   static std::string to_string(const traa_camera_config &config) { return to_string(&config); }
+
+#if defined(_WIN32) ||                                                                             \
+    (defined(__APPLE__) && TARGET_OS_MAC && !TARGET_OS_IPHONE &&                                   \
+     (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)) ||                                         \
+    defined(__linux__)
+  /**
+   * @brief Convert a TRAA screen capture config to a string.
+   *
+   * This function converts a TRAA screen capture config to a string.
+   *
+   * @param config The TRAA screen capture config.
+   *
+   * @return The string.
+   */
+  static std::string to_string(const traa_screen_capture_config *config) {
+    OBJ_STRING_STREAM_DEFINE;
+
+    OBJ_STRING_OBJ_BEGIN;
+
+    if (config == nullptr) {
+      OBJ_STRING_POINTER_NULL;
+    } else {
+      OBJ_STRING_PROPERTY(*config, source_id);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY_TRAA_OBJ(*config, frame_size);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY_POINTER(*config, on_video_frame);
+      OBJ_STRING_SEP;
+
+      OBJ_STRING_PROPERTY_TRAA_OBJ(*config, userdata);
+    }
+
+    OBJ_STRING_OBJ_END;
+
+    OBJ_STRING_STREAM_RETURN;
+  }
+
+  static std::string to_string(const traa_screen_capture_config &config) {
+    return to_string(&config);
+  }
+#endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!TARGET_OS_VISION ||
+       // !TARGET_OS_VISION)) || __linux__
 };
 
 } // namespace main

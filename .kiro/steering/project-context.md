@@ -138,15 +138,16 @@ Note: Git submodules must be initialized before building (`git submodule update 
 The project includes an SDL3-based visual demo app at `examples/sdl_visual_demo/`, enabled via `TRAA_OPTION_ENABLE_SDL_DEMO` (default OFF). Spec at `.kiro/specs/sdl-visual-demo/`.
 
 Key architecture decisions:
-- **Panel plugin pattern**: `panel_manager` manages functional panels (device, screen_source, snapshot, camera, log) via `panel_base` abstract class
+- **Panel plugin pattern**: `panel_manager` manages functional panels (device, screen_source, snapshot, camera, screen_capture, log) via `panel_base` abstract class
 - **UI rendering**: Pure SDL3 built-in API (`SDL_RenderDebugText`, basic draw primitives), no external UI library or font files
-- **Thread-safe frame buffer**: `frame_buffer` class uses `std::mutex` for camera capture thread → SDL render thread data transfer, with minimal lock hold time (copy under lock, texture creation outside lock)
+- **Thread-safe frame buffer**: `frame_buffer` class uses `std::mutex` for capture thread → SDL render thread data transfer, with minimal lock hold time (copy under lock, texture creation outside lock). Supports both I420 and BGRA formats (stores format field, branches on pop_to_texture).
 - **Image conversion**: Lightweight I420→BGRA converter using BT.601 coefficients, avoids depending on libyuv from the demo
 - **Build integration**: `traa_sdl_demo` links `traa::main` (shared lib) + `SDL3::SDL3`; output dir matches `TRAA_ARCHIVE_OUTPUT_DIRECTORY` so the demo can find the traa shared library at runtime
 - **Test target**: `traa_sdl_demo_test` links `gtest` + `SDL3::SDL3` + `traa::main`; uses `GLOB_RECURSE` to auto-discover test files; gated by both `TRAA_OPTION_ENABLE_SDL_DEMO` and `TRAA_OPTION_ENABLE_UNIT_TEST`
 - **Header guards**: `TRAA_SDL_DEMO_` prefix (e.g., `TRAA_SDL_DEMO_APP_H_`, `TRAA_SDL_DEMO_PANELS_PANEL_BASE_H_`)
 - **Build gotcha**: Use `scripts\build.bat --sdl-demo` (Windows) or `./scripts/build.sh -p <platform> --sdl-demo` (macOS/Linux) to build with SDL demo enabled
 - **Known bug (fixed)**: Camera panel's device/capability list items were unclickable because `on_render` and `on_event` each defined layout constants as local `constexpr`. Fixed by extracting to class-level `static constexpr` members (`k_padding`, `k_btn_w`, `k_btn_h`, `k_line_height`, `k_gap`, `k_item_h`). Spec at `.kiro/specs/smoke-test-and-demo-fix/`.
+- **Known bug (fixed)**: Screen capture preview showed diagonal tearing/shearing because `desktop_frame::stride()` on Windows (DXGI/GDI) is often larger than `width * 4` due to GPU texture alignment. The `screen_capture_callback` in `engine.cc` now strips row padding by copying row-by-row when `stride != width * 4`. Any code consuming `desktop_frame` data for rendering must account for stride ≠ width × 4.
 
 ## Third-Party Dependencies
 
@@ -225,6 +226,7 @@ The project root has a `.clang-format` file. All code should follow that format 
 - Cross-platform device abstraction
 - Windows camera capture (DirectShow): Ported from WebRTC to `src/base/devices/camera/` (OBJECT library `traa::base::devices::camera`). Cross-platform base classes (`video_capture_impl`, `device_info_impl`, `video_type` enum, `video_capture_capability`) + Windows DirectShow implementation (`help_functions_ds`, `device_info_ds`, `sink_filter_ds`, `video_capture_ds`, factory functions). Includes 10 property-based tests. Windows link libraries: strmiids.lib, ole32.lib, oleaut32.lib.
 - Camera capture integration: Camera module integrated into engine and public C API. 4 new public API functions (`traa_get_camera_capability`, `traa_free_camera_capability`, `traa_start_camera_capture`, `traa_stop_camera_capture`). New C types (`traa_video_frame_format`, `traa_video_capability`, `traa_video_frame`, `traa_camera_config`). Engine manages multiple simultaneous captures keyed by device_id. Frame callback `on_video_frame` runs on the capture thread (not the main queue). Includes 5 property-based tests + 13 unit tests.
+- Continuous screen capture: `traa_start_screen_capture` / `traa_stop_screen_capture` public C API with `traa_screen_capture_config`. Engine manages per-session capture threads keyed by `int64_t source_id`, BGRA frame callback via `desktop_capturer`, optional `libyuv::ARGBScale` scaling. New `TRAA_VIDEO_FRAME_FORMAT_BGRA` enum value. SDL demo Screen Capture panel with real-time preview. 4 property-based tests + 7 smoke tests. Spec at `.kiro/specs/screen-capture-preview/`.
 
 ## Partially Implemented Features
 

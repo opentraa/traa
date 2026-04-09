@@ -142,3 +142,4 @@ Capturers can be wrapped for additional functionality:
 4. Memory: `new[]` in enumerators must be paired with `delete[]` in `free_*` functions
 5. All capturers must handle `error_temporary` vs `error_permanent` correctly
 6. Frame data uses BGRA pixel format (4 bytes per pixel)
+7. **`desktop_frame` stride ≠ width × 4 on Windows** — DXGI and GDI capturers often produce frames where `stride()` is larger than `width() * 4` due to GPU texture alignment (e.g., 16-byte or 256-byte row alignment). Any code that consumes `desktop_frame::data()` must use `stride()` for row offsets, or strip the padding by copying row-by-row into a tightly-packed buffer before passing to APIs that assume `pitch == width * 4` (like `SDL_UpdateTexture`). Ignoring this causes diagonal tearing/shearing artifacts in rendered output.

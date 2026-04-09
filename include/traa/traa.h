@@ -230,6 +230,57 @@ TRAA_API int TRAA_CALL traa_create_snapshot(const int64_t source_id, const traa_
  * @param data A pointer to the snapshot data to free.
  */
 TRAA_API void TRAA_CALL traa_free_snapshot(uint8_t *data);
+
+/**
+ * @brief Starts continuous screen capture for the specified source.
+ *
+ * This function starts capturing screen frames from the source specified in @p config.
+ * Captured frames are delivered through the @c on_video_frame callback registered in the
+ * configuration. The callback is invoked on the capture thread with BGRA frame data, not the main
+ * task queue thread.
+ *
+ * @param config A pointer to a traa_screen_capture_config structure containing the source ID,
+ *               desired frame size, frame callback, and user data.
+ * @return An integer value indicating the success or failure of the operation.
+ *         A return value of 0 indicates success, while a non-zero value
+ *         indicates failure.
+ *
+ * @note The @c on_video_frame callback is called on the capture thread. The @c data pointer in
+ *       traa_video_frame is only valid during the callback invocation.
+ * @note Only one capture session per source is allowed. Starting capture on a source that is
+ *       already being captured will return @c TRAA_ERROR_ALREADY_EXISTS.
+ *
+ * @retval TRAA_ERROR_NONE on success.
+ * @retval TRAA_ERROR_INVALID_ARGUMENT if @p config is nullptr, @c on_video_frame is nullptr,
+ *         or @c source_id is @c TRAA_INVALID_SCREEN_ID.
+ * @retval TRAA_ERROR_ALREADY_EXISTS if capture is already active for the given source_id.
+ * @retval TRAA_ERROR_NOT_INITIALIZED if @c traa_init has not been called.
+ *
+ * @see traa_stop_screen_capture
+ * @see traa_screen_capture_config
+ */
+TRAA_API int TRAA_CALL traa_start_screen_capture(const traa_screen_capture_config *config);
+
+/**
+ * @brief Stops screen capture for the specified source.
+ *
+ * This function stops an ongoing screen capture session for the source identified by @p source_id
+ * and releases the associated resources. After this call, the @c on_video_frame callback registered
+ * for this source will no longer be invoked.
+ *
+ * @param source_id The unique identifier of the screen source to stop capturing.
+ * @return An integer value indicating the success or failure of the operation.
+ *         A return value of 0 indicates success, while a non-zero value
+ *         indicates failure.
+ *
+ * @retval TRAA_ERROR_NONE on success.
+ * @retval TRAA_ERROR_INVALID_ARGUMENT if @p source_id is @c TRAA_INVALID_SCREEN_ID.
+ * @retval TRAA_ERROR_NOT_FOUND if the specified source was not being captured.
+ * @retval TRAA_ERROR_NOT_INITIALIZED if @c traa_init has not been called.
+ *
+ * @see traa_start_screen_capture
+ */
+TRAA_API int TRAA_CALL traa_stop_screen_capture(const int64_t source_id);
 #endif // (defined(_WIN32) || defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__) &&
        // (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE) &&
        // (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)

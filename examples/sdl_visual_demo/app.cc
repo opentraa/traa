@@ -4,6 +4,7 @@
 #include "panels/screen_source_panel.h"
 #include "panels/snapshot_panel.h"
 #include "panels/camera_panel.h"
+#include "panels/screen_capture_panel.h"
 #include "panels/log_panel.h"
 #include "ui/theme.h"
 #include "ui/ui_renderer.h"
@@ -82,8 +83,8 @@ void app::run() {
         if (event.key.key == SDLK_ESCAPE) {
           running_ = false;
         }
-        // digit keys 1-5 switch panels
-        if (event.key.key >= SDLK_1 && event.key.key <= SDLK_5) {
+        // digit keys 1-6 switch panels
+        if (event.key.key >= SDLK_1 && event.key.key <= SDLK_6) {
           int index = static_cast<int>(event.key.key - SDLK_1);
           if (index < panel_mgr_.panel_count()) {
             panel_mgr_.switch_to(index);
@@ -151,6 +152,7 @@ void app::register_panels() {
   panel_mgr_.register_panel(std::make_unique<screen_source_panel>());
   panel_mgr_.register_panel(std::make_unique<snapshot_panel>());
   panel_mgr_.register_panel(std::make_unique<camera_panel>());
+  panel_mgr_.register_panel(std::make_unique<screen_capture_panel>());
   panel_mgr_.register_panel(std::make_unique<log_panel>());
   panel_mgr_.set_app(this);
 }

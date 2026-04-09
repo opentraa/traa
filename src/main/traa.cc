@@ -271,6 +271,40 @@ void traa_free_snapshot(uint8_t *data) {
   return traa::main::engine::free_snapshot(data);
 }
 
+int traa_start_screen_capture(const traa_screen_capture_config *config) {
+  LOG_API_ARGS_1(traa::main::obj_string::to_string(config));
+
+  if (config == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  if (config->on_video_frame == nullptr) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  if (config->source_id == TRAA_INVALID_SCREEN_ID) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [config]() { return g_engine_instance->start_screen_capture(config); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
+int traa_stop_screen_capture(const int64_t source_id) {
+  LOG_API_ARGS_1(source_id);
+
+  if (source_id == TRAA_INVALID_SCREEN_ID) {
+    return TRAA_ERROR_INVALID_ARGUMENT;
+  }
+
+  return traa::base::task_queue_manager::post_task(
+             g_main_queue_id,
+             [source_id]() { return g_engine_instance->stop_screen_capture(source_id); })
+      .get(traa_error::TRAA_ERROR_NOT_INITIALIZED);
+}
+
 #endif // _WIN32 || (__APPLE__ && TARGET_OS_MAC && !TARGET_OS_IPHONE && (!defined(TARGET_OS_VISION)
        // || !TARGET_OS_VISION)) || __linux__
 #endif
